@@ -1,0 +1,66 @@
+---
+name: build
+
+on:
+  push:
+    branches:
+    - master
+  pull_request:
+    branches:
+    - master
+
+jobs:
+  core:
+    strategy:
+      matrix:
+        go-version: [1.14.x]
+        platform: [ubuntu-latest]
+    name: Build
+    runs-on: ${{ matrix.platform }}
+    env:
+      GOBIN: /home/runner/.local/bin
+    steps:
+    - name: Install Go
+      uses: actions/setup-go@v1
+      with:
+        go-version: ${{ matrix.go-version }}
+      id: go
+    - name: Check out code into the Go module directory
+      uses: actions/checkout@v2
+    - name: Setup Environment
+      run: |
+        mkdir -p /home/runner/.local/bin
+        echo "::add-path::/home/runner/.local/bin"
+        mkdir -p .coverage
+        echo "*** Current Directory ***"
+        pwd
+        echo "*** Environment Variables ***"
+        env | sort
+        echo "*** Executable Path ***"
+        echo "$PATH" | tr ':' '\n'
+        echo "*** Workspace Files ***"
+        find .
+        which make
+    - name: Install prerequisites
+      run: |
+        sudo apt-get --assume-yes install make
+        pip3 install --upgrade pip setuptools wheel
+        pip3 install signxml --user
+        sudo cp assets/idp/azure_ad_app_signing_cert.pem /usr/local/share/ca-certificates/azure_ad_app_signing_cert.crt
+        sudo update-ca-certificates
+    - name: Install Go modules
+      run: |
+        go get -u golang.org/x/lint/golint
+    - name: Validate prerequisites
+      run: |
+        echo "*** Local binaries ***"
+        find /home/runner/.local/bin
+    - name: Run tests
+      run: make test
+    - name: Generate coverage report
+      run: make coverage
+    - name: Upload coverage report
+      uses: actions/upload-artifact@v1
+      with:
+        name: Test Coverage Report
+        path: .coverage/coverage.html
