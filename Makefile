@@ -1,5 +1,5 @@
 .PHONY: test ctest covdir coverage docs linter qtest clean dep release
-PLUGIN_NAME="caddy-auth-local"
+PLUGIN_NAME="caddy-auth-forms"
 PLUGIN_VERSION:=$(shell cat VERSION | head -1)
 GIT_COMMIT:=$(shell git describe --dirty --always)
 GIT_BRANCH:=$(shell git rev-parse --abbrev-ref HEAD -- | head -1)
@@ -20,7 +20,7 @@ all:
 	@rm -rf ../xcaddy-$(PLUGIN_NAME)/*
 	@mkdir -p ../xcaddy-$(PLUGIN_NAME) && cd ../xcaddy-$(PLUGIN_NAME) && \
 		xcaddy build v2.0.0-rc.3 --output ../$(PLUGIN_NAME)/bin/caddy \
-		--with github.com/greenpau/caddy-auth-local@$(LATEST_GIT_COMMIT)=$(BUILD_DIR) \
+		--with github.com/greenpau/caddy-auth-forms@$(LATEST_GIT_COMMIT)=$(BUILD_DIR) \
 		--with github.com/greenpau/caddy-auth-jwt@latest=$(BUILD_DIR)/../caddy-auth-jwt
 	@#bin/caddy run -environ -config assets/conf/Caddyfile.json
 

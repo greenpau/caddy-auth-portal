@@ -20,53 +20,44 @@
                 {
                   "handler": "authentication",
                   "providers": {
-                    "jwt": {
-                      "token_name": "access_token",
-                      "token_secret": "383aca9a-1c39-4d7a-b4d8-67ba4718dd3f",
-                      "token_issuer": "7a50e023-2c6e-4a5e-913e-23ecd0e2b940",
-                      "auth_url_path": "/login",
-                      "access_list": [
+                    "forms": {
+                      "auth_url_path": "/auth",
+                      "backends": [
                         {
-                          "action": "allow",
-                          "claim": "roles",
-                          "values": [
-                            "AzureAD_Viewer",
-                            "AzureAD_Editor",
-                            "AzureAD_Administrator"
-                          ]
+                          "type": "boltdb",
+                          "path": "/etc/caddy/auth/local/local.db"
                         }
                       ],
-                      "strip_token": false,
-                      "pass_claims": false,
-                      "token_types": [
-                        "HS256",
-                        "HS384",
-                        "HS512",
-                        "RS256",
-                        "RS384",
-                        "RS512",
-                        "ES256",
-                        "ES384",
-                        "ES512"
-                      ],
-                      "token_sources": [
-                        "header",
-                        "cookie",
-                        "query"
-                      ]
+                      "jwt": {
+                        "token_name": "access_token",
+                        "token_secret": "383aca9a-1c39-4d7a-b4d8-67ba4718dd3f",
+                        "token_issuer": "7a50e023-2c6e-4a5e-913e-23ecd0e2b940"
+                      },
+                      "ui": {
+                        "templates": {
+                          "login": "assets/ui/login.template"
+                        },
+                        "allow_role_selection": false,
+                        "auto_redirect_url": "",
+                        "private_links": [
+                          {
+                            "title": "Prometheus",
+                            "link": "/prometheus"
+                          },
+                          {
+                            "title": "Alertmanager",
+                            "link": "/alertmanager"
+                          }
+                        ]
+                      }
                     }
                   }
-                },
-                {
-                  "body": "OK",
-                  "handler": "static_response",
-                  "status_code": 200
                 }
               ],
               "match": [
                 {
                   "path": [
-                    "/health"
+                    "/auth*"
                   ]
                 }
               ],
@@ -75,47 +66,7 @@
             {
               "handle": [
                 {
-                  "handler": "authentication",
-                  "providers": {
-                    "jwt": {
-                      "token_name": "access_token",
-                      "token_secret": "383aca9a-1c39-4d7a-b4d8-67ba4718dd3f",
-                      "token_issuer": "7a50e023-2c6e-4a5e-913e-23ecd0e2b940",
-                      "auth_url_path": "/login",
-                      "access_list": [
-                        {
-                          "action": "allow",
-                          "claim": "roles",
-                          "values": [
-                            "AzureAD_Viewer",
-                            "AzureAD_Editor",
-                            "AzureAD_Administrator"
-                          ]
-                        }
-                      ],
-                      "strip_token": false,
-                      "pass_claims": false,
-                      "token_types": [
-                        "HS256",
-                        "HS384",
-                        "HS512",
-                        "RS256",
-                        "RS384",
-                        "RS512",
-                        "ES256",
-                        "ES384",
-                        "ES512"
-                      ],
-                      "token_sources": [
-                        "header",
-                        "cookie",
-                        "query"
-                      ]
-                    }
-                  }
-                },
-                {
-                  "body": "OK",
+                  "body": "metrics",
                   "handler": "static_response",
                   "status_code": 200
                 }

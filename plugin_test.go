@@ -1,9 +1,10 @@
 // Copyright 2020 Paul Greenberg (greenpau@outlook.com)
 
-package jwt
+package forms
 
 import (
 	"github.com/caddyserver/caddy/v2/caddytest"
+	"io/ioutil"
 	"testing"
 	"time"
 )
@@ -23,7 +24,8 @@ func TestPlugin(t *testing.T) {
 	caddytest.InitServer(t, rawConfig, "json")
 
 	caddytest.AssertGetResponse(t, baseURL+"/version", 200, "1.0.0")
-	caddytest.AssertGetResponse(t, baseURL+"/health", 401, "")
+	//caddytest.AssertGetResponse(t, baseURL+"/health", 401, "")
+	//caddytest.AssertGetResponse(t, baseURL+"/metrics", 401, "")
 
 	time.Sleep(1 * time.Millisecond)
 	// Uncomment the below line to perform manual testing
