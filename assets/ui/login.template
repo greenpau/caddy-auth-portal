@@ -47,13 +47,15 @@
           </div>
           {{ end }}
 
-          {{range .PublicLinks}}
-          <div class="pb-2 p-1">
-            <a class="btn btn-primary btn-lg btn-block" href="{{ .Link }}">
-              <span class="fab {{ .Style }}"></span> {{ .Title }}
-            </a>
-          </div>
-          {{ end }}
+          <form action="{{ .ActionEndpoint }}" method="POST" role="form" class="card p-2">
+            <div class="input-group">
+              <input name="password" type="password" class="form-control" placeholder="token">
+              <div class="input-group-append">
+                <button type="submit" class="btn btn-secondary">Authenticate</button>
+              </div>
+            </div>
+          </form>
+
         </div>
       </div>
       {{ else }}

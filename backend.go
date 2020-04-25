@@ -35,9 +35,12 @@ func (b *Backend) Authenticate(reqID string, kv map[string]string) (*jwt.UserCla
 func (b *Backend) Validate() error {
 	switch b.Type {
 	case "boltdb":
-		return nil
+		// check local file accessible
 	default:
 		return fmt.Errorf("backend type %s is unsupported", b.Type)
+	}
+	if b.Realm == "" {
+		b.Realm = "local"
 	}
 	return nil
 }

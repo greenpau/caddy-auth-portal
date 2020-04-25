@@ -297,11 +297,10 @@ func (m AuthProvider) Authenticate(w http.ResponseWriter, r *http.Request) (cadd
 		authFound := false
 		if kv, err := validateRequestCompliance(r); err == nil {
 			for _, backend := range m.Backends {
-				if backend.Realm == kv["realm"] {
-					authFound = true
-				} else {
+				if backend.Realm != kv["realm"] {
 					continue
 				}
+				authFound = true
 				userClaims, err = backend.Authenticate(reqID, kv)
 				if err != nil {
 					uiArgs.Message = "Authentication failed"
@@ -331,7 +330,7 @@ func (m AuthProvider) Authenticate(w http.ResponseWriter, r *http.Request) (cadd
 				m.logger.Warn(
 					"Authentication failed",
 					zap.String("request_id", reqID),
-					zap.String("error", "local backend not found"),
+					zap.String("error", "no matching auth backend found"),
 				)
 			}
 			w.WriteHeader(http.StatusBadRequest)
