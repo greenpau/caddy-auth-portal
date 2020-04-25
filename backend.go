@@ -21,12 +21,19 @@ func (b *Backend) Authenticate(reqID string, kv map[string]string) (*jwt.UserCla
 	if kv == nil {
 		return nil, fmt.Errorf("No input to authenticate")
 	}
+	if _, exists := kv["username"]; !exists {
+		return nil, fmt.Errorf("No username found")
+	}
+	if _, exists := kv["password"]; !exists {
+		return nil, fmt.Errorf("No password found")
+	}
 	claims := &jwt.UserClaims{}
 	claims.ExpiresAt = time.Now().Add(time.Duration(b.Jwt.TokenLifetime) * time.Second).Unix()
 	claims.Name = "Greenberg, Paul"
 	claims.Email = "greenpau@outlook.com"
 	claims.Origin = "localhost"
-	claims.Subject = "greenpau@outlook.com"
+	claims.Subject = kv["username"]
+	//claims.Subject = "greenpau@outlook.com"
 	claims.Roles = append(claims.Roles, "anonymous")
 	return claims, nil
 }
