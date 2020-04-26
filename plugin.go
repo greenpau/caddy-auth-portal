@@ -29,8 +29,8 @@ type AuthProvider struct {
 	Name          string                   `json:"-"`
 	AuthURLPath   string                   `json:"auth_url_path,omitempty"`
 	UserInterface *UserInterfaceParameters `json:"ui,omitempty"`
-	Backends      []*Backend               `json:"backends,omitempty"`
-	Jwt           TokenParameters          `json:"jwt,omitempty"`
+	Backends      []Backend                `json:"backends,omitempty"`
+	TokenProvider *jwt.TokenProviderConfig `json:"jwt,omitempty"`
 	logger        *zap.Logger              `json:"-"`
 	uiFactory     *ui.UserInterfaceFactory `json:"-"`
 }
@@ -45,14 +45,6 @@ type UserInterfaceParameters struct {
 	LogoDescription    string                 `json:"logo_description,omitempty"`
 	PrivateLinks       []ui.UserInterfaceLink `json:"private_links,omitempty"`
 	AutoRedirectURL    string                 `json:"auto_redirect_url"`
-}
-
-// TokenParameters represent JWT parameters of CommonParameters.
-type TokenParameters struct {
-	TokenName     string `json:"token_name,omitempty"`
-	TokenSecret   string `json:"token_secret,omitempty"`
-	TokenIssuer   string `json:"token_issuer,omitempty"`
-	TokenLifetime int    `json:"token_lifetime,omitempty"`
 }
 
 // CaddyModule returns the Caddy module information.
@@ -83,45 +75,44 @@ func (m *AuthProvider) Validate() error {
 	)
 
 	m.logger.Info("validating plugin JWT settings")
-	if m.Jwt.TokenName == "" {
-		m.Jwt.TokenName = "access_token"
+
+	if m.TokenProvider.TokenName == "" {
+		m.TokenProvider.TokenName = "access_token"
 	}
 	m.logger.Info(
-		"found JWT token name",
-		zap.String("jwt.token_name", m.Jwt.TokenName),
+		"JWT token name found",
+		zap.String("token_name", m.TokenProvider.TokenName),
 	)
 
-	if m.Jwt.TokenSecret == "" {
+	if m.TokenProvider.TokenSecret == "" {
 		if os.Getenv("JWT_TOKEN_SECRET") == "" {
-			return fmt.Errorf("%s: jwt_token_secret must be defined either "+
+			return fmt.Errorf("%s: token_secret must be defined either "+
 				"via JWT_TOKEN_SECRET environment variable or "+
-				"via jwt.token_secret configuration element",
+				"via token_secret configuration element",
 				m.Name,
 			)
 		}
-		m.Jwt.TokenSecret = os.Getenv("JWT_TOKEN_SECRET")
+		m.TokenProvider.TokenSecret = os.Getenv("JWT_TOKEN_SECRET")
 	}
 
-	if m.Jwt.TokenIssuer == "" {
-		m.logger.Warn(
-			"JWT token issuer not found, using default",
-			zap.String("jwt.token_issuer", "localhost"),
-		)
-		m.Jwt.TokenIssuer = "localhost"
+	if m.TokenProvider.TokenIssuer == "" {
+		m.logger.Warn("JWT token issuer not found, using default")
+		m.TokenProvider.TokenIssuer = "localhost"
 	}
 
-	if m.Jwt.TokenLifetime == 0 {
-		m.Jwt.TokenLifetime = 900
-		m.logger.Info(
-			"JWT token lifetime not found, using default",
-			zap.Int("jwt.token_lifetime", m.Jwt.TokenLifetime),
-		)
-	} else {
-		m.logger.Info(
-			"JWT token lifetime found",
-			zap.Int("jwt.token_lifetime", m.Jwt.TokenLifetime),
-		)
+	m.logger.Info(
+		"JWT token issuer found",
+		zap.String("token_issuer", m.TokenProvider.TokenIssuer),
+	)
+
+	if m.TokenProvider.TokenLifetime == 0 {
+		m.logger.Warn("JWT token lifetime not found, using default")
+		m.TokenProvider.TokenLifetime = 900
 	}
+	m.logger.Info(
+		"JWT token lifetime found",
+		zap.Int("token_lifetime", m.TokenProvider.TokenLifetime),
+	)
 
 	// Backend Validation
 	if len(m.Backends) == 0 {
@@ -129,22 +120,12 @@ func (m *AuthProvider) Validate() error {
 	}
 
 	for _, backend := range m.Backends {
-		if err := backend.Validate(); err != nil {
+		if err := backend.Driver.Validate(); err != nil {
+			return fmt.Errorf("%s: backend validation error: %s", m.Name, err)
+		}
+		if err := backend.Driver.ConfigureTokenProvider(m.TokenProvider); err != nil {
 			return fmt.Errorf("%s: backend error: %s", m.Name, err)
 		}
-		if backend.Jwt.TokenName == "" {
-			backend.Jwt.TokenName = m.Jwt.TokenName
-		}
-		if backend.Jwt.TokenSecret == "" {
-			backend.Jwt.TokenSecret = m.Jwt.TokenSecret
-		}
-		if backend.Jwt.TokenIssuer == "" {
-			backend.Jwt.TokenName = m.Jwt.TokenIssuer
-		}
-		if backend.Jwt.TokenLifetime == 0 {
-			backend.Jwt.TokenLifetime = m.Jwt.TokenLifetime
-		}
-
 	}
 
 	// UI Validation
@@ -282,7 +263,7 @@ func (m AuthProvider) Authenticate(w http.ResponseWriter, r *http.Request) (cadd
 	if r.Method == "GET" {
 		q := r.URL.Query()
 		if _, exists := q["logout"]; exists {
-			for _, k := range []string{redirectToToken, m.Jwt.TokenName} {
+			for _, k := range []string{redirectToToken, m.TokenProvider.TokenName} {
 				w.Header().Add("Set-Cookie", k+"=delete; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT")
 			}
 		} else {
@@ -297,11 +278,11 @@ func (m AuthProvider) Authenticate(w http.ResponseWriter, r *http.Request) (cadd
 		authFound := false
 		if kv, err := validateRequestCompliance(r); err == nil {
 			for _, backend := range m.Backends {
-				if backend.Realm != kv["realm"] {
+				if backend.Driver.GetRealm() != kv["realm"] {
 					continue
 				}
 				authFound = true
-				userClaims, err = backend.Authenticate(reqID, kv)
+				userClaims, err = backend.Driver.Authenticate(reqID, kv)
 				if err != nil {
 					uiArgs.Message = "Authentication failed"
 					w.WriteHeader(http.StatusUnauthorized)
@@ -378,7 +359,7 @@ func (m AuthProvider) Authenticate(w http.ResponseWriter, r *http.Request) (cadd
 		zap.String("user_id", userIdentity.ID),
 	)
 
-	userToken, err := userClaims.GetToken("HS512", []byte(m.Jwt.TokenSecret))
+	userToken, err := userClaims.GetToken("HS512", []byte(m.TokenProvider.TokenSecret))
 	if err != nil {
 		m.logger.Error(
 			"Failed to get JWT token",
@@ -391,7 +372,7 @@ func (m AuthProvider) Authenticate(w http.ResponseWriter, r *http.Request) (cadd
 	w.Header().Set("Cache-Control", "no-store")
 	w.Header().Set("Pragma", "no-cache")
 	w.Header().Set("Authorization", "Bearer "+userToken)
-	w.Header().Set("Set-Cookie", m.Jwt.TokenName+"="+userToken+" Secure; HttpOnly;")
+	w.Header().Set("Set-Cookie", m.TokenProvider.TokenName+"="+userToken+" Secure; HttpOnly;")
 
 	if cookie, err := r.Cookie(redirectToToken); err == nil {
 		if redirectURL, err := url.Parse(cookie.Value); err == nil {

@@ -1,53 +1,54 @@
 package forms
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
 	"github.com/greenpau/caddy-auth-jwt"
-	"go.uber.org/zap"
-	"time"
 )
 
-// Backend represents authentication provider.
+// Backend is an authentication backend.
 type Backend struct {
-	Type   string          `json:"type,omitempty"`
-	Path   string          `json:"path,omitempty"`
-	Realm  string          `json:"realm,omitempty"`
-	Jwt    TokenParameters `json:"jwt,omitempty"`
-	logger *zap.Logger
+	Driver BackendDriver
 }
 
-// Authenticate performs authentication.
-func (b *Backend) Authenticate(reqID string, kv map[string]string) (*jwt.UserClaims, error) {
-	if kv == nil {
-		return nil, fmt.Errorf("No input to authenticate")
-	}
-	if _, exists := kv["username"]; !exists {
-		return nil, fmt.Errorf("No username found")
-	}
-	if _, exists := kv["password"]; !exists {
-		return nil, fmt.Errorf("No password found")
-	}
-	claims := &jwt.UserClaims{}
-	claims.ExpiresAt = time.Now().Add(time.Duration(b.Jwt.TokenLifetime) * time.Second).Unix()
-	claims.Name = "Greenberg, Paul"
-	claims.Email = "greenpau@outlook.com"
-	claims.Origin = "localhost"
-	claims.Subject = kv["username"]
-	//claims.Subject = "greenpau@outlook.com"
-	claims.Roles = append(claims.Roles, "anonymous")
-	return claims, nil
+// BackendDriver is an interface to an authentication provider.
+type BackendDriver interface {
+	GetRealm() string
+	Authenticate(string, map[string]string) (*jwt.UserClaims, error)
+	ConfigureTokenProvider(*jwt.TokenProviderConfig) error
+	Validate() error
 }
 
-// Validate checks whether Backend is supported.
-func (b *Backend) Validate() error {
-	switch b.Type {
-	case "boltdb":
-		// check local file accessible
-	default:
-		return fmt.Errorf("backend type %s is unsupported", b.Type)
+// UnmarshalJSON unpacks configuration into appropriate structures.
+func (b *Backend) UnmarshalJSON(data []byte) error {
+	if len(data) < 10 {
+		return fmt.Errorf("invalid configuration: %s", data)
 	}
-	if b.Realm == "" {
-		b.Realm = "local"
+	if bytes.Contains(data, []byte("\"type\":\"boltdb\"")) {
+		driver := NewBoltDatabaseBackend()
+		if err := json.Unmarshal(data, driver); err != nil {
+			return fmt.Errorf("invalid boltdb configuration, error: %s, config: %s", err, data)
+		}
+		if err := driver.ValidateConfig(); err != nil {
+			return fmt.Errorf("invalid boltdb configuration, error: %s, config: %s", err, data)
+		}
+		b.Driver = driver
+		return nil
 	}
-	return nil
+
+	if bytes.Contains(data, []byte("\"type\":\"sqlite3\"")) ||
+		bytes.Contains(data, []byte("\"type\":\"sqlite\"")) {
+		driver := NewSqliteDatabaseBackend()
+		if err := json.Unmarshal(data, driver); err != nil {
+			return fmt.Errorf("invalid SQLite configuration, error: %s, config: %s", err, data)
+		}
+		if err := driver.ValidateConfig(); err != nil {
+			return fmt.Errorf("invalid SQLite configuration, error: %s, config: %s", err, data)
+		}
+		b.Driver = driver
+		return nil
+	}
+
+	return fmt.Errorf("invalid configuration: %s", data)
 }

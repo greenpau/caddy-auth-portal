@@ -25,7 +25,13 @@
                       "backends": [
                         {
                           "type": "boltdb",
-                          "path": "/etc/caddy/auth/local/local.db"
+                          "path": "/etc/caddy/auth/local/bolt.db",
+                          "realm": "local"
+                        },
+                        {
+                          "type": "sqlite3",
+                          "path": "/etc/caddy/auth/local/sqlite3.db",
+                          "realm": "local"
                         }
                       ],
                       "jwt": {
