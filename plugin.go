@@ -120,10 +120,10 @@ func (m *AuthProvider) Validate() error {
 	}
 
 	for _, backend := range m.Backends {
-		if err := backend.Driver.Validate(); err != nil {
+		if err := backend.Validate(); err != nil {
 			return fmt.Errorf("%s: backend validation error: %s", m.Name, err)
 		}
-		if err := backend.Driver.ConfigureTokenProvider(m.TokenProvider); err != nil {
+		if err := backend.ConfigureTokenProvider(m.TokenProvider); err != nil {
 			return fmt.Errorf("%s: backend error: %s", m.Name, err)
 		}
 	}
@@ -278,11 +278,11 @@ func (m AuthProvider) Authenticate(w http.ResponseWriter, r *http.Request) (cadd
 		authFound := false
 		if kv, err := validateRequestCompliance(r); err == nil {
 			for _, backend := range m.Backends {
-				if backend.Driver.GetRealm() != kv["realm"] {
+				if backend.GetRealm() != kv["realm"] {
 					continue
 				}
 				authFound = true
-				userClaims, err = backend.Driver.Authenticate(reqID, kv)
+				userClaims, err = backend.Authenticate(reqID, kv)
 				if err != nil {
 					uiArgs.Message = "Authentication failed"
 					w.WriteHeader(http.StatusUnauthorized)

@@ -27,6 +27,8 @@ func TestPlugin(t *testing.T) {
 	//caddytest.AssertGetResponse(t, baseURL+"/health", 401, "")
 	//caddytest.AssertGetResponse(t, baseURL+"/metrics", 401, "")
 
+	//caddytest.AssertGetResponse(t, "http://localhost:2019/config/", 200, "xxx")
+
 	time.Sleep(1 * time.Millisecond)
 	// Uncomment the below line to perform manual testing
 	// time.Sleep(6000 * time.Second)
