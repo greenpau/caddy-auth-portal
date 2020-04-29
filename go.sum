@@ -334,12 +334,6 @@ github.com/gorilla/websocket v1.4.2/go.mod h1:YR8l580nyteQvAITg2hZ9XVh4b55+EU/ad
 github.com/gostaticanalysis/analysisutil v0.0.0-20190318220348-4088753ea4d3/go.mod h1:eEOZF4jCKGi+aprrirO9e7WKB3beBRtWgqGunKl6pKE=
 github.com/gostaticanalysis/analysisutil v0.0.3/go.mod h1:eEOZF4jCKGi+aprrirO9e7WKB3beBRtWgqGunKl6pKE=
 github.com/gravitational/trace v0.0.0-20190726142706-a535a178675f/go.mod h1:RvdOUHE4SHqR3oXlFFKnGzms8a5dugHygGw1bqDstYI=
-github.com/greenpau/caddy-auth-jwt v0.0.4 h1:EtLjBduZrateOV9yOSNsbRD0KT3K1eNPAf6NdeUfltA=
-github.com/greenpau/caddy-auth-jwt v0.0.4/go.mod h1:J3pUMikLPubRzaAGC3d7Sw/ef6Yv7u8E4ZjNFaFIyds=
-github.com/greenpau/caddy-auth-jwt v0.0.5 h1:P7q/ZTDQB5FPk2mb/7gl8nHwl5ZNhOsGxEPLu+UApTs=
-github.com/greenpau/caddy-auth-jwt v0.0.5/go.mod h1:6xocvcKLGEKNI37mycZvrQh3us96JfQb4uN82af4jKw=
-github.com/greenpau/caddy-auth-jwt v0.0.6 h1:IvWWwF/yB1PVOh9GCjvXoFJ8gOy0uLwSaMFvnNGBv1M=
-github.com/greenpau/caddy-auth-jwt v0.0.6/go.mod h1:6xocvcKLGEKNI37mycZvrQh3us96JfQb4uN82af4jKw=
 github.com/greenpau/caddy-auth-jwt v0.0.7 h1:pCj9+VkwMW8KahkFxugEjlUtD/HbW5lPeemPfVmw1iM=
 github.com/greenpau/caddy-auth-jwt v0.0.7/go.mod h1:6xocvcKLGEKNI37mycZvrQh3us96JfQb4uN82af4jKw=
 github.com/greenpau/caddy-auth-ui v0.0.2 h1:t+cLAKNPxrQ6IBugLV5eKqDWF6F6yRsUCCq9HVLa2Yc=
