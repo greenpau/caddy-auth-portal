@@ -16,9 +16,9 @@ type Backend struct {
 // BackendDriver is an interface to an authentication provider.
 type BackendDriver interface {
 	GetRealm() string
-	Authenticate(string, map[string]string) (*jwt.UserClaims, error)
-	ConfigureTokenProvider(*jwt.TokenProviderConfig) error
-	Validate() error
+	Authenticate(string, map[string]string) (*jwt.UserClaims, int, error)
+	Configure(*AuthProvider) error
+	Validate(*AuthProvider) error
 }
 
 // GetRealm returns realm associated with an authentication provider.
@@ -26,19 +26,19 @@ func (b *Backend) GetRealm() string {
 	return b.driver.GetRealm()
 }
 
+// Configure configures backend with the authentication provider settings.
+func (b *Backend) Configure(p *AuthProvider) error {
+	return b.driver.Configure(p)
+}
+
 // Authenticate performs authentication with an authentication provider.
-func (b *Backend) Authenticate(reqID string, data map[string]string) (*jwt.UserClaims, error) {
+func (b *Backend) Authenticate(reqID string, data map[string]string) (*jwt.UserClaims, int, error) {
 	return b.driver.Authenticate(reqID, data)
 }
 
-// ConfigureTokenProvider configures TokenProvider for an authentication provider.
-func (b *Backend) ConfigureTokenProvider(c *jwt.TokenProviderConfig) error {
-	return b.driver.ConfigureTokenProvider(c)
-}
-
 // Validate checks whether an authentication provider is functional.
-func (b *Backend) Validate() error {
-	return b.driver.Validate()
+func (b *Backend) Validate(p *AuthProvider) error {
+	return b.driver.Validate(p)
 }
 
 // MarshalJSON packs configuration info JSON byte array

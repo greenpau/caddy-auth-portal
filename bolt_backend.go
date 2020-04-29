@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"github.com/greenpau/caddy-auth-jwt"
 	"go.uber.org/zap"
-	"time"
+	//"time"
 )
 
 // BoltBackend represents authentication provider with BoltDB backend.
@@ -14,6 +14,18 @@ type BoltBackend struct {
 	Path          string                   `json:"path,omitempty"`
 	TokenProvider *jwt.TokenProviderConfig `json:"jwt,omitempty"`
 	logger        *zap.Logger
+}
+
+// Configure configures backend with the authentication provider settings.
+func (b *BoltBackend) Configure(p *AuthProvider) error {
+	if p.logger == nil {
+		return fmt.Errorf("upstream logger is nil")
+	}
+	b.logger = p.logger
+	if err := b.ConfigureTokenProvider(p.TokenProvider); err != nil {
+		return err
+	}
+	return nil
 }
 
 // NewBoltDatabaseBackend return an instance of authentication provider
@@ -26,42 +38,34 @@ func NewBoltDatabaseBackend() *BoltBackend {
 }
 
 // Authenticate performs authentication.
-func (b *BoltBackend) Authenticate(reqID string, kv map[string]string) (*jwt.UserClaims, error) {
+func (b *BoltBackend) Authenticate(reqID string, kv map[string]string) (*jwt.UserClaims, int, error) {
 	if kv == nil {
-		return nil, fmt.Errorf("No input to authenticate")
+		return nil, 400, fmt.Errorf("No input to authenticate")
 	}
 	if _, exists := kv["username"]; !exists {
-		return nil, fmt.Errorf("No username found")
+		return nil, 400, fmt.Errorf("No username found")
 	}
 	if _, exists := kv["password"]; !exists {
-		return nil, fmt.Errorf("No password found")
+		return nil, 400, fmt.Errorf("No password found")
 	}
 
-	claims := &jwt.UserClaims{}
-	claims.ExpiresAt = time.Now().Add(time.Duration(b.TokenProvider.TokenLifetime) * time.Second).Unix()
-	claims.Name = "Greenberg, Paul"
-	claims.Email = "greenpau@outlook.com"
-	claims.Origin = "localhost"
-	claims.Subject = kv["username"]
-	//claims.Subject = "greenpau@outlook.com"
-	claims.Roles = append(claims.Roles, "anonymous")
-	return claims, nil
+	return nil, 500, fmt.Errorf("BoltDB backend is under development")
 }
 
-// Validate checks whether BoltBackend is functional.
-func (b *BoltBackend) Validate() error {
-	if b.Realm == "" {
-		b.Realm = "local"
-	}
-	return nil
-}
-
-// ValidateConfig checks whether BoltBackend has mandatory configuration.
+// ValidateConfig checks whether SqliteBackend has mandatory configuration.
 func (b *BoltBackend) ValidateConfig() error {
 	if b.Path == "" {
 		return fmt.Errorf("path is empty")
 	}
 	return nil
+}
+
+// Validate checks whether BoltBackend is functional.
+func (b *BoltBackend) Validate(p *AuthProvider) error {
+	if err := b.ValidateConfig(); err != nil {
+		return err
+	}
+	return fmt.Errorf("BoltDB backend is under development")
 }
 
 // GetRealm return authentication realm.
@@ -82,6 +86,9 @@ func (b *BoltBackend) ConfigureTokenProvider(upstream *jwt.TokenProviderConfig) 
 	}
 	if b.TokenProvider.TokenIssuer == "" {
 		b.TokenProvider.TokenIssuer = upstream.TokenIssuer
+	}
+	if b.TokenProvider.TokenOrigin == "" {
+		b.TokenProvider.TokenOrigin = upstream.TokenOrigin
 	}
 	if b.TokenProvider.TokenLifetime == 0 {
 		b.TokenProvider.TokenLifetime = upstream.TokenLifetime

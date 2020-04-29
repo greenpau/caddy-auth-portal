@@ -100,6 +100,16 @@ func (m *AuthProvider) Validate() error {
 		m.TokenProvider.TokenIssuer = "localhost"
 	}
 
+	if m.TokenProvider.TokenOrigin == "" {
+		m.logger.Warn("JWT token origin not found, using default")
+		m.TokenProvider.TokenOrigin = "localhost"
+	}
+
+	m.logger.Info(
+		"JWT token origin found",
+		zap.String("token_origin", m.TokenProvider.TokenOrigin),
+	)
+
 	m.logger.Info(
 		"JWT token issuer found",
 		zap.String("token_issuer", m.TokenProvider.TokenIssuer),
@@ -120,11 +130,11 @@ func (m *AuthProvider) Validate() error {
 	}
 
 	for _, backend := range m.Backends {
-		if err := backend.Validate(); err != nil {
-			return fmt.Errorf("%s: backend validation error: %s", m.Name, err)
+		if err := backend.Configure(m); err != nil {
+			return fmt.Errorf("%s: backend configuration error: %s", m.Name, err)
 		}
-		if err := backend.ConfigureTokenProvider(m.TokenProvider); err != nil {
-			return fmt.Errorf("%s: backend error: %s", m.Name, err)
+		if err := backend.Validate(m); err != nil {
+			return fmt.Errorf("%s: backend validation error: %s", m.Name, err)
 		}
 	}
 
@@ -240,6 +250,7 @@ func (m AuthProvider) Authenticate(w http.ResponseWriter, r *http.Request) (cadd
 	var reqID string
 	var userClaims *jwt.UserClaims
 	var userAuthenticated bool
+	var authStatusCode int
 	if reqDump, err := httputil.DumpRequest(r, true); err == nil {
 		m.logger.Debug(fmt.Sprintf("request: %s", reqDump))
 	}
@@ -282,10 +293,10 @@ func (m AuthProvider) Authenticate(w http.ResponseWriter, r *http.Request) (cadd
 					continue
 				}
 				authFound = true
-				userClaims, err = backend.Authenticate(reqID, kv)
+				userClaims, authStatusCode, err = backend.Authenticate(reqID, kv)
 				if err != nil {
 					uiArgs.Message = "Authentication failed"
-					w.WriteHeader(http.StatusUnauthorized)
+					w.WriteHeader(authStatusCode)
 					m.logger.Warn(
 						"Authentication failed",
 						zap.String("request_id", reqID),
