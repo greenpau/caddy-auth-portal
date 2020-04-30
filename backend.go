@@ -4,7 +4,10 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"github.com/greenpau/caddy-auth-forms/pkg/backends/bolt"
+	"github.com/greenpau/caddy-auth-forms/pkg/backends/sqlite"
 	"github.com/greenpau/caddy-auth-jwt"
+	"go.uber.org/zap"
 )
 
 // Backend is an authentication backend.
@@ -17,8 +20,10 @@ type Backend struct {
 type BackendDriver interface {
 	GetRealm() string
 	Authenticate(string, map[string]string) (*jwt.UserClaims, int, error)
-	Configure(*AuthProvider) error
-	Validate(*AuthProvider) error
+	ConfigureLogger(*zap.Logger) error
+	ConfigureTokenProvider(*jwt.TokenProviderConfig) error
+	ConfigureAuthenticator() error
+	Validate() error
 }
 
 // GetRealm returns realm associated with an authentication provider.
@@ -28,7 +33,17 @@ func (b *Backend) GetRealm() string {
 
 // Configure configures backend with the authentication provider settings.
 func (b *Backend) Configure(p *AuthProvider) error {
-	return b.driver.Configure(p)
+	if err := b.driver.ConfigureLogger(p.logger); err != nil {
+		return err
+	}
+	if err := b.driver.ConfigureTokenProvider(p.TokenProvider); err != nil {
+		return err
+	}
+	if err := b.driver.ConfigureAuthenticator(); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // Authenticate performs authentication with an authentication provider.
@@ -38,7 +53,7 @@ func (b *Backend) Authenticate(reqID string, data map[string]string) (*jwt.UserC
 
 // Validate checks whether an authentication provider is functional.
 func (b *Backend) Validate(p *AuthProvider) error {
-	return b.driver.Validate(p)
+	return b.driver.Validate()
 }
 
 // MarshalJSON packs configuration info JSON byte array
@@ -53,7 +68,7 @@ func (b *Backend) UnmarshalJSON(data []byte) error {
 	}
 	if bytes.Contains(data, []byte("\"type\":\"boltdb\"")) {
 		b.bt = "boltdb"
-		driver := NewBoltDatabaseBackend()
+		driver := bolt.NewDatabaseBackend()
 		if err := json.Unmarshal(data, driver); err != nil {
 			return fmt.Errorf("invalid boltdb configuration, error: %s, config: %s", err, data)
 		}
@@ -67,7 +82,7 @@ func (b *Backend) UnmarshalJSON(data []byte) error {
 	if bytes.Contains(data, []byte("\"type\":\"sqlite3\"")) ||
 		bytes.Contains(data, []byte("\"type\":\"sqlite\"")) {
 		b.bt = "sqlite"
-		driver := NewSqliteDatabaseBackend()
+		driver := sqlite.NewDatabaseBackend()
 		if err := json.Unmarshal(data, driver); err != nil {
 			return fmt.Errorf("invalid SQLite configuration, error: %s, config: %s", err, data)
 		}

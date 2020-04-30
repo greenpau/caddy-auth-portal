@@ -1,58 +1,98 @@
-package forms
+package sqlite
 
 import (
 	"context"
 	"database/sql"
 	"fmt"
 	"github.com/greenpau/caddy-auth-jwt"
-	sqlite "github.com/mattn/go-sqlite3"
+	"github.com/mattn/go-sqlite3"
 	"os"
 	"sync"
 	//"encoding/json"
+	"github.com/google/uuid"
 	"go.uber.org/zap"
+	"golang.org/x/crypto/bcrypt"
 	"time"
 )
 
-// SqliteBackend represents authentication provider with SQLite backend.
-type SqliteBackend struct {
+// Backend represents authentication provider with SQLite backend.
+type Backend struct {
 	Realm         string                   `json:"realm,omitempty"`
 	Path          string                   `json:"path,omitempty"`
 	TokenProvider *jwt.TokenProviderConfig `json:"jwt,omitempty"`
-	Authorizer    *SqliteGuard             `json:"-"`
+	Authenticator *Authenticator           `json:"-"`
 	logger        *zap.Logger
 }
 
-// NewSqliteDatabaseBackend return an instance of authentication provider
+// NewDatabaseBackend return an instance of authentication provider
 // with SQLite backend.
-func NewSqliteDatabaseBackend() *SqliteBackend {
-	b := &SqliteBackend{
+func NewDatabaseBackend() *Backend {
+	b := &Backend{
 		TokenProvider: jwt.NewTokenProviderConfig(),
-		Authorizer:    NewSqliteGuard(),
+		Authenticator: NewAuthenticator(),
 	}
 	return b
 }
 
-// SqliteGuard represents database connector.
-type SqliteGuard struct {
-	mux    sync.Mutex
-	path   string
-	db     *sql.DB
-	logger *zap.Logger
+// Authenticator represents database connector.
+type Authenticator struct {
+	mux       sync.Mutex
+	path      string
+	salt      int
+	userCount int
+	db        *sql.DB
+	logger    *zap.Logger
 }
 
-// NewSqliteGuard returns an instance of SqliteGuard.
-func NewSqliteGuard() *SqliteGuard {
-	return &SqliteGuard{}
+// NewAuthenticator returns an instance of Authenticator.
+func NewAuthenticator() *Authenticator {
+	return &Authenticator{
+		salt: 16,
+	}
 }
 
 // SetPath sets database path.
-func (sa *SqliteGuard) SetPath(s string) {
+func (sa *Authenticator) SetPath(s string) {
 	sa.path = s
 	return
 }
 
+// SetSalt sets database path.
+func (sa *Authenticator) SetSalt(i int) error {
+	if i < 12 {
+		return fmt.Errorf("the provided value %d is to small for bcrypt salt", i)
+	}
+	sa.salt = i
+	return nil
+}
+
+// CreateUser creates a user in a database
+func (sa *Authenticator) CreateUser(userID, userPwd, userRoles, userEmail string) error {
+	sa.mux.Lock()
+	defer sa.mux.Unlock()
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+	query := "INSERT INTO User(first_name, last_name, email, passwordHash) VALUES ($, $, $, $) RETURNING id"
+	stmt, err := sa.db.PrepareContext(ctx, query)
+	if err != nil {
+		return fmt.Errorf("failed to query sqlite3 database: %s, error: %s", query, err)
+	}
+	var userCount int
+	err = stmt.QueryRowContext(ctx).Scan(&userCount)
+	switch {
+	case err == sql.ErrNoRows:
+		return fmt.Errorf("sqlite3 query did not return user count")
+	case err != nil:
+		return fmt.Errorf("sqlite3 user count query failed: %s, error: %s", query, err)
+	default:
+		sa.logger.Info("counter number of users in sqlite3", zap.Int("user_count", userCount))
+	}
+
+	return nil
+}
+
 // Configure check database connectivity and required tables.
-func (sa *SqliteGuard) Configure() error {
+func (sa *Authenticator) Configure() error {
 	sa.mux.Lock()
 	defer sa.mux.Unlock()
 	sa.logger.Info("sqlite3 backend configuration", zap.String("db_path", sa.path))
@@ -82,6 +122,7 @@ func (sa *SqliteGuard) Configure() error {
 		defer cancel()
 		query := "SELECT name FROM sqlite_master WHERE type='table' AND name = ?"
 		stmt, err := sa.db.PrepareContext(ctx, query)
+		defer stmt.Close()
 		if err != nil {
 			return fmt.Errorf("failed to query sqlite3 database: %s, error: %s", query, err)
 		}
@@ -98,15 +139,38 @@ func (sa *SqliteGuard) Configure() error {
 		if tableName != t {
 			return fmt.Errorf("sqlite3 database response mismatch: %s (expected) vs. %s (received)", t, tableName)
 		}
-		stmt.Close()
 	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+	query := "SELECT count(id) FROM User"
+	stmt, err := sa.db.PrepareContext(ctx, query)
+	if err != nil {
+		return fmt.Errorf("failed to query sqlite3 database: %s, error: %s", query, err)
+	}
+	var userCount int
+	err = stmt.QueryRowContext(ctx).Scan(&userCount)
+	switch {
+	case err == sql.ErrNoRows:
+		return fmt.Errorf("sqlite3 query did not return user count")
+	case err != nil:
+		return fmt.Errorf("sqlite3 user count query failed: %s, error: %s", query, err)
+	default:
+		sa.logger.Info("counter number of users in sqlite3", zap.Int("user_count", userCount))
+	}
+
+	sa.userCount = userCount
 
 	return nil
 }
 
 // AuthenticateUser checks the database for the presence of a username
 // and password and returns user claims.
-func (sa *SqliteGuard) AuthenticateUser(username, password string) (*jwt.UserClaims, int, error) {
+func (sa *Authenticator) AuthenticateUser(username, password string) (*jwt.UserClaims, int, error) {
+	passwordHash, err := bcrypt.GenerateFromPassword([]byte(password), sa.salt)
+	if err != nil {
+		return nil, 500, err
+	}
 	sa.mux.Lock()
 	defer sa.mux.Unlock()
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
@@ -118,7 +182,7 @@ func (sa *SqliteGuard) AuthenticateUser(username, password string) (*jwt.UserCla
 	defer stmt.Close()
 
 	var userID int
-	err = stmt.QueryRowContext(ctx, username, password).Scan(&userID)
+	err = stmt.QueryRowContext(ctx, username, passwordHash).Scan(&userID)
 	switch {
 	case err == sql.ErrNoRows:
 		return nil, 401, fmt.Errorf("user identity not found")
@@ -138,31 +202,42 @@ func (sa *SqliteGuard) AuthenticateUser(username, password string) (*jwt.UserCla
 	return claims, 200, fmt.Errorf("Authentication is not supported")
 }
 
-// Configure configures backend with the authentication provider settings.
-func (b *SqliteBackend) Configure(p *AuthProvider) error {
-	if p.logger == nil {
-		return fmt.Errorf("upstream logger is nil")
+// ConfigureAuthenticator configures backend for .
+func (b *Backend) ConfigureAuthenticator() error {
+	if b.Authenticator == nil {
+		b.Authenticator = NewAuthenticator()
 	}
-	b.logger = p.logger
-
-	if b.Authorizer == nil {
-		b.Authorizer = NewSqliteGuard()
-	}
-
-	b.Authorizer.SetPath(b.Path)
-	b.Authorizer.logger = p.logger
-	if err := b.Authorizer.Configure(); err != nil {
+	b.Authenticator.SetPath(b.Path)
+	b.Authenticator.logger = b.logger
+	if err := b.Authenticator.Configure(); err != nil {
 		return err
 	}
-	if err := b.ConfigureTokenProvider(p.TokenProvider); err != nil {
-		return err
+	if b.Authenticator.userCount == 0 {
+		userID := uuid.New().String()
+		userPwd := uuid.New().String()
+		if len(userID) < 36 || len(userPwd) < 36 {
+			return fmt.Errorf("failed to create default superadmin user")
+		}
+		userRoles := "internal/superadmin"
+		userEmail := userID + "@localdomain.local"
+		if err := b.Authenticator.CreateUser(userID, userPwd, userRoles, userEmail); err != nil {
+			b.logger.Error("failed to create default superadmin user for the database",
+				zap.String("error", err.Error()))
+			return err
+		}
+		b.logger.Info(
+			"added superadmin user to the database",
+			zap.String("user_id", userID),
+			zap.String("user_secret", userPwd),
+			zap.String("user_roles", userRoles),
+			zap.String("user_email", userEmail),
+		)
 	}
-
 	return nil
 }
 
-// ValidateConfig checks whether SqliteBackend has mandatory configuration.
-func (b *SqliteBackend) ValidateConfig() error {
+// ValidateConfig checks whether Backend has mandatory configuration.
+func (b *Backend) ValidateConfig() error {
 	if b.Path == "" {
 		return fmt.Errorf("path is empty")
 	}
@@ -170,7 +245,7 @@ func (b *SqliteBackend) ValidateConfig() error {
 }
 
 // Authenticate performs authentication.
-func (b *SqliteBackend) Authenticate(reqID string, kv map[string]string) (*jwt.UserClaims, int, error) {
+func (b *Backend) Authenticate(reqID string, kv map[string]string) (*jwt.UserClaims, int, error) {
 	if kv == nil {
 		return nil, 400, fmt.Errorf("No input to authenticate")
 	}
@@ -180,10 +255,10 @@ func (b *SqliteBackend) Authenticate(reqID string, kv map[string]string) (*jwt.U
 	if _, exists := kv["password"]; !exists {
 		return nil, 401, fmt.Errorf("No password found")
 	}
-	if b.Authorizer == nil {
+	if b.Authenticator == nil {
 		return nil, 500, fmt.Errorf("sqlite3 backend is nil")
 	}
-	claims, statusCode, err := b.Authorizer.AuthenticateUser(kv["username"], kv["password"])
+	claims, statusCode, err := b.Authenticator.AuthenticateUser(kv["username"], kv["password"])
 	if statusCode == 200 {
 		claims.Origin = b.TokenProvider.TokenOrigin
 		claims.ExpiresAt = time.Now().Add(time.Duration(b.TokenProvider.TokenLifetime) * time.Second).Unix()
@@ -192,8 +267,8 @@ func (b *SqliteBackend) Authenticate(reqID string, kv map[string]string) (*jwt.U
 	return nil, statusCode, err
 }
 
-// Validate checks whether SqliteBackend is functional.
-func (b *SqliteBackend) Validate(p *AuthProvider) error {
+// Validate checks whether Backend is functional.
+func (b *Backend) Validate() error {
 	if err := b.ValidateConfig(); err != nil {
 		return err
 	}
@@ -213,27 +288,30 @@ func (b *SqliteBackend) Validate(p *AuthProvider) error {
 		return fmt.Errorf("sqlite3 driver not found")
 	}
 
-	driverVersion, _, _ := sqlite.Version()
+	driverVersion, _, _ := sqlite3.Version()
 	b.logger.Info(
 		"validating SQLite backend",
 		zap.String("sqlite_version", driverVersion),
 		zap.String("db_path", b.Path),
 	)
 
-	if b.Authorizer == nil {
-		return fmt.Errorf("sqlite3 authorizer is nil")
+	if b.Authenticator == nil {
+		return fmt.Errorf("sqlite3 authenticator is nil")
 	}
 
 	return nil
 }
 
 // GetRealm return authentication realm.
-func (b *SqliteBackend) GetRealm() string {
+func (b *Backend) GetRealm() string {
 	return b.Realm
 }
 
 // ConfigureTokenProvider configures TokenProvider.
-func (b *SqliteBackend) ConfigureTokenProvider(upstream *jwt.TokenProviderConfig) error {
+func (b *Backend) ConfigureTokenProvider(upstream *jwt.TokenProviderConfig) error {
+	if upstream == nil {
+		return fmt.Errorf("upstream token provider is nil")
+	}
 	if b.TokenProvider == nil {
 		b.TokenProvider = jwt.NewTokenProviderConfig()
 	}
@@ -252,5 +330,14 @@ func (b *SqliteBackend) ConfigureTokenProvider(upstream *jwt.TokenProviderConfig
 	if b.TokenProvider.TokenLifetime == 0 {
 		b.TokenProvider.TokenLifetime = upstream.TokenLifetime
 	}
+	return nil
+}
+
+// ConfigureLogger configures backend with the same logger as its user.
+func (b *Backend) ConfigureLogger(logger *zap.Logger) error {
+	if logger == nil {
+		return fmt.Errorf("upstream logger is nil")
+	}
+	b.logger = logger
 	return nil
 }

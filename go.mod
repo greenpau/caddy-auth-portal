@@ -9,4 +9,5 @@ require (
 	github.com/greenpau/caddy-auth-ui v0.0.2
 	github.com/mattn/go-sqlite3 v1.10.0
 	go.uber.org/zap v1.15.0
+	golang.org/x/crypto v0.0.0-20200323165209-0ec3e9974c59
 )
