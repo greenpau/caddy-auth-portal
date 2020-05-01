@@ -79,8 +79,9 @@ release:
 	@git tag -a v`cat VERSION | head -1` -m "v`cat VERSION | head -1`"
 	@git push
 	@git push --tags
-	@#git push --delete origin vX.Y.Z
-	@#git tag --delete vX.Y.Z
+	@@echo "If necessary, run the following commands:"
+	@echo "  git push --delete origin v$(PLUGIN_VERSION)"
+	@echo "  git tag --delete v$(PLUGIN_VERSION)"
 
 resetdb:
 	@echo "Removing default database"
