@@ -12,24 +12,11 @@ Form-Based Authentication Plugin for for [Caddy v2](https://github.com/caddyserv
 First, initialize a database, e.g.:
 
 ```bash
-$ sqlite3 assets/backends/sqlite3/sqlite3.db < assets/backends/sqlite3/create_db.sql
+sqlite3 assets/backends/sqlite3/sqlite3.db < assets/backends/sqlite3/create_db.sql
 ```
 
-After the successful completion of the above command, the
-`file` command returns the following information
-
-```bash
-$ file assets/backends/sqlite3/sqlite3.db
-assets/backends/sqlite3/sqlite3.db: SQLite 3.x database
-```
-
-Next, create an administrator user for the database:
-
-```bash
-
-```
-
-Related error:
+The presence of the following log means that the above procedure was
+not followed:
 
 ```json
 {
@@ -37,6 +24,40 @@ Related error:
   "ts": 1588190071.9516814,
   "logger": "http.authentication.providers.forms",
   "msg": "sqlite3 database file does not exists",
+  "db_path": "assets/backends/sqlite3/sqlite3.db"
+}
+```
+
+After the successful completion of the above command, the
+`file` command returns the following information
+
+```bash
+file assets/backends/sqlite3/sqlite3.db
+assets/backends/sqlite3/sqlite3.db: SQLite 3.x database
+```
+
+If the database contains 0 users, the plugin will create a default superuser.
+The credentials are visible in the console logs. Please remember to reset them.
+
+```json
+{
+  "msg": "sqlite3 backend configuration",
+  "db_path": "assets/backends/sqlite3/sqlite3.db"
+},
+{
+  "msg": "created new user",
+  "user_id": 1,
+  "user_mail": "e7449192@localdomain.local",
+  "user_roles": "internal/superadmin"
+},
+{
+  "msg": "created default superadmin user for the database",
+  "user_name": "e7449192",
+  "user_secret": "1a2a7d56"
+},
+{
+  "msg": "validating SQLite backend",
+  "sqlite_version": "3.25.2",
   "db_path": "assets/backends/sqlite3/sqlite3.db"
 }
 ```

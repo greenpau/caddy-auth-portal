@@ -22,6 +22,7 @@ func TestPlugin(t *testing.T) {
 	rawConfig := string(configContent)
 
 	caddytest.InitServer(t, rawConfig, "json")
+	time.Sleep(2 * time.Second)
 
 	caddytest.AssertGetResponse(t, baseURL+"/version", 200, "1.0.0")
 	//caddytest.AssertGetResponse(t, baseURL+"/health", 401, "")

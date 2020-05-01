@@ -15,6 +15,13 @@ import (
 	"time"
 )
 
+var globalAuthenticator *Authenticator
+
+func init() {
+	globalAuthenticator = NewAuthenticator()
+	return
+}
+
 // Backend represents authentication provider with SQLite backend.
 type Backend struct {
 	Realm         string                   `json:"realm,omitempty"`
@@ -29,7 +36,7 @@ type Backend struct {
 func NewDatabaseBackend() *Backend {
 	b := &Backend{
 		TokenProvider: jwt.NewTokenProviderConfig(),
-		Authenticator: NewAuthenticator(),
+		Authenticator: globalAuthenticator,
 	}
 	return b
 }
@@ -66,26 +73,158 @@ func (sa *Authenticator) SetSalt(i int) error {
 	return nil
 }
 
-// CreateUser creates a user in a database
-func (sa *Authenticator) CreateUser(userID, userPwd, userRoles, userEmail string) error {
-	sa.mux.Lock()
-	defer sa.mux.Unlock()
+// UserCount returns database user count.
+func (sa *Authenticator) UserCount() (int, error) {
+	var userCount int
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
-	query := "INSERT INTO User(first_name, last_name, email, passwordHash) VALUES ($, $, $, $) RETURNING id"
+	query := "SELECT count(id) FROM User"
+	stmt, err := sa.db.PrepareContext(ctx, query)
+	if err != nil {
+		return userCount, fmt.Errorf("failed to query sqlite3 database: %s, error: %s", query, err)
+	}
+	err = stmt.QueryRowContext(ctx).Scan(&userCount)
+	switch {
+	case err == sql.ErrNoRows:
+		return userCount, fmt.Errorf("sqlite3 query did not return user count")
+	case err != nil:
+		return userCount, fmt.Errorf("sqlite3 user count query failed: %s, error: %s", query, err)
+	default:
+		sa.logger.Info("counted number of users in sqlite3", zap.Int("user_count", userCount))
+	}
+	return userCount, nil
+
+}
+
+// CreateUser creates a user in a database
+func (sa *Authenticator) CreateUser(userName, userPwd, userEmail string, userClaims map[string]interface{}) error {
+	passwordHash, err := bcrypt.GenerateFromPassword([]byte(userPwd), sa.salt)
+	if err != nil {
+		return fmt.Errorf("failed generating password hash for user identity with email %s", userEmail)
+	}
+	sa.mux.Lock()
+	defer sa.mux.Unlock()
+
+	// Check whether the email is already registered with an account.
+	userCount, err := sa.GetUserEmailCount(userEmail)
+	if err != nil {
+		return err
+	}
+	if userCount > 0 {
+		return fmt.Errorf("user identity with email %s already exists", userEmail)
+	}
+
+	// Create user indentity in User table
+	if err := sa.CreateUserID(userEmail, passwordHash); err != nil {
+		return err
+	}
+
+	// Search for the created user identity in User
+	userCount, err = sa.GetUserEmailCount(userEmail)
+	if err != nil {
+		return err
+	}
+	if userCount == 0 {
+		return fmt.Errorf("failed creating user identity for email %s", userEmail)
+	}
+
+	// Get user id for the created user identity in User
+	userID, err := sa.GetUserID(userEmail, passwordHash)
+	if err != nil {
+		return err
+	}
+
+	sa.logger.Info(
+		"created new user",
+		zap.Int("user_id", userID),
+		zap.String("user_mail", userEmail),
+		zap.Any("user_claims", userClaims),
+	)
+	return nil
+}
+
+// GetUserID returns user id from the combination of email and password hash.
+func (sa *Authenticator) GetUserID(userEmail string, passwordHash []byte) (int, error) {
+	var userID int
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+	query := "SELECT id FROM User WHERE email = ? AND passwordHash = ?"
+	stmt, err := sa.db.PrepareContext(ctx, query)
+	if err != nil {
+		return userID, fmt.Errorf("failed to query sqlite3 database: %s, error: %s", query, err)
+	}
+	defer stmt.Close()
+	err = stmt.QueryRowContext(ctx, userEmail, passwordHash).Scan(&userID)
+	switch {
+	case err == sql.ErrNoRows:
+		return userID, fmt.Errorf("user id not found")
+	case err != nil:
+		return userID, fmt.Errorf("sqlite3 database query failed: %s, error: %s", query, err)
+	default:
+		sa.logger.Info("found user identity", zap.String("user_email", userEmail), zap.Int("user_id", userID))
+	}
+	return userID, nil
+}
+
+// GetUserEmailCount returns the number of entries with this email address
+func (sa *Authenticator) GetUserEmailCount(userEmail string) (int, error) {
+	var userCount int
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+	query := "SELECT count(email) FROM User WHERE email = ?"
+	stmt, err := sa.db.PrepareContext(ctx, query)
+	if err != nil {
+		return userCount, fmt.Errorf("failed to query sqlite3 database: %s, error: %s", query, err)
+	}
+	err = stmt.QueryRowContext(ctx, userEmail).Scan(&userCount)
+	switch {
+	case err == sql.ErrNoRows:
+		return userCount, fmt.Errorf("sqlite3 query did not return user count")
+	case err != nil:
+		return userCount, fmt.Errorf("sqlite3 user count query failed: %s, error: %s", query, err)
+	default:
+		sa.logger.Info("counted number of users in sqlite3", zap.Int("user_count", userCount))
+	}
+	return userCount, nil
+}
+
+// CreateUserID create user identity in User table.
+func (sa *Authenticator) CreateUserID(userEmail string, passwordHash []byte) error {
+	initialUserCount, err := sa.UserCount()
+	if err != nil {
+		return err
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+	query := "INSERT INTO User(email,passwordHash) VALUES (?, ?)"
 	stmt, err := sa.db.PrepareContext(ctx, query)
 	if err != nil {
 		return fmt.Errorf("failed to query sqlite3 database: %s, error: %s", query, err)
 	}
-	var userCount int
-	err = stmt.QueryRowContext(ctx).Scan(&userCount)
-	switch {
-	case err == sql.ErrNoRows:
-		return fmt.Errorf("sqlite3 query did not return user count")
-	case err != nil:
+	insertResult, err := stmt.ExecContext(ctx, userEmail, passwordHash)
+	if err != nil {
 		return fmt.Errorf("sqlite3 user count query failed: %s, error: %s", query, err)
-	default:
-		sa.logger.Info("counter number of users in sqlite3", zap.Int("user_count", userCount))
+	}
+	rows, err := insertResult.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("sqlite3 user count query failed: %s, error on RowsAffected: %s", query, err)
+	}
+	if rows != 1 {
+		return fmt.Errorf("sqlite3 user count query failed: %s, error on RowsAffected, unexpected number of rows: %d", query, rows)
+	}
+
+	sa.logger.Info(
+		"created entry in User table",
+		zap.String("user_mail", userEmail),
+	)
+
+	finalUserCount, err := sa.UserCount()
+	if err != nil {
+		return err
+	}
+
+	if finalUserCount-initialUserCount != 1 {
+		return fmt.Errorf("sqlite3 user count mismatch: %d (initial) vs. %d (final)", initialUserCount, finalUserCount)
 	}
 
 	return nil
@@ -213,24 +352,23 @@ func (b *Backend) ConfigureAuthenticator() error {
 		return err
 	}
 	if b.Authenticator.userCount == 0 {
-		userID := uuid.New().String()
-		userPwd := uuid.New().String()
-		if len(userID) < 36 || len(userPwd) < 36 {
+		userName := uuid.New().String()[:8]
+		userPwd := uuid.New().String()[:8]
+		if len(userName) < 8 || len(userPwd) < 8 {
 			return fmt.Errorf("failed to create default superadmin user")
 		}
-		userRoles := "internal/superadmin"
-		userEmail := userID + "@localdomain.local"
-		if err := b.Authenticator.CreateUser(userID, userPwd, userRoles, userEmail); err != nil {
+		userClaims := make(map[string]interface{})
+		userClaims["roles"] = "superadmin"
+		userClaims["org"] = "internal"
+		userEmail := userName + "@localdomain.local"
+		if err := b.Authenticator.CreateUser(userName, userPwd, userEmail, userClaims); err != nil {
 			b.logger.Error("failed to create default superadmin user for the database",
 				zap.String("error", err.Error()))
 			return err
 		}
-		b.logger.Info(
-			"added superadmin user to the database",
-			zap.String("user_id", userID),
+		b.logger.Info("created default superadmin user for the database",
+			zap.String("user_name", userName),
 			zap.String("user_secret", userPwd),
-			zap.String("user_roles", userRoles),
-			zap.String("user_email", userEmail),
 		)
 	}
 	return nil

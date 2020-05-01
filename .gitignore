@@ -4,6 +4,7 @@ bin/**
 .doc/**
 *TODO*
 123*
+assets/backends/sqlite3/sqlite3.db
 
 # Binaries for programs and plugins
 *.exe
