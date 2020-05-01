@@ -81,3 +81,9 @@ release:
 	@git push --tags
 	@#git push --delete origin vX.Y.Z
 	@#git tag --delete vX.Y.Z
+
+resetdb:
+	@echo "Removing default database"
+	@rm -rf assets/backends/sqlite3/sqlite3.db
+	@sqlite3 assets/backends/sqlite3/sqlite3.db < assets/backends/sqlite3/create_db.sql
+	@echo "Done!"
