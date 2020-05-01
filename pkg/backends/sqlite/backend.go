@@ -4,14 +4,14 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"github.com/google/uuid"
 	"github.com/greenpau/caddy-auth-jwt"
 	"github.com/mattn/go-sqlite3"
-	"os"
-	"sync"
-	//"encoding/json"
-	"github.com/google/uuid"
 	"go.uber.org/zap"
 	"golang.org/x/crypto/bcrypt"
+	"os"
+	"strings"
+	"sync"
 	"time"
 )
 
@@ -83,6 +83,7 @@ func (sa *Authenticator) UserCount() (int, error) {
 	if err != nil {
 		return userCount, fmt.Errorf("failed to query sqlite3 database: %s, error: %s", query, err)
 	}
+	defer stmt.Close()
 	err = stmt.QueryRowContext(ctx).Scan(&userCount)
 	switch {
 	case err == sql.ErrNoRows:
@@ -129,12 +130,17 @@ func (sa *Authenticator) CreateUser(userName, userPwd, userEmail string, userCla
 	}
 
 	// Get user id for the created user identity in User
-	userID, err := sa.GetUserID(userEmail, passwordHash)
+	userID, userPasswordHash, _, err := sa.GetUserID(userEmail)
 	if err != nil {
 		return err
 	}
 	if userID == 0 {
 		return fmt.Errorf("failed creating user identity for email %s, user id 0", userEmail)
+	}
+
+	// Compare password hashes
+	if err := bcrypt.CompareHashAndPassword([]byte(userPasswordHash), []byte(userPwd)); err != nil {
+		return fmt.Errorf("failed creating user identity for email %s, password hash mismatch", userEmail)
 	}
 
 	// Add roles to the user identity
@@ -183,6 +189,7 @@ func (sa *Authenticator) AddUserClaim(userID int, claimType string, claimValue s
 	if err != nil {
 		return fmt.Errorf("failed to query sqlite3 database: %s, error: %s", query, err)
 	}
+	defer stmt.Close()
 	insertResult, err := stmt.ExecContext(ctx, userID, claimType, claimValue)
 	if err != nil {
 		return fmt.Errorf("sqlite3 user count query failed: %s, error: %s", query, err)
@@ -197,27 +204,33 @@ func (sa *Authenticator) AddUserClaim(userID int, claimType string, claimValue s
 	return nil
 }
 
-// GetUserID returns user id from the combination of email and password hash.
-func (sa *Authenticator) GetUserID(userEmail string, passwordHash []byte) (int, error) {
+// GetUserID returns user id from the combination of email/username and password hash.
+func (sa *Authenticator) GetUserID(userInput string) (int, string, string, error) {
 	var userID int
+	var userEmail string
+	var userPasswordHash string
+	column := "userName"
+	if strings.Contains(userInput, "@") {
+		column = "email"
+	}
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
-	query := "SELECT id FROM Users WHERE email = ? AND passwordHash = ?"
+	query := "SELECT id, email, passwordHash FROM Users WHERE " + column + " = ?"
 	stmt, err := sa.db.PrepareContext(ctx, query)
 	if err != nil {
-		return userID, fmt.Errorf("failed to query sqlite3 database: %s, error: %s", query, err)
+		return userID, userPasswordHash, userEmail, fmt.Errorf("failed to query sqlite3 database: %s, error: %s", query, err)
 	}
 	defer stmt.Close()
-	err = stmt.QueryRowContext(ctx, userEmail, passwordHash).Scan(&userID)
+	err = stmt.QueryRowContext(ctx, userInput).Scan(&userID, &userEmail, &userPasswordHash)
 	switch {
 	case err == sql.ErrNoRows:
-		return userID, fmt.Errorf("user id not found")
+		return userID, userPasswordHash, userEmail, fmt.Errorf("user identity not found")
 	case err != nil:
-		return userID, fmt.Errorf("sqlite3 database query failed: %s, error: %s", query, err)
+		return userID, userPasswordHash, userEmail, fmt.Errorf("sqlite3 database query failed: %s, error: %s", query, err)
 	default:
-		sa.logger.Info("found user identity", zap.String("user_email", userEmail), zap.Int("user_id", userID))
+		sa.logger.Info("found user identity", zap.String("user_input", userInput), zap.Int("user_id", userID))
 	}
-	return userID, nil
+	return userID, userPasswordHash, userEmail, nil
 }
 
 // GetUserEmailCount returns the number of entries with this email address
@@ -230,7 +243,31 @@ func (sa *Authenticator) GetUserEmailCount(userEmail string) (int, error) {
 	if err != nil {
 		return userCount, fmt.Errorf("failed to query sqlite3 database: %s, error: %s", query, err)
 	}
+	defer stmt.Close()
 	err = stmt.QueryRowContext(ctx, userEmail).Scan(&userCount)
+	switch {
+	case err == sql.ErrNoRows:
+		return userCount, fmt.Errorf("sqlite3 query did not return user count")
+	case err != nil:
+		return userCount, fmt.Errorf("sqlite3 user count query failed: %s, error: %s", query, err)
+	default:
+		sa.logger.Info("counted number of users in sqlite3", zap.Int("user_count", userCount))
+	}
+	return userCount, nil
+}
+
+// GetUserNameCount returns the number of entries with this username
+func (sa *Authenticator) GetUserNameCount(userName string) (int, error) {
+	var userCount int
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+	query := "SELECT count(userName) FROM Users WHERE userName = ?"
+	stmt, err := sa.db.PrepareContext(ctx, query)
+	if err != nil {
+		return userCount, fmt.Errorf("failed to query sqlite3 database: %s, error: %s", query, err)
+	}
+	defer stmt.Close()
+	err = stmt.QueryRowContext(ctx, userName).Scan(&userCount)
 	switch {
 	case err == sql.ErrNoRows:
 		return userCount, fmt.Errorf("sqlite3 query did not return user count")
@@ -255,6 +292,7 @@ func (sa *Authenticator) CreateUserID(userName, userEmail string, passwordHash [
 	if err != nil {
 		return fmt.Errorf("failed to query sqlite3 database: %s, error: %s", query, err)
 	}
+	defer stmt.Close()
 	insertResult, err := stmt.ExecContext(ctx, userName, userEmail, passwordHash)
 	if err != nil {
 		return fmt.Errorf("sqlite3 user count query failed: %s, error: %s", query, err)
@@ -282,6 +320,89 @@ func (sa *Authenticator) CreateUserID(userName, userEmail string, passwordHash [
 	}
 
 	return nil
+}
+
+// GetUserAttributes returns user attributes.
+func (sa *Authenticator) GetUserAttributes(userID int) (map[string]string, error) {
+	userAttributes := make(map[string]string)
+	columns := []string{
+		"firstName", "lastName", "caption", "userName", "phoneNumber",
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+	query := "SELECT " + strings.Join(columns, ", ") + " FROM Users WHERE id = ?"
+	stmt, err := sa.db.PrepareContext(ctx, query)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query sqlite3 database: %s, error: %s", query, err)
+	}
+	defer stmt.Close()
+	var firstName, lastName, caption, userName, phoneNumber interface{}
+	err = stmt.QueryRowContext(ctx, userID).Scan(&firstName, &lastName, &caption, &userName, &phoneNumber)
+	switch {
+	case err == sql.ErrNoRows:
+		return nil, fmt.Errorf("user identity not found")
+	case err != nil:
+		return nil, fmt.Errorf("sqlite3 database query failed: %s, error: %s", query, err)
+	default:
+		if userName != nil {
+			userAttributes["userName"] = string(userName.([]uint8))
+		}
+		if firstName != nil {
+			userAttributes["firstName"] = string(firstName.([]uint8))
+		}
+		if lastName != nil {
+			userAttributes["lastName"] = string(lastName.([]uint8))
+		}
+		if caption != nil {
+			userAttributes["caption"] = string(caption.([]uint8))
+		}
+		if phoneNumber != nil {
+			userAttributes["phoneNumber"] = string(phoneNumber.([]uint8))
+		}
+
+		sa.logger.Info("found user attributes", zap.Any("user_attributes", userAttributes), zap.Int("user_id", userID))
+	}
+	return userAttributes, nil
+}
+
+// GetUserClaims returns user claims.
+func (sa *Authenticator) GetUserClaims(userID int) (map[string]string, error) {
+	userClaims := make(map[string]string)
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+	query := "SELECT claimType, claimValue FROM UserClaims WHERE userId = ?"
+	stmt, err := sa.db.PrepareContext(ctx, query)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query sqlite3 database: %s, error: %s", query, err)
+	}
+	defer stmt.Close()
+	rows, err := stmt.QueryContext(ctx, userID)
+	switch {
+	case err == sql.ErrNoRows:
+		return nil, fmt.Errorf("no claims not found")
+	case err != nil:
+		return nil, fmt.Errorf("sqlite3 database query failed: %s, error: %s", query, err)
+	}
+	if rows == nil {
+		return nil, fmt.Errorf("no claims not found, rows nil")
+	}
+	for rows.Next() {
+		var claimType, claimValue string
+		if err := rows.Scan(&claimType, &claimValue); err != nil {
+			return nil, fmt.Errorf("sqlite3 database rows scan failed: %s", err)
+		}
+		userClaims[claimType] = claimValue
+	}
+	if err := rows.Close(); err != nil {
+		return nil, fmt.Errorf("sqlite3 database rows close failed: %s", err)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("sqlite3 database rows scan erred: %s", err)
+	}
+
+	sa.logger.Info("found user claims", zap.Any("user_attributes", userClaims), zap.Int("user_id", userID))
+
+	return userClaims, nil
 }
 
 // Configure check database connectivity and required tables.
@@ -341,6 +462,7 @@ func (sa *Authenticator) Configure() error {
 	if err != nil {
 		return fmt.Errorf("failed to query sqlite3 database: %s, error: %s", query, err)
 	}
+	defer stmt.Close()
 	var userCount int
 	err = stmt.QueryRowContext(ctx).Scan(&userCount)
 	switch {
@@ -357,42 +479,101 @@ func (sa *Authenticator) Configure() error {
 	return nil
 }
 
-// AuthenticateUser checks the database for the presence of a username
+// AuthenticateUser checks the database for the presence of a username/email
 // and password and returns user claims.
-func (sa *Authenticator) AuthenticateUser(username, password string) (*jwt.UserClaims, int, error) {
-	passwordHash, err := bcrypt.GenerateFromPassword([]byte(password), sa.salt)
-	if err != nil {
-		return nil, 500, err
-	}
+func (sa *Authenticator) AuthenticateUser(userInput, password string) (*jwt.UserClaims, int, error) {
 	sa.mux.Lock()
 	defer sa.mux.Unlock()
-	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
-	defer cancel()
-	stmt, err := sa.db.PrepareContext(ctx, "SELECT id FROM Users WHERE email = ? AND passwordHash = ?")
-	if err != nil {
-		return nil, 500, err
-	}
-	defer stmt.Close()
 
-	var userID int
-	err = stmt.QueryRowContext(ctx, username, passwordHash).Scan(&userID)
-	switch {
-	case err == sql.ErrNoRows:
-		return nil, 401, fmt.Errorf("user identity not found")
-	case err != nil:
-		return nil, 500, err
-	default:
-		sa.logger.Info("user identity found", zap.String("username", username), zap.Int("user_id", userID))
+	if strings.Contains(userInput, "@") {
+		// Check whether the email exists.
+		userCount, err := sa.GetUserEmailCount(userInput)
+		if err != nil {
+			return nil, 500, err
+		}
+		if userCount != 1 {
+			return nil, 401, fmt.Errorf("user identity not found")
+		}
+	} else {
+		// Check whether the username exists.
+		userCount, err := sa.GetUserNameCount(userInput)
+		if err != nil {
+			return nil, 500, err
+		}
+		if userCount != 1 {
+			return nil, 401, fmt.Errorf("user identity not found")
+		}
+	}
+
+	// Authenticate the user
+	userID, passwordHash, userEmail, err := sa.GetUserID(userInput)
+	if err != nil {
+		return nil, 500, fmt.Errorf("failed getting user id")
+	}
+	if userID == 0 {
+		return nil, 401, fmt.Errorf("authentication failed")
+	}
+	if userEmail == "" {
+		return nil, 500, fmt.Errorf("failed getting user id")
+	}
+	// Compare password hashes
+	if err := bcrypt.CompareHashAndPassword([]byte(passwordHash), []byte(password)); err != nil {
+		return nil, 401, fmt.Errorf("authentication failed due to password hash mismatch")
+	}
+
+	// Get user attributes
+	userAttributes, err := sa.GetUserAttributes(userID)
+	if err != nil {
+		return nil, 500, fmt.Errorf("failed getting user attributes, error: %s", err)
+	}
+	if userAttributes == nil {
+		return nil, 500, fmt.Errorf("failed getting user attributes, attributes nil")
+	}
+
+	// Get user claims
+	userClaims, err := sa.GetUserClaims(userID)
+	if err != nil {
+		return nil, 500, fmt.Errorf("failed getting user claims, error: %s", err)
+	}
+	if userClaims == nil {
+		return nil, 500, fmt.Errorf("failed getting user claims, claims nil")
 	}
 
 	claims := &jwt.UserClaims{}
-	claims.Subject = username
-	claims.Email = username
-	// claims.Name = "Greenberg, Paul"
-	claims.Roles = append(claims.Roles, "anonymous")
-	claims.Roles = append(claims.Roles, "guest")
+	claims.Subject = userEmail
+	claims.Email = userEmail
 
-	return claims, 200, fmt.Errorf("Authentication is not supported")
+	if _, firstNameExists := userAttributes["firstName"]; firstNameExists {
+		if _, lastNameExists := userAttributes["lastName"]; lastNameExists {
+			if userAttributes["firstName"] != "" && userAttributes["lastName"] != "" {
+				claims.Name = userAttributes["firstName"] + " " + userAttributes["lastName"]
+			}
+		}
+	}
+
+	if _, userNameExists := userAttributes["userName"]; userNameExists {
+		if userAttributes["userName"] != "" {
+			claims.Subject = userAttributes["userName"]
+		}
+	}
+
+	for k, v := range userClaims {
+		if v == "" {
+			continue
+		}
+		switch k {
+		case "roles":
+			for _, item := range strings.Split(v, " ") {
+				claims.Roles = append(claims.Roles, item)
+			}
+		case "org":
+			for _, item := range strings.Split(v, " ") {
+				claims.Organizations = append(claims.Organizations, item)
+			}
+		}
+	}
+
+	return claims, 200, nil
 }
 
 // ConfigureAuthenticator configures backend for .

@@ -65,11 +65,10 @@ The credentials are visible in the console logs. Please remember to reset them.
 If necessary review `Users` and `UserClaims` tables:
 
 ```bash
-$ sqlite3 -header -column assets/backends/sqlite3/sqlite3.db "SELECT id, userName, email FROM Users;"
-
-id          userName    email
-----------  ----------  --------------------------
-1           34d403ba    34d403ba@localdomain.local
+$ sqlite3 -header -column assets/backends/sqlite3/sqlite3.db "SELECT id, userName, email, passwordHash FROM Users;"
+id          userName    email                       passwordHash
+----------  ----------  --------------------------  ------------------------------------------------------------
+1           5a57e1ba    5a57e1ba@localdomain.local  $2a$16$Pe/BaWjaKPrMLM7leFHpgOB9x/SpXUHdgeNIblaZCPfONtQmfBsji
 
 $ sqlite3 -header -column assets/backends/sqlite3/sqlite3.db "SELECT * FROM UserClaims;"
 id          userId      claimType   claimValue
