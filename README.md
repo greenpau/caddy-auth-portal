@@ -61,3 +61,19 @@ The credentials are visible in the console logs. Please remember to reset them.
   "db_path": "assets/backends/sqlite3/sqlite3.db"
 }
 ```
+
+If necessary review `Users` and `UserClaims` tables:
+
+```bash
+$ sqlite3 -header -column assets/backends/sqlite3/sqlite3.db "SELECT id, userName, email FROM Users;"
+
+id          userName    email
+----------  ----------  --------------------------
+1           34d403ba    34d403ba@localdomain.local
+
+$ sqlite3 -header -column assets/backends/sqlite3/sqlite3.db "SELECT * FROM UserClaims;"
+id          userId      claimType   claimValue
+----------  ----------  ----------  -------------------
+1           1           roles       internal/superadmin
+2           1           org         internal
+```
