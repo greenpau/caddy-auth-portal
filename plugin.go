@@ -140,8 +140,8 @@ func (m *AuthProvider) Validate() error {
 
 	// UI Validation
 	uiPages := map[string]string{
-		"login":  "default",
-		"portal": "default",
+		"login":  "forms_login",
+		"portal": "forms_portal",
 	}
 	if m.UserInterface == nil {
 		m.UserInterface = &UserInterfaceParameters{}
@@ -339,7 +339,7 @@ func (m AuthProvider) Authenticate(w http.ResponseWriter, r *http.Request) (cadd
 
 	// Wrap up
 	if !userAuthenticated {
-		content, err := m.uiFactory.Render("login", uiArgs)
+		content, err := m.uiFactory.Render("forms_login", uiArgs)
 		if err != nil {
 			m.logger.Error(
 				"Failed UI",
@@ -359,7 +359,7 @@ func (m AuthProvider) Authenticate(w http.ResponseWriter, r *http.Request) (cadd
 		uiArgs.Title = "Welcome"
 	}
 
-	content, err := m.uiFactory.Render("portal", uiArgs)
+	content, err := m.uiFactory.Render("forms_portal", uiArgs)
 	if err != nil {
 		m.logger.Error(
 			"Failed UI",
