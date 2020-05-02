@@ -140,8 +140,8 @@ func (m *AuthProvider) Validate() error {
 
 	// UI Validation
 	uiPages := map[string]string{
-		"login": "default",
-		//"portal": "default",
+		"login":  "default",
+		"portal": "default",
 	}
 	if m.UserInterface == nil {
 		m.UserInterface = &UserInterfaceParameters{}
@@ -208,7 +208,7 @@ func validateRequestCompliance(r *http.Request) (map[string]string, error) {
 	var reqFields []string
 	kv := make(map[string]string)
 	var maxBytesLimit int64 = 1000
-	var minBytesLimit int64 = 10
+	var minBytesLimit int64 = 15
 	if r.ContentLength > maxBytesLimit {
 		return nil, fmt.Errorf("Request payload exceeded the limit of %d bytes: %d", maxBytesLimit, r.ContentLength)
 	}
@@ -331,23 +331,44 @@ func (m AuthProvider) Authenticate(w http.ResponseWriter, r *http.Request) (cadd
 
 	// Render UI
 	contentType := "text/html"
-	content, uiErr := m.uiFactory.Render("login", uiArgs)
-	if uiErr != nil {
-		m.logger.Error(
-			"Failed UI",
-			zap.String("request_id", reqID),
-			zap.String("error", uiErr.Error()),
-		)
-		w.WriteHeader(500)
-		w.Write([]byte(`Internal Server Error`))
-		return caddyauth.User{}, false, uiErr
+	if m.UserInterface.Title == "" {
+		uiArgs.Title = "Sign In"
+	} else {
+		uiArgs.Title = m.UserInterface.Title
 	}
 
 	// Wrap up
 	if !userAuthenticated {
+		content, err := m.uiFactory.Render("login", uiArgs)
+		if err != nil {
+			m.logger.Error(
+				"Failed UI",
+				zap.String("request_id", reqID),
+				zap.String("error", err.Error()),
+			)
+			w.WriteHeader(500)
+			w.Write([]byte(`Internal Server Error`))
+			return caddyauth.User{}, false, err
+		}
 		w.Header().Set("Content-Type", contentType)
 		w.Write(content.Bytes())
 		return caddyauth.User{}, false, nil
+	}
+
+	if m.UserInterface.Title == "" {
+		uiArgs.Title = "Welcome"
+	}
+
+	content, err := m.uiFactory.Render("portal", uiArgs)
+	if err != nil {
+		m.logger.Error(
+			"Failed UI",
+			zap.String("request_id", reqID),
+			zap.String("error", err.Error()),
+		)
+		w.WriteHeader(500)
+		w.Write([]byte(`Internal Server Error`))
+		return caddyauth.User{}, false, err
 	}
 
 	userIdentity := caddyauth.User{

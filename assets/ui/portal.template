@@ -14,6 +14,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css" integrity="sha256-OweaP/Ic6rsV+lysfyS4h+LM6sRwuO3euTYfr6M124g=" crossorigin="anonymous" />
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.1/styles/atom-one-dark.min.css" integrity="sha256-GA29iW/iYj9FcuQQktvW45pRzHvZeFfgeFvA4tGVjpM=" crossorigin="anonymous" />
     <style>
       body {
         font-family: 'Roboto', sans-serif;
@@ -45,45 +46,36 @@
     <div class="container app-container">
       <div class="row">
         <div class="col s12 m6 offset-m3 l4 offset-l4 app-card-container">
-          <form action="{{ .ActionEndpoint }}" method="POST">
-            <div class="card card-large app-card">
-              <div class="card-content">
-                <span class="card-title center-align">
-                  <div class="section app-header">
-                    {{ if .LogoURL }}
-                    <img class="d-block mx-auto mb-2" src="{{ .LogoURL }}" alt="{{ .LogoDescription }}" width="72" height="72">
-                    {{ end }}
-                    <h4>{{ .Title }}</h4>
-                  </div>
-                </span>
-                <div class="input-field">
-                  <input id="username" name="username" type="text" class="validate">
-                  <label for="username">Username or Email</label>
+          <div class="card card-large app-card">
+            <div class="card-content">
+              <span class="card-title center-align">
+                <div class="section app-header">
+                  {{ if .LogoURL }}
+                  <img class="d-block mx-auto mb-2" src="{{ .LogoURL }}" alt="{{ .LogoDescription }}" width="72" height="72">
+                  {{ end }}
+                  <h4>{{ .Title }}</h4>
                 </div>
-                <div class="input-field">
-                  <input id="password" name="password" type="password" class="validate">
-                  <label for="password">Password</label>
-                </div>
-              </div>
-              <div class="card-action right-align">
-                <button type="submit" name="submit" class="btn waves-effect waves-light btn-large">Login
-                  <i class="material-icons left">send</i>
-                </button>
-              </div>
+              </span>
+              <p>Access the following services.</p>
+              <ul class="collection">
+                {{range .PrivateLinks}}
+                <li class="collection-item">
+                  <a href="{{ .Link }}">{{ .Title }}</a>
+                </li>
+                {{ end }}
+              </ul>
             </div>
-            <div class="card card-large">
-              <div class="card-content">
-                <a href="{{ .ActionEndpoint }}?register=true" class="waves-effect waves-light btn-small left">Register</a>
-                <a href="{{ .ActionEndpoint }}?forgot=true" class="waves-effect waves-light btn-small right">Forgot Password?</a>
-                <br />
-              </div>
+            <div class="card-action right-align">
+              <a href="{{ .ActionEndpoint }}?logout=true" class="btn btn-primary btn-lg active" role="button" aria-pressed="true">Logout</a>
             </div>
-          </form>
+          </div>
         </div>
       </div>
     </div>
+
     <!-- Optional JavaScript -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js" integrity="sha256-U/cHDMTIHCeMcvehBv1xQ052bPSbJtbuiw4QA9cTKz0=" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.1/highlight.min.js" integrity="sha256-eOgo0OtLL4cdq7RdwRUiGKLX9XsIJ7nGhWEKbohmVAQ=" crossorigin="anonymous"></script>
     {{ if .Message }}
     <script>
     var toastHTML = '<span>{{ .Message }}</span><button class="btn-flat toast-action" onclick="M.Toast.dismissAll();">Close</button>';

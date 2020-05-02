@@ -340,6 +340,10 @@ github.com/greenpau/caddy-auth-jwt v0.0.8 h1:phSMelC/DXLkbh89wFZYH6orqeEA1ThC14R
 github.com/greenpau/caddy-auth-jwt v0.0.8/go.mod h1:6xocvcKLGEKNI37mycZvrQh3us96JfQb4uN82af4jKw=
 github.com/greenpau/caddy-auth-jwt v0.0.9 h1:f2BPBRWk3SFdyTMd1oAoyuL09cc2nRsSRO/rfwF6lEw=
 github.com/greenpau/caddy-auth-jwt v0.0.9/go.mod h1:6xocvcKLGEKNI37mycZvrQh3us96JfQb4uN82af4jKw=
+github.com/greenpau/caddy-auth-jwt v0.0.10 h1:+ODndhT2+6czKckYO6mpmZKErVNH/f1dOJQJMottEsc=
+github.com/greenpau/caddy-auth-jwt v0.0.10/go.mod h1:6xocvcKLGEKNI37mycZvrQh3us96JfQb4uN82af4jKw=
+github.com/greenpau/caddy-auth-jwt v0.0.11 h1:xhPf8um04qzruq4AnYk6UzE/SIhxp4d242opIgKPJgk=
+github.com/greenpau/caddy-auth-jwt v0.0.11/go.mod h1:6xocvcKLGEKNI37mycZvrQh3us96JfQb4uN82af4jKw=
 github.com/greenpau/caddy-auth-ui v0.0.2 h1:t+cLAKNPxrQ6IBugLV5eKqDWF6F6yRsUCCq9HVLa2Yc=
 github.com/greenpau/caddy-auth-ui v0.0.2/go.mod h1:qUfKUKxKh5Q6dOK4Kajlpq19MXDw3djAk/hi8Q7YaVM=
 github.com/gregjones/httpcache v0.0.0-20180305231024-9cad4c3443a7/go.mod h1:FecbI9+v66THATjSRHfNgh1IVFe/9kFxbXtjV0ctIMA=
