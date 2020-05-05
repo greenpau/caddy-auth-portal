@@ -6,73 +6,69 @@
 
 Form-Based Authentication Plugin for for [Caddy v2](https://github.com/caddyserver/caddy).
 
+## Getting Started
 
-## SQLite Backend
+Please create the following
+[route](https://github.com/greenpau/caddy-auth-forms/blob/a9b8b2421c5ece99dc30c09aa9224049f1aa146c/assets/conf/Caddyfile.json#L19-L69)
+in your configuration. In the example, the route refers to `local` backend in
+the file `assets/backends/local/users.json`. Specify the path to the file
+where you want your database to reside. Do not create a file, but rather
+create leading directories.
 
-First, initialize a database, e.g.:
+For example, create `/etc/caddy/auth/local` directory and specify the
+`path` value as:
 
-```bash
-sqlite3 assets/backends/sqlite3/sqlite3.db < assets/backends/sqlite3/create_db.sql
+```json
+"path": "/etc/caddy/auth/local/users.json",
 ```
 
-The presence of the following log means that the above procedure was
-not followed:
+Next, start the server, and find the following following log entries:
+
+```json
+{"level":"info","ts":1588704471.5784082,"logger":"http.authentication.providers.forms","msg":"created new user","user_id":"cd5f647a-cc04-4ae2-9d0a-2d5e9b95cf98","user_name":"webadmin","user_email":"webadmin@localdomain.local","user_claims":{"roles":"superadmin"}}
+{"level":"info","ts":1588704471.5784378,"logger":"http.authentication.providers.forms","msg":"created default superadmin user for the database","user_name":"webadmin","user_secret":"d87e7749-0dd8-482b-91a2-ada370263293"}
+```
+
+The `user_name` and `user_secret` are password for the `superuser` in the database.
+
+The plugin creates the following a file having the following structure.
 
 ```json
 {
-  "level": "error",
-  "ts": 1588190071.9516814,
-  "logger": "http.authentication.providers.forms",
-  "msg": "sqlite3 database file does not exists",
-  "db_path": "assets/backends/sqlite3/sqlite3.db"
+  "revision": 1,
+  "users": [
+    {
+      "id": "cd5f647a-cc04-4ae2-9d0a-2d5e9b95cf98",
+      "username": "webadmin",
+      "email_addresses": [
+        {
+          "address": "webadmin@localdomain.local",
+          "domain": "localdomain.local"
+        }
+      ],
+      "passwords": [
+        {
+          "purpose": "generic",
+          "type": "bcrypt",
+          "hash": "$2a$10$B67nHY0PEdxLYdyoLk1YLOomvs.T/dSIyzPuoX9vWULrsD3PRf/sq",
+          "cost": 10,
+          "expired_at": "0001-01-01T00:00:00Z",
+          "created_at": "2020-05-05T18:47:51.513552501Z",
+          "disabled_at": "0001-01-01T00:00:00Z"
+        }
+      ],
+      "created": "2020-05-05T18:47:51.513552066Z",
+      "last_modified": "2020-05-05T18:47:51.513552175Z",
+      "roles": [
+        {
+          "name": "superadmin"
+        }
+      ]
+    }
+  ]
 }
 ```
 
-After the successful completion of the above command, the
-`file` command returns the following information
+Finally, browse to `/auth` and login with the username and password:
 
-```bash
-file assets/backends/sqlite3/sqlite3.db
-assets/backends/sqlite3/sqlite3.db: SQLite 3.x database
-```
-
-If the database contains 0 users, the plugin will create a default superuser.
-The credentials are visible in the console logs. Please remember to reset them.
-
-```json
-{
-  "msg": "sqlite3 backend configuration",
-  "db_path": "assets/backends/sqlite3/sqlite3.db"
-},
-{
-  "msg": "created new user",
-  "user_id": 1,
-  "user_mail": "e7449192@localdomain.local",
-  "user_roles": "internal/superadmin"
-},
-{
-  "msg": "created default superadmin user for the database",
-  "user_name": "e7449192",
-  "user_secret": "1a2a7d56"
-},
-{
-  "msg": "validating SQLite backend",
-  "sqlite_version": "3.25.2",
-  "db_path": "assets/backends/sqlite3/sqlite3.db"
-}
-```
-
-If necessary review `Users` and `UserClaims` tables:
-
-```bash
-$ sqlite3 -header -column assets/backends/sqlite3/sqlite3.db "SELECT id, userName, email, passwordHash FROM Users;"
-id          userName    email                       passwordHash
-----------  ----------  --------------------------  ------------------------------------------------------------
-1           5a57e1ba    5a57e1ba@localdomain.local  $2a$16$Pe/BaWjaKPrMLM7leFHpgOB9x/SpXUHdgeNIblaZCPfONtQmfBsji
-
-$ sqlite3 -header -column assets/backends/sqlite3/sqlite3.db "SELECT * FROM UserClaims;"
-id          userId      claimType   claimValue
-----------  ----------  ----------  -------------------
-1           1           roles       internal/superadmin
-2           1           org         internal
-```
+<img src="https://raw.githubusercontent.com/greenpau/caddy-auth-ui/master/assets/docs/_static/images/forms_login.png">

@@ -2,7 +2,7 @@
   "revision": 1,
   "users": [
     {
-      "id": "fcacf321-4f50-4b41-891e-bc04fbafe425",
+      "id": "cd5f647a-cc04-4ae2-9d0a-2d5e9b95cf98",
       "username": "webadmin",
       "email_addresses": [
         {
@@ -14,15 +14,15 @@
         {
           "purpose": "generic",
           "type": "bcrypt",
-          "hash": "$2a$10$DOYUG9vI3L2SZQ1HP4Hro.e3Da5lLzvkA8iucIAd.cbC1XjNZ/obO",
+          "hash": "$2a$10$B67nHY0PEdxLYdyoLk1YLOomvs.T/dSIyzPuoX9vWULrsD3PRf/sq",
           "cost": 10,
           "expired_at": "0001-01-01T00:00:00Z",
-          "created_at": "2020-05-05T03:04:18.238175859Z",
+          "created_at": "2020-05-05T18:47:51.513552501Z",
           "disabled_at": "0001-01-01T00:00:00Z"
         }
       ],
-      "created": "2020-05-05T03:04:18.238175377Z",
-      "last_modified": "2020-05-05T03:04:18.238175454Z",
+      "created": "2020-05-05T18:47:51.513552066Z",
+      "last_modified": "2020-05-05T18:47:51.513552175Z",
       "roles": [
         {
           "name": "superadmin"

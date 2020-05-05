@@ -118,7 +118,7 @@
               "match": [
                 {
                   "path": [
-                    "/metrics"
+                    "/prometheus"
                   ]
                 }
               ],
