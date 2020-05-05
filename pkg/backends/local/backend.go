@@ -160,6 +160,23 @@ func (sa *Authenticator) AuthenticateUser(userInput, password string) (*jwt.User
 	if claims.Subject == "" {
 		claims.Subject = user.Username
 	}
+
+	guestRoles := map[string]bool{
+		"guest":     false,
+		"anonymous": false,
+	}
+
+	for _, role := range claims.Roles {
+		if _, exists := guestRoles[role]; exists {
+			guestRoles[role] = true
+		}
+	}
+	for role, exists := range guestRoles {
+		if !exists {
+			claims.Roles = append(claims.Roles, role)
+		}
+	}
+
 	return claims, 200, nil
 }
 
