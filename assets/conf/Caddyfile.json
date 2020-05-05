@@ -24,8 +24,8 @@
                       "auth_url_path": "/auth",
                       "backends": [
                         {
-                          "type": "sqlite3",
-                          "path": "assets/backends/sqlite3/sqlite3.db",
+                          "type": "local",
+                          "path": "assets/backends/local/users.json",
                           "realm": "local"
                         }
                       ],
@@ -81,9 +81,9 @@
                           "action": "allow",
                           "claim": "roles",
                           "values": [
-                            "AzureAD_Viewer",
-                            "AzureAD_Editor",
-                            "AzureAD_Administrator"
+                            "anonymous",
+                            "guest",
+                            "admin"
                           ]
                         }
                       ],

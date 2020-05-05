@@ -339,7 +339,7 @@ func (m AuthProvider) Authenticate(w http.ResponseWriter, r *http.Request) (cadd
 
 	// Wrap up
 	if !userAuthenticated {
-		content, err := m.uiFactory.Render("forms_login", uiArgs)
+		content, err := m.uiFactory.Render("login", uiArgs)
 		if err != nil {
 			m.logger.Error(
 				"Failed UI",
@@ -359,7 +359,7 @@ func (m AuthProvider) Authenticate(w http.ResponseWriter, r *http.Request) (cadd
 		uiArgs.Title = "Welcome"
 	}
 
-	content, err := m.uiFactory.Render("forms_portal", uiArgs)
+	content, err := m.uiFactory.Render("portal", uiArgs)
 	if err != nil {
 		m.logger.Error(
 			"Failed UI",

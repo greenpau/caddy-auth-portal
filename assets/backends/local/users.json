@@ -1,0 +1,33 @@
+{
+  "revision": 1,
+  "users": [
+    {
+      "id": "42b7f69c-5b45-48fa-8238-21255c19c411",
+      "username": "webadmin",
+      "email_addresses": [
+        {
+          "address": "webadmin@localdomain.local",
+          "domain": "localdomain.local"
+        }
+      ],
+      "passwords": [
+        {
+          "purpose": "generic",
+          "type": "bcrypt",
+          "hash": "$2a$10$qoJYSjru7oFZmkx6HzYF1eXO6bm8GazDtBDvIDtsM5pOANTyikYI.",
+          "cost": 10,
+          "expired_at": "0001-01-01T00:00:00Z",
+          "created_at": "2020-05-05T02:17:24.904968725Z",
+          "disabled_at": "0001-01-01T00:00:00Z"
+        }
+      ],
+      "created": "2020-05-05T02:17:24.904968265Z",
+      "last_modified": "2020-05-05T02:17:24.904968368Z",
+      "roles": [
+        {
+          "name": "superadmin"
+        }
+      ]
+    }
+  ]
+}

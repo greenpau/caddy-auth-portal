@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/greenpau/caddy-auth-forms/pkg/backends/bolt"
-	"github.com/greenpau/caddy-auth-forms/pkg/backends/sqlite"
+	"github.com/greenpau/caddy-auth-forms/pkg/backends/local"
 	"github.com/greenpau/caddy-auth-jwt"
 	"go.uber.org/zap"
 )
@@ -79,19 +79,16 @@ func (b *Backend) UnmarshalJSON(data []byte) error {
 		return nil
 	}
 
-	if bytes.Contains(data, []byte("\"type\":\"sqlite3\"")) ||
-		bytes.Contains(data, []byte("\"type\":\"sqlite\"")) {
-		b.bt = "sqlite"
-		driver := sqlite.NewDatabaseBackend()
-		if err := json.Unmarshal(data, driver); err != nil {
-			return fmt.Errorf("invalid SQLite configuration, error: %s, config: %s", err, data)
-		}
-		if err := driver.ValidateConfig(); err != nil {
-			return fmt.Errorf("invalid SQLite configuration, error: %s, config: %s", err, data)
-		}
-		b.driver = driver
-		return nil
+	b.bt = "local"
+	driver := local.NewDatabaseBackend()
+	if err := json.Unmarshal(data, driver); err != nil {
+		return fmt.Errorf("invalid SQLite configuration, error: %s, config: %s", err, data)
 	}
+	if err := driver.ValidateConfig(); err != nil {
+		return fmt.Errorf("invalid SQLite configuration, error: %s, config: %s", err, data)
+	}
+	b.driver = driver
+	return nil
 
 	return fmt.Errorf("invalid configuration: %s", data)
 }
