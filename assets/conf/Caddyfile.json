@@ -8,6 +8,7 @@
   },
   "apps": {
     "http": {
+      "http_port": 3080,
       "https_port": 3443,
       "servers": {
         "srv0": {
