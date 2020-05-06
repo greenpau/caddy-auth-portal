@@ -82,9 +82,3 @@ release:
 	@@echo "If necessary, run the following commands:"
 	@echo "  git push --delete origin v$(PLUGIN_VERSION)"
 	@echo "  git tag --delete v$(PLUGIN_VERSION)"
-
-resetdb:
-	@echo "Removing default database"
-	@rm -rf assets/backends/sqlite3/sqlite3.db
-	@sqlite3 assets/backends/sqlite3/sqlite3.db < assets/backends/sqlite3/create_db.sql
-	@echo "Done!"

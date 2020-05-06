@@ -1,7 +1,0 @@
-{
-  "level": "error",
-  "ts": 1588190071.9516814,
-  "logger": "http.authentication.providers.forms",
-  "msg": "sqlite3 database file does not exists",
-  "db_path": "assets/backends/sqlite3/sqlite3.db"
-}
