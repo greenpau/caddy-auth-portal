@@ -155,7 +155,7 @@ func (sa *Authenticator) AuthenticateUser(userInput, password string) (*jwt.User
 
 	claims, err := jwt.NewUserClaimsFromMap(userMap)
 	if err != nil {
-		return nil, 500, fmt.Errorf("failed to parse user claims")
+		return nil, 500, fmt.Errorf("failed to parse user claims: %s", err)
 	}
 	if claims.Subject == "" {
 		claims.Subject = user.Username

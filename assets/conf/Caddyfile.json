@@ -73,6 +73,7 @@
                   "handler": "authentication",
                   "providers": {
                     "jwt": {
+                      "master": true,
                       "token_name": "access_token",
                       "token_secret": "383aca9a-1c39-4d7a-b4d8-67ba4718dd3f",
                       "token_issuer": "7a50e023-2c6e-4a5e-913e-23ecd0e2b940",
@@ -84,7 +85,8 @@
                           "values": [
                             "anonymous",
                             "guest",
-                            "admin"
+                            "admin",
+                            "superadmin"
                           ]
                         }
                       ],
@@ -93,13 +95,7 @@
                       "token_types": [
                         "HS256",
                         "HS384",
-                        "HS512",
-                        "RS256",
-                        "RS384",
-                        "RS512",
-                        "ES256",
-                        "ES384",
-                        "ES512"
+                        "HS512"
                       ],
                       "token_sources": [
                         "header",
@@ -110,7 +106,7 @@
                   }
                 },
                 {
-                  "body": "metrics",
+                  "body": "prometheus",
                   "handler": "static_response",
                   "status_code": 200
                 }
@@ -119,6 +115,42 @@
                 {
                   "path": [
                     "/prometheus"
+                  ]
+                }
+              ],
+              "terminal": true
+            },
+            {
+              "handle": [
+                {
+                  "handler": "authentication",
+                  "providers": {
+                    "jwt": {
+                      "access_list": [
+                        {
+                          "action": "allow",
+                          "claim": "roles",
+                          "values": [
+                            "anonymous",
+                            "guest",
+                            "admin",
+                            "superadmin"
+                          ]
+                        }
+                      ]
+                    }
+                  }
+                },
+                {
+                  "body": "alertmanager",
+                  "handler": "static_response",
+                  "status_code": 200
+                }
+              ],
+              "match": [
+                {
+                  "path": [
+                    "/alertmanager"
                   ]
                 }
               ],

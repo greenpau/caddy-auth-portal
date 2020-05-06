@@ -5,7 +5,7 @@ go 1.14
 require (
 	github.com/caddyserver/caddy/v2 v2.0.0
 	github.com/cenkalti/backoff/v4 v4.0.2 // indirect
-	github.com/greenpau/caddy-auth-jwt v0.0.11
+	github.com/greenpau/caddy-auth-jwt v0.0.13
 	github.com/greenpau/caddy-auth-ui v0.0.3
 	github.com/greenpau/go-identity v1.0.3
 	github.com/imdario/mergo v0.3.9 // indirect

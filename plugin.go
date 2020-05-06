@@ -26,13 +26,14 @@ func init() {
 // AuthProvider authorizes access to endpoints based on
 // the presense and content of JWT token.
 type AuthProvider struct {
-	Name          string                   `json:"-"`
-	AuthURLPath   string                   `json:"auth_url_path,omitempty"`
-	UserInterface *UserInterfaceParameters `json:"ui,omitempty"`
-	Backends      []Backend                `json:"backends,omitempty"`
-	TokenProvider *jwt.TokenProviderConfig `json:"jwt,omitempty"`
-	logger        *zap.Logger              `json:"-"`
-	uiFactory     *ui.UserInterfaceFactory `json:"-"`
+	Name           string                   `json:"-"`
+	AuthURLPath    string                   `json:"auth_url_path,omitempty"`
+	UserInterface  *UserInterfaceParameters `json:"ui,omitempty"`
+	Backends       []Backend                `json:"backends,omitempty"`
+	TokenProvider  *jwt.TokenProviderConfig `json:"jwt,omitempty"`
+	TokenValidator *jwt.TokenValidator      `json:"-"`
+	logger         *zap.Logger              `json:"-"`
+	uiFactory      *ui.UserInterfaceFactory `json:"-"`
 }
 
 // UserInterfaceParameters represent a common set of configuration settings
@@ -201,6 +202,31 @@ func (m *AuthProvider) Validate() error {
 		}
 	}
 
+	m.TokenValidator = jwt.NewTokenValidator()
+	m.TokenValidator.TokenSecret = m.TokenProvider.TokenSecret
+	if err := m.TokenValidator.ConfigureTokenBackends(); err != nil {
+		return fmt.Errorf(
+			"%s: token validator backend configuration failed: %s",
+			m.Name, err,
+		)
+	}
+	entry := jwt.NewAccessListEntry()
+	entry.Allow()
+	if err := entry.SetClaim("roles"); err != nil {
+		return fmt.Errorf(
+			"%s: default access list configuration error: %s",
+			m.Name, err,
+		)
+	}
+	for _, v := range []string{"anonymous", "guest", "*"} {
+		if err := entry.AddValue(v); err != nil {
+			return fmt.Errorf(
+				"%s: default access list configuration error: %s",
+				m.Name, err,
+			)
+		}
+	}
+	m.TokenValidator.AccessList = append(m.TokenValidator.AccessList, entry)
 	return nil
 }
 
@@ -284,8 +310,14 @@ func (m AuthProvider) Authenticate(w http.ResponseWriter, r *http.Request) (cadd
 		}
 	}
 
+	// Try to authorize with JWT tokens
+	userClaims, userAuthenticated, _ = m.TokenValidator.Authorize(r)
+	if userAuthenticated {
+		uiArgs.Authenticated = true
+	}
+
 	// Authentication Requests
-	if r.Method == "POST" {
+	if r.Method == "POST" && !userAuthenticated {
 		authFound := false
 		if kv, err := validateRequestCompliance(r); err == nil {
 			for _, backend := range m.Backends {
