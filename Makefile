@@ -31,7 +31,7 @@ linter:
 	@echo "PASS: golint"
 
 test: covdir linter
-	@go test $(VERBOSE) -coverprofile=.coverage/coverage.out -count=1 -parallel=1 ./*.go
+	@go test $(VERBOSE) -coverprofile=.coverage/coverage.out ./*.go
 
 ctest: covdir linter
 	@time richgo test $(VERBOSE) $(TEST) -coverprofile=.coverage/coverage.out ./*.go

@@ -17,6 +17,27 @@
           ],
           "routes": [
             {
+              "match": [
+                {
+                  "path": [
+                    "/"
+                  ]
+                }
+              ],
+              "handle": [
+                {
+                  "handler": "static_response",
+                  "headers": {
+                    "Location": [
+                      "/auth"
+                    ]
+                  },
+                  "status_code": 302
+                }
+              ],
+              "terminal": true
+            },
+            {
               "handle": [
                 {
                   "handler": "authentication",
