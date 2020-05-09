@@ -303,6 +303,9 @@ func (m AuthProvider) Authenticate(w http.ResponseWriter, r *http.Request) (cadd
 			for _, k := range []string{redirectToToken, m.TokenProvider.TokenName} {
 				w.Header().Add("Set-Cookie", k+"=delete; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT")
 			}
+			w.Header().Set("Location", m.AuthURLPath)
+			w.WriteHeader(303)
+			return caddyauth.User{}, false, nil
 		} else {
 			if redirectURL, exists := q["redirect_url"]; exists {
 				w.Header().Set("Set-Cookie", redirectToToken+"="+redirectURL[0])
@@ -451,6 +454,12 @@ func (m AuthProvider) Authenticate(w http.ResponseWriter, r *http.Request) (cadd
 			w.WriteHeader(303)
 			return userIdentity, true, nil
 		}
+	}
+
+	if r.Method == "POST" {
+		w.Header().Set("Location", m.AuthURLPath)
+		w.WriteHeader(303)
+		return userIdentity, true, nil
 	}
 
 	w.Header().Set("Content-Type", contentType)
