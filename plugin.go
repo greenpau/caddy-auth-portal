@@ -166,22 +166,40 @@ func (m *AuthProvider) Validate() error {
 	}
 
 	for tmplName, tmplAlias := range uiPages {
+		m.logger.Debug(
+			"configuring UI templates",
+			zap.String("template_name", tmplName),
+			zap.String("template_alias", tmplAlias),
+		)
 		useDefaultTemplate := false
 		if m.UserInterface.Templates == nil {
+			m.logger.Debug("UI templates were not defined, using default template")
 			useDefaultTemplate = true
 		} else {
-			if _, exists := m.UserInterface.Templates[tmplName]; !exists {
+			if v, exists := m.UserInterface.Templates[tmplName]; !exists {
+				m.logger.Debug(
+					"UI template was not defined, using default template",
+					zap.String("template_name", tmplName),
+				)
 				useDefaultTemplate = true
+			} else {
+				m.logger.Debug(
+					"UI template definition found",
+					zap.String("template_name", tmplName),
+					zap.String("template_path", v),
+				)
 			}
 		}
 
 		if useDefaultTemplate {
+			m.logger.Debug(fmt.Sprintf("adding UI template %s to UI factory", tmplAlias))
 			if err := m.uiFactory.AddBuiltinTemplate(tmplAlias); err != nil {
 				return fmt.Errorf(
 					"%s: UI settings validation error, failed loading built-in %s (%s) template: %s",
 					m.Name, tmplName, tmplAlias, err,
 				)
 			}
+			m.uiFactory.Templates[tmplName] = m.uiFactory.Templates[tmplAlias]
 			continue
 		}
 
@@ -306,10 +324,9 @@ func (m AuthProvider) Authenticate(w http.ResponseWriter, r *http.Request) (cadd
 			w.Header().Set("Location", m.AuthURLPath)
 			w.WriteHeader(303)
 			return caddyauth.User{}, false, nil
-		} else {
-			if redirectURL, exists := q["redirect_url"]; exists {
-				w.Header().Set("Set-Cookie", redirectToToken+"="+redirectURL[0])
-			}
+		}
+		if redirectURL, exists := q["redirect_url"]; exists {
+			w.Header().Set("Set-Cookie", redirectToToken+"="+redirectURL[0])
 		}
 	}
 
