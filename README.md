@@ -72,3 +72,23 @@ The plugin creates the following a file having the following structure.
 Finally, browse to `/auth` and login with the username and password:
 
 <img src="https://raw.githubusercontent.com/greenpau/caddy-auth-ui/master/assets/docs/_static/images/forms_login.png">
+
+### Managing Passwords
+
+An administrator may change the password directly in
+`/etc/caddy/auth/local/users.json` file.
+
+First, download `bcrypt-cli`:
+
+```bash
+go get -u github.com/bitnami/bcrypt-cli
+```
+
+Then, use it to generate a new password:
+
+```bash
+$ echo -n "password123" | bcrypt-cli -c 10
+$2a$10$OVnOaHDkcOXfbUZPFh5qt.yJqUt6pl9uJaqEMxxM.vS5fY/cZNmsq
+```
+
+Finally, replace the newly generated password is user database file.
