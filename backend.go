@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/greenpau/caddy-auth-forms/pkg/backends/bolt"
+	"github.com/greenpau/caddy-auth-forms/pkg/backends/ldap"
 	"github.com/greenpau/caddy-auth-forms/pkg/backends/local"
 	"github.com/greenpau/caddy-auth-jwt"
 	"go.uber.org/zap"
@@ -74,6 +75,19 @@ func (b *Backend) UnmarshalJSON(data []byte) error {
 		}
 		if err := driver.ValidateConfig(); err != nil {
 			return fmt.Errorf("invalid boltdb configuration, error: %s, config: %s", err, data)
+		}
+		b.driver = driver
+		return nil
+	}
+
+	if bytes.Contains(data, []byte("\"type\":\"ldap\"")) {
+		b.bt = "ldap"
+		driver := ldap.NewDatabaseBackend()
+		if err := json.Unmarshal(data, driver); err != nil {
+			return fmt.Errorf("invalid LDAP configuration, error: %s, config: %s", err, data)
+		}
+		if err := driver.ValidateConfig(); err != nil {
+			return fmt.Errorf("invalid LDAP configuration, error: %s, config: %s", err, data)
 		}
 		b.driver = driver
 		return nil

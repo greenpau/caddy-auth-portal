@@ -41,6 +41,13 @@
               "terminal": true
             },
             {
+              "match": [
+                {
+                  "path": [
+                    "/auth*"
+                  ]
+                }
+              ],
               "handle": [
                 {
                   "handler": "authentication",
@@ -49,9 +56,45 @@
                       "auth_url_path": "/auth",
                       "backends": [
                         {
-                          "type": "local",
-                          "path": "assets/backends/local/users.json",
-                          "realm": "local"
+                          "type": "ldap",
+                          "realm": "contoso.com",
+                          "servers": [
+							{
+                              "addr": "ldaps://ldaps.contoso.com",
+                              "ignore_cert_errors": true
+                            }
+                          ],
+                          "attributes": {
+                            "name": "givenName",
+                            "surname": "sn",
+                            "username": "sAMAccountName",
+                            "member_of": "memberOf",
+                            "email": "mail"
+                          },
+                          "username": "CN=authzsvc,OU=Service Accounts,OU=Administrative Accounts,DC=CONTOSO,DC=COM",
+                          "password": "P@ssW0rd123",
+                          "search_base_dn": "DC=CONTOSO,DC=COM",
+                          "search_filter": "(|(sAMAccountName=%s)(mail=%s))",
+                          "groups": [
+                            {
+                              "dn": "CN=Admins,OU=Security,OU=Groups,DC=CONTOSO,DC=COM",
+                              "roles": [
+                                  "admin"
+                              ]
+                            },
+                            {
+                              "dn": "CN=Editors,OU=Security,OU=Groups,DC=CONTOSO,DC=COM",
+                              "roles": [
+                                  "editor"
+                              ]
+                            },
+                            {
+                              "dn": "CN=Viewers,OU=Security,OU=Groups,DC=CONTOSO,DC=COM",
+                              "roles": [
+                                  "viewer"
+                              ]
+                            }
+                          ]
                         }
                       ],
                       "jwt": {
@@ -80,13 +123,6 @@
                       }
                     }
                   }
-                }
-              ],
-              "match": [
-                {
-                  "path": [
-                    "/auth*"
-                  ]
                 }
               ],
               "terminal": true
