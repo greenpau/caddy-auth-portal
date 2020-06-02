@@ -1,4 +1,7 @@
 {
+  "admin": {
+    "listen": ":3019"
+  },
   "logging": {
     "logs": {
       "default": {
