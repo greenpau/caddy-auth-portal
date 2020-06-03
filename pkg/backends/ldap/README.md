@@ -149,9 +149,18 @@ The reason for that is the introduction of a dropbox or an input
 allowing a user to choose whether to use LDAP or Local backend
 when authenticating.
 
-For example, the following code adds HTML input:
+For example, the following code adds an HTML input:
 
 TODO: add `/assets/docs/images/login_form_domain_code.png`
+
+The code is:
+
+```html
+                <div class="input-field">
+                  <input id="realm" name="realm" type="text" class="validate">
+                  <label for="realm">Domain</label>
+                </div>
+```
 
 It results in having free form input box.
 
@@ -163,3 +172,31 @@ name of the domain for LDAP backend.
 TODO: add table with two images:
 `/assets/docs/images/login_form_domain_input_with_local.png` and
 `/assets/docs/images/login_form_domain_input_with_domain.png`
+
+The same could be accomplished with an HTML dropdown:
+
+Add the following to the form:
+
+```html
+                <div class="input-field">
+                  <label>Domain</label>
+                  <br /><br />
+                  <select id="realm" name="realm" class="browser-default">
+                    <option value="local" selected>Local</option>
+                    <option value="contoso.com">CONTOSO.COM</option>
+                  </select>
+                </div>
+```
+
+Additionally, add the following to `style`:
+
+```css
+      select {
+        font-family: 'Roboto', sans-serif;
+        color: #155D56;
+      }
+```
+
+It results in having fixed dropdown box.
+
+TODO: add `/assets/docs/images/login_form_dropdown_input.png`
