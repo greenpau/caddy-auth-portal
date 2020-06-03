@@ -76,13 +76,16 @@ func NewDatabaseBackend() *Backend {
 
 // Authenticator represents database connector.
 type Authenticator struct {
-	mux      sync.Mutex
-	realm    string
-	servers  []*AuthServer
-	username string
-	password string
-	groups   []*UserGroup
-	logger   *zap.Logger
+	mux            sync.Mutex
+	realm          string
+	servers        []*AuthServer
+	username       string
+	password       string
+	searchBaseDN   string
+	searchFilter   string
+	userAttributes UserAttributes
+	groups         []*UserGroup
+	logger         *zap.Logger
 }
 
 // NewAuthenticator returns an instance of Authenticator.
@@ -172,7 +175,6 @@ func (sa *Authenticator) ConfigureBindCredentials(username, password string) err
 			return fmt.Errorf("no password found")
 		}
 	}
-	sa.username = username
 
 	if strings.HasPrefix(password, "file:") {
 		secretFile := strings.TrimLeft(password, "file:")
@@ -191,12 +193,13 @@ func (sa *Authenticator) ConfigureBindCredentials(username, password string) err
 		}
 	}
 
+	sa.username = username
 	sa.password = password
 
 	sa.logger.Info(
 		"LDAP plugin configuration",
 		zap.String("phase", "bind_credentials"),
-		zap.String("username", username),
+		zap.String("username", sa.username),
 	)
 	return nil
 }
@@ -237,6 +240,9 @@ func (sa *Authenticator) ConfigureSearch(attr UserAttributes, searchBaseDN strin
 		zap.String("attr.member_of", attr.MemberOf),
 		zap.String("attr.email", attr.Email),
 	)
+	sa.searchBaseDN = searchBaseDN
+	sa.searchFilter = searchFilter
+	sa.userAttributes = attr
 	return nil
 }
 
@@ -339,6 +345,62 @@ func (sa *Authenticator) AuthenticateUser(userInput, password string) (*jwt.User
 
 		ldapConnection.Start()
 		defer ldapConnection.Close()
+
+		if err := ldapConnection.Bind(sa.username, sa.password); err != nil {
+			sa.logger.Error(
+				"LDAP connection binding failed",
+				zap.String("server", server.Address),
+				zap.String("username", sa.username),
+				zap.String("error", err.Error()),
+			)
+			continue
+		}
+
+		sa.logger.Debug(
+			"LDAP binding succeeded",
+			zap.String("server", server.Address),
+		)
+
+		req := ldap.NewSearchRequest(
+			sa.searchBaseDN,
+			ldap.ScopeWholeSubtree,
+			ldap.NeverDerefAliases,
+			0,
+			server.Timeout,
+			false,
+			sa.searchFilter, // Filter
+			[]string{"dn"},  // Attributes
+			nil,             // Controls
+		)
+
+		if req == nil {
+			sa.logger.Error(
+				"LDAP request building failed, request is nil",
+				zap.String("server", server.Address),
+				zap.String("base_dn", sa.searchBaseDN),
+				zap.String("search_filter", sa.searchFilter),
+			)
+			continue
+		}
+
+		resp, err := ldapConnection.Search(req)
+		if err != nil {
+			sa.logger.Error(
+				"LDAP search failed",
+				zap.String("server", server.Address),
+				zap.String("base_dn", sa.searchBaseDN),
+				zap.String("search_filter", sa.searchFilter),
+				zap.String("error", err.Error()),
+			)
+			continue
+		}
+
+		sa.logger.Debug(
+			"LDAP search succeeded",
+			zap.String("server", server.Address),
+			zap.Int("entry_count", len(resp.Entries)),
+		)
+
 		sa.logger.Debug(
 			"LDAP connection is ready to be closed",
 			zap.String("server", server.Address),
