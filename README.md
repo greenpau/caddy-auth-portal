@@ -22,8 +22,8 @@ The plugin supports the following **authentication** backends:
 
 Please follow these links for the documentation:
 
-* [Local]('./pkg/backends/local/README.md')
-* [LDAP]('./pkg/backends/ldap/README.md')
+* [Local](./pkg/backends/local/README.md)
+* [LDAP](./pkg/backends/ldap/README.md)
 
 The plugin accepts user credentials for **authentication** with:
 
