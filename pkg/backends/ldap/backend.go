@@ -6,6 +6,7 @@ import (
 	"github.com/go-ldap/ldap"
 	"github.com/greenpau/caddy-auth-jwt"
 	"go.uber.org/zap"
+	"io/ioutil"
 	"net"
 	"net/url"
 	"os"
@@ -172,7 +173,26 @@ func (sa *Authenticator) ConfigureBindCredentials(username, password string) err
 		}
 	}
 	sa.username = username
+
+	if strings.HasPrefix(password, "file:") {
+		secretFile := strings.TrimLeft(password, "file:")
+		sa.logger.Info(
+			"LDAP plugin configuration",
+			zap.String("phase", "bind_credentials"),
+			zap.String("password_file", secretFile),
+		)
+		fileContent, err := ioutil.ReadFile(secretFile)
+		if err != nil {
+			return fmt.Errorf("failed reading password file: %s, %s", secretFile, err)
+		}
+		password = strings.TrimSpace(string(fileContent))
+		if password == "" {
+			return fmt.Errorf("no password found in file: %s", secretFile)
+		}
+	}
+
 	sa.password = password
+
 	sa.logger.Info(
 		"LDAP plugin configuration",
 		zap.String("phase", "bind_credentials"),

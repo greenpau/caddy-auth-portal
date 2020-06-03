@@ -41,6 +41,12 @@ to a user, provided the user is a member of a group:
 | `editor` | `CN=Editors,OU=Security,OU=Groups,DC=CONTOSO,DC=COM` |
 | `viewer` | `CN=Viewers,OU=Security,OU=Groups,DC=CONTOSO,DC=COM` |
 
+The security of the `password` could be improved by the following techniques:
+
+* pass the password via environment variable `LDAP_USER_SECRET`
+* store the password in a file and pass the file inside the `password`
+  field with `file:` prefix, e.g. `file:/path/to/password`.
+
 ```json
 {
   "match": [
