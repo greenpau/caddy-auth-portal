@@ -1,5 +1,12 @@
 # LDAP Backend
 
+It is recommended to read the documentation for Local backend, because
+it outlines important principles of operation of all backends.
+
+Additionally, the LDAP backend works in conjunction with Local backend.
+As you will see later, the two can be used together by introducing a
+dropdown in UI interface to choose local versus LDAP domain authentication.
+
 The reference configuration for the backend is `assets/conf/ldap/Caddyfile.json`.
 
 The following Caddy endpoint at `/auth` authentications users
@@ -98,7 +105,7 @@ to a user, provided the user is a member of a group:
           },
           "ui": {
             "templates": {
-              "login": "assets/ui/login.template",
+              "login": "assets/ui/ldap/login.template",
               "portal": "assets/ui/portal.template"
             },
             "logo_url": "https://caddyserver.com/resources/images/caddy-circle-lock.svg",
@@ -123,3 +130,17 @@ to a user, provided the user is a member of a group:
   "terminal": true
 }
 ```
+
+Please notice that the `login` template uses different template
+from the plain Local backend.
+
+```
+          "ui": {
+            "templates": {
+              "login": "assets/ui/ldap/login.template",
+```
+
+The reason for that is the introduction of a dropbox allowing a user to choose
+whether to use LDAP or Local backend when authenticating.
+
+TODO: add image
