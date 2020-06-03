@@ -145,7 +145,21 @@ from the plain Local backend.
               "login": "assets/ui/ldap/login.template",
 ```
 
-The reason for that is the introduction of a dropbox allowing a user to choose
-whether to use LDAP or Local backend when authenticating.
+The reason for that is the introduction of a dropbox or an input
+allowing a user to choose whether to use LDAP or Local backend
+when authenticating.
 
-TODO: add image
+For example, the following code adds HTML input:
+
+TODO: add `/assets/docs/images/login_form_domain_code.png`
+
+It results in having free form input box.
+
+TODO: add `/assets/docs/images/login_form_domain_input.png`
+
+A user may input the word `local` for Local backend and the
+name of the domain for LDAP backend.
+
+TODO: add table with two images:
+`/assets/docs/images/login_form_domain_input_with_local.png` and
+`/assets/docs/images/login_form_domain_input_with_domain.png`
