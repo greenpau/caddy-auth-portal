@@ -38,7 +38,7 @@ func TestLdapConfig(t *testing.T) {
 	time.Sleep(2 * time.Second)
 	tester := caddytest.NewTester(t)
 	baseURL := "https://127.0.0.1:3443"
-	configFile := "assets/conf/ldap/Caddyfile.json"
+	configFile := "assets/conf/ldap/config.json"
 	configContent, err := ioutil.ReadFile(configFile)
 	if err != nil {
 		t.Fatalf("Failed to load configuration file %s: %s", configFile, err)

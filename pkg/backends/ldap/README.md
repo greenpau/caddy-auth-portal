@@ -7,7 +7,7 @@ Additionally, the LDAP backend works in conjunction with Local backend.
 As you will see later, the two can be used together by introducing a
 dropdown in UI interface to choose local versus LDAP domain authentication.
 
-The reference configuration for the backend is `assets/conf/ldap/Caddyfile.json`.
+The reference configuration for the backend is `assets/conf/ldap/config.json`.
 
 The following Caddy endpoint at `/auth` authentications users
 from `contoso.com` domain.
