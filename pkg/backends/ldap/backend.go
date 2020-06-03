@@ -1,9 +1,13 @@
 package ldap
 
 import (
+	"crypto/tls"
 	"fmt"
+	"github.com/go-ldap/ldap"
 	"github.com/greenpau/caddy-auth-jwt"
 	"go.uber.org/zap"
+	"net"
+	"net/url"
 	"os"
 	"strings"
 	"sync"
@@ -27,9 +31,11 @@ type UserGroup struct {
 
 // AuthServer represents an instance of LDAP server.
 type AuthServer struct {
-	Address          string `json:"addr,omitempty"`
-	IgnoreCertErrors bool   `json:"ignore_cert_errors,omitempty"`
-	Timeout          int    `json:"timeout,omitempty"`
+	Address          string   `json:"addr,omitempty"`
+	URL              *url.URL `json:"-"`
+	Port             string   `json:"-"`
+	IgnoreCertErrors bool     `json:"ignore_cert_errors,omitempty"`
+	Timeout          int      `json:"timeout,omitempty"`
 }
 
 // UserAttributes represent the mapping of LDAP attributes
@@ -120,17 +126,32 @@ func (sa *Authenticator) ConfigureServers(servers []AuthServer) error {
 		if entry.Timeout > 10 {
 			return fmt.Errorf("invalid timeout value: %d, cannot exceed 10 seconds", entry.Timeout)
 		}
+
 		server := &AuthServer{
 			Address:          entry.Address,
 			IgnoreCertErrors: entry.IgnoreCertErrors,
 			Timeout:          entry.Timeout,
 		}
+
+		url, err := url.Parse(entry.Address)
+		if err != nil {
+			return fmt.Errorf("failed parsing LDAP server address: %s, %s", entry.Address, err)
+		}
+		server.URL = url
+		if server.URL.Port() == "" {
+			server.Port = "636"
+		} else {
+			server.Port = server.URL.Port()
+		}
+
 		sa.logger.Info(
 			"LDAP plugin configuration",
 			zap.String("phase", "servers"),
-			zap.String("address", entry.Address),
-			zap.Bool("ignore_cert_errors", entry.IgnoreCertErrors),
-			zap.Int("timeout", entry.Timeout),
+			zap.String("address", server.Address),
+			zap.String("url", server.URL.String()),
+			zap.String("port", server.Port),
+			zap.Bool("ignore_cert_errors", server.IgnoreCertErrors),
+			zap.Int("timeout", server.Timeout),
 		)
 		sa.servers = append(sa.servers, server)
 	}
@@ -238,7 +259,71 @@ func (sa *Authenticator) AuthenticateUser(userInput, password string) (*jwt.User
 	sa.mux.Lock()
 	defer sa.mux.Unlock()
 
-	// TODO
+	for _, server := range sa.servers {
+		timeout := time.Duration(server.Timeout) * time.Second
+
+		ldapDialer, err := tls.DialWithDialer(
+			&net.Dialer{
+				Timeout: timeout,
+			},
+			"tcp",
+			net.JoinHostPort(server.URL.Hostname(), server.Port),
+			&tls.Config{
+				InsecureSkipVerify: server.IgnoreCertErrors,
+			},
+		)
+		if err != nil {
+			sa.logger.Error(
+				"LDAP TLS dialer failed",
+				zap.String("server", server.Address),
+				zap.String("error", err.Error()),
+			)
+			continue
+		}
+
+		sa.logger.Debug(
+			"LDAP TLS dialer setup succeeded",
+			zap.String("server", server.Address),
+		)
+
+		ldapConnection := ldap.NewConn(ldapDialer, true)
+		if ldapConnection == nil {
+			sa.logger.Error(
+				"LDAP connection failed",
+				zap.String("server", server.Address),
+				zap.String("error", err.Error()),
+			)
+			continue
+		}
+		// defer ldapConnection.Close()
+
+		tlsState, ok := ldapConnection.TLSConnectionState()
+
+		if !ok {
+			sa.logger.Error(
+				"LDAP connection TLS state polling failed",
+				zap.String("server", server.Address),
+				zap.String("error", "TLSConnectionState is not ok"),
+			)
+			continue
+		}
+
+		sa.logger.Debug(
+			"LDAP connection TLS state polling succeeded",
+			zap.String("server", server.Address),
+			zap.String("server_name", tlsState.ServerName),
+			zap.Bool("handshake_complete", tlsState.HandshakeComplete),
+			zap.String("version", fmt.Sprintf("%d", tlsState.Version)),
+			zap.String("negotiated_protocol", tlsState.NegotiatedProtocol),
+		)
+
+		ldapConnection.Start()
+		defer ldapConnection.Close()
+		sa.logger.Debug(
+			"LDAP connection is ready to be closed",
+			zap.String("server", server.Address),
+		)
+	}
 
 	return nil, 400, fmt.Errorf("backend is still under development")
 }
