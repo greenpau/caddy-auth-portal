@@ -1,6 +1,9 @@
 {
   "admin": {
-    "disabled": true
+    "disabled": true,
+    "config": {
+      "persist": false
+    }
   },
   "logging": {
     "logs": {
