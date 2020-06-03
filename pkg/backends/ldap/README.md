@@ -182,7 +182,7 @@ when authenticating.
 
 For example, the following code adds an HTML input:
 
-TODO: add `/assets/docs/images/login_form_domain_code.png`
+<img src="https://raw.githubusercontent.com/greenpau/caddy-auth-forms/master/assets/docs/images/login_form_domain_code.png">
 
 The code is:
 
@@ -195,14 +195,21 @@ The code is:
 
 It results in having free form input box.
 
-TODO: add `/assets/docs/images/login_form_domain_input.png`
+<img src="https://raw.githubusercontent.com/greenpau/caddy-auth-forms/master/assets/docs/images/login_form_domain_input.png">
 
 A user may input the word `local` for Local backend and the
 name of the domain for LDAP backend.
 
-TODO: add table with two images:
-`/assets/docs/images/login_form_domain_input_with_local.png` and
-`/assets/docs/images/login_form_domain_input_with_domain.png`
+<table cellspacing="0" cellpadding="0" style="border-collapse: collapse; border: none; vertical-align: top;">
+  <tr style="border: none;">
+    <td style="border: none; vertical-align: top;">
+      <img src="https://raw.githubusercontent.com/greenpau/caddy-auth-forms/master/assets/docs/images/login_form_domain_input_with_local.png">
+    </td>
+    <td style="border: none; vertical-align: top;">
+      <img src="https://raw.githubusercontent.com/greenpau/caddy-auth-forms/master/assets/docs/images/login_form_domain_input_with_domain.png">
+    </td>
+  </tr>
+</table>
 
 The same could be accomplished with an HTML dropdown:
 
@@ -230,7 +237,7 @@ Additionally, add the following to `style`:
 
 It results in having fixed dropdown box.
 
-TODO: add `/assets/docs/images/login_form_dropdown_input.png`
+<img src="https://raw.githubusercontent.com/greenpau/caddy-auth-forms/master/assets/docs/images/login_form_dropdown_input.png">
 
 ## LDAP Authentication Process
 
