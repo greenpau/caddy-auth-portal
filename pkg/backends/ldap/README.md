@@ -1,6 +1,8 @@
 # LDAP Backend
 
-It is recommended to read the documentation for Local backend, because
+## Getting Started
+
+It is recommended reading the documentation for Local backend, because
 it outlines important principles of operation of all backends.
 
 Additionally, the LDAP backend works in conjunction with Local backend.
@@ -30,7 +32,24 @@ The plugin uses `authzsvc` domain user to perform LDAP bind.
 The base search DN is `DC=CONTOSO,DC=COM`.
 
 The plugin accepts username (`sAMAccountName`) or email address (`mail`)
-and uses the following search filter: `(|(sAMAccountName=%s)(mail=%s))`.
+and uses the following search filter: `(&(|(sAMAccountName=%s)(mail=%s))(objectclass=user))`.
+
+For example:
+
+```json
+      {
+        "Name": "sAMAccountName",
+        "Values": [
+          "jsmith"
+        ]
+      },
+      {
+        "Name": "mail",
+        "Values": [
+          "jsmith@contoso.com"
+        ]
+      }
+```
 
 Upon successful authentication, the plugin assign the following rules
 to a user, provided the user is a member of a group:
@@ -46,6 +65,8 @@ The security of the `password` could be improved by the following techniques:
 * pass the password via environment variable `LDAP_USER_SECRET`
 * store the password in a file and pass the file inside the `password`
   field with `file:` prefix, e.g. `file:/path/to/password`.
+
+## Model Configuration
 
 ```json
 {
@@ -87,7 +108,7 @@ The security of the `password` could be improved by the following techniques:
               "username": "CN=authzsvc,OU=Service Accounts,OU=Administrative Accounts,DC=CONTOSO,DC=COM",
               "password": "P@ssW0rd123",
               "search_base_dn": "DC=CONTOSO,DC=COM",
-              "search_filter": "(|(sAMAccountName=%s)(mail=%s))",
+              "search_filter": "(&(|(sAMAccountName=%s)(mail=%s))(objectclass=user))",
               "groups": [
                 {
                   "dn": "CN=Admins,OU=Security,OU=Groups,DC=CONTOSO,DC=COM",
@@ -141,6 +162,8 @@ The security of the `password` could be improved by the following techniques:
   "terminal": true
 }
 ```
+
+## User Interface
 
 Please notice that the `login` template uses different template
 from the plain Local backend.
@@ -206,3 +229,104 @@ Additionally, add the following to `style`:
 It results in having fixed dropdown box.
 
 TODO: add `/assets/docs/images/login_form_dropdown_input.png`
+
+## LDAP Authentication Process
+
+The plugin does not keep connections open to LDAP servers. The plugin
+tears a connection down each time it finishes authenticating a request
+associated with the connection.
+
+First, the plugin uses `username` and `password` to bind to an LDAP
+server. The purpose of the connection is searching for user objects
+in the server's directory.
+
+The plugin takes the username provided in a request. Next, the
+plugin substitutes `%s` with the username in its search filter, i.e.
+`(&(|(sAMAccountName=%s)(mail=%s))(objectclass=user))`.
+
+The plugin initiates a search for a user object in the scope provided
+via `search_base_dn`, e.g. `DC=CONTOSO,DC=COM`.
+
+If the number of objects in the result of the search is not `1`, then
+authentication fails.
+
+Typically, the response would have the following structure:
+
+```json
+[
+  {
+    "DN": "CN=Smith\\, John,OU=Users,DC=CONTOSO,DC=COM",
+    "Attributes": [
+      {
+        "Name": "sn",
+        "Values": [
+          "Smith"
+        ]
+      },
+      {
+        "Name": "givenName",
+        "Values": [
+          "John"
+        ]
+      },
+      {
+        "Name": "memberOf",
+        "Values": [
+          "CN=Admins,OU=Security,OU=Groups,DC=CONTOSO,DC=COM",
+          "CN=Editors,OU=Security,OU=Groups,DC=CONTOSO,DC=COM",
+          "CN=Viewers,OU=Security,OU=Groups,DC=CONTOSO,DC=COM"
+        ]
+      },
+      {
+        "Name": "sAMAccountName",
+        "Values": [
+          "jsmith"
+        ]
+      },
+      {
+        "Name": "mail",
+        "Values": [
+          "jsmith@contoso.com"
+        ]
+      }
+    ]
+  }
+]
+```
+
+The plugin iterates over `memberOf` attribute and compares the
+values to its group mapping:
+
+```json
+              "groups": [
+                {
+                  "dn": "CN=Admins,OU=Security,OU=Groups,DC=CONTOSO,DC=COM",
+                  "roles": [
+                    "admin"
+                  ]
+                },
+                {
+                  "dn": "CN=Editors,OU=Security,OU=Groups,DC=CONTOSO,DC=COM",
+                  "roles": [
+                    "editor"
+                  ]
+                },
+                {
+                  "dn": "CN=Viewers,OU=Security,OU=Groups,DC=CONTOSO,DC=COM",
+                  "roles": [
+                    "viewer"
+                  ]
+                }
+              ]
+```
+
+If there are no matches, the authentication fails.
+
+Once the plugin determines the user's roles, e.g. `admin`, `editor`, `viewer`,
+the plugin actually checks whether the user's password is valid.
+
+It does so by doing LDAP re-binding with the user's DN and the password provided
+in the request. In this example, the user's DN is
+`CN=Smith\\, John,OU=Users,DC=CONTOSO,DC=COM`.
+
+If the re-binding is successful, the plugin issues a JWT token.

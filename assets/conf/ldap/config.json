@@ -82,7 +82,7 @@
                           "username": "CN=authzsvc,OU=Service Accounts,OU=Administrative Accounts,DC=CONTOSO,DC=COM",
                           "password": "P@ssW0rd123",
                           "search_base_dn": "DC=CONTOSO,DC=COM",
-                          "search_filter": "(|(sAMAccountName=%s)(mail=%s))",
+                          "search_filter": "(&(|(sAMAccountName=%s)(mail=%s))(objectclass=user))",
                           "groups": [
                             {
                               "dn": "CN=Admins,OU=Security,OU=Groups,DC=CONTOSO,DC=COM",

@@ -212,7 +212,7 @@ func (sa *Authenticator) ConfigureSearch(attr UserAttributes, searchBaseDN strin
 		return fmt.Errorf("no search_base_dn found")
 	}
 	if searchFilter == "" {
-		return fmt.Errorf("no search_filter found")
+		searchFilter = "(&(|(sAMAccountName=%s)(mail=%s))(objectclass=user))"
 	}
 	if attr.Name == "" {
 		attr.Name = "givenName"
@@ -280,8 +280,14 @@ func (sa *Authenticator) ConfigureUserGroups(groups []UserGroup) error {
 
 // AuthenticateUser checks the database for the presence of a username/email
 // and password and returns user claims.
-func (sa *Authenticator) AuthenticateUser(userInput, password string) (*jwt.UserClaims, int, error) {
-	// var err error
+func (sa *Authenticator) AuthenticateUser(userInput, passwordInput string) (*jwt.UserClaims, int, error) {
+	if userInput == "" {
+		return nil, 400, fmt.Errorf("input username is empty")
+	}
+	if passwordInput == "" {
+		return nil, 400, fmt.Errorf("input password is empty")
+	}
+
 	sa.mux.Lock()
 	defer sa.mux.Unlock()
 
@@ -361,24 +367,33 @@ func (sa *Authenticator) AuthenticateUser(userInput, password string) (*jwt.User
 			zap.String("server", server.Address),
 		)
 
+		searchFilter := strings.ReplaceAll(sa.searchFilter, "%s", userInput)
+
 		req := ldap.NewSearchRequest(
+			// group.GroupDN,
 			sa.searchBaseDN,
 			ldap.ScopeWholeSubtree,
 			ldap.NeverDerefAliases,
 			0,
 			server.Timeout,
 			false,
-			sa.searchFilter, // Filter
-			[]string{"dn"},  // Attributes
-			nil,             // Controls
+			searchFilter,
+			[]string{
+				sa.userAttributes.Name,
+				sa.userAttributes.Surname,
+				sa.userAttributes.Username,
+				sa.userAttributes.MemberOf,
+				sa.userAttributes.Email,
+			},
+			nil, // Controls
 		)
 
 		if req == nil {
 			sa.logger.Error(
 				"LDAP request building failed, request is nil",
 				zap.String("server", server.Address),
-				zap.String("base_dn", sa.searchBaseDN),
-				zap.String("search_filter", sa.searchFilter),
+				zap.String("search_base_dn", sa.searchBaseDN),
+				zap.String("search_filter", searchFilter),
 			)
 			continue
 		}
@@ -388,8 +403,8 @@ func (sa *Authenticator) AuthenticateUser(userInput, password string) (*jwt.User
 			sa.logger.Error(
 				"LDAP search failed",
 				zap.String("server", server.Address),
-				zap.String("base_dn", sa.searchBaseDN),
-				zap.String("search_filter", sa.searchFilter),
+				zap.String("search_base_dn", sa.searchBaseDN),
+				zap.String("search_filter", searchFilter),
 				zap.String("error", err.Error()),
 			)
 			continue
@@ -399,6 +414,77 @@ func (sa *Authenticator) AuthenticateUser(userInput, password string) (*jwt.User
 			"LDAP search succeeded",
 			zap.String("server", server.Address),
 			zap.Int("entry_count", len(resp.Entries)),
+			zap.String("search_base_dn", sa.searchBaseDN),
+			zap.String("search_filter", searchFilter),
+			zap.Any("users", resp.Entries),
+		)
+
+		if len(resp.Entries) == 0 {
+			return nil, 401, fmt.Errorf("authentication failed")
+		}
+
+		if len(resp.Entries) > 1 {
+			return nil, 401, fmt.Errorf("authentication failed, multiple users matched: %d", len(resp.Entries))
+		}
+
+		user := resp.Entries[0]
+		var userFullName, userLastName, userFirstName, userAccountName, userMail string
+		userRoles := make(map[string]bool)
+		for _, attr := range user.Attributes {
+			if len(attr.Values) < 1 {
+				continue
+			}
+			if attr.Name == sa.userAttributes.Name {
+				userFirstName = attr.Values[0]
+			}
+			if attr.Name == sa.userAttributes.Surname {
+				userLastName = attr.Values[0]
+			}
+			if attr.Name == sa.userAttributes.Username {
+				userAccountName = attr.Values[0]
+			}
+			if attr.Name == sa.userAttributes.MemberOf {
+				for _, v := range attr.Values {
+					for _, g := range sa.groups {
+						if g.GroupDN != v {
+							continue
+						}
+						for _, role := range g.Roles {
+							if role == "" {
+								continue
+							}
+							userRoles[role] = true
+						}
+					}
+				}
+			}
+			if attr.Name == sa.userAttributes.Email {
+				userMail = attr.Values[0]
+			}
+		}
+
+		if userFirstName != "" {
+			userFullName = userFirstName
+		}
+		if userLastName != "" {
+			if userFullName == "" {
+				userFullName = userLastName
+			} else {
+				userFullName = userFullName + " " + userLastName
+			}
+		}
+
+		if len(userRoles) == 0 {
+			return nil, 401, fmt.Errorf("authentication failed, no matched groups")
+		}
+
+		sa.logger.Debug(
+			"LDAP user match",
+			zap.String("server", server.Address),
+			zap.String("name", userFullName),
+			zap.String("username", userAccountName),
+			zap.String("email", userMail),
+			zap.Any("roles", userRoles),
 		)
 
 		sa.logger.Debug(
