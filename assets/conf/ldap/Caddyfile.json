@@ -108,7 +108,7 @@
                       },
                       "ui": {
                         "templates": {
-                          "login": "assets/ui/login.template",
+                          "login": "assets/ui/ldap/login.template",
                           "portal": "assets/ui/portal.template"
                         },
                         "logo_url": "https://caddyserver.com/resources/images/caddy-circle-lock.svg",

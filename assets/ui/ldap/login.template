@@ -22,6 +22,10 @@
       input {
         font-family: 'Roboto', sans-serif;
       }
+      select {
+        font-family: 'Roboto', sans-serif;
+        color: #155D56;
+      }
       .app-background {
         background-color: #155D56;
       }
@@ -63,6 +67,14 @@
                 <div class="input-field">
                   <input id="password" name="password" type="password" class="validate">
                   <label for="password">Password</label>
+                </div>
+                <div class="input-field">
+                  <label>Domain</label>
+                  <br /><br />
+                  <select id="realm" name="realm" class="browser-default">
+                    <option value="local" selected>Local</option>
+                    <option value="contoso.com">CONTOSO.COM</option>
+                  </select>
                 </div>
               </div>
               <div class="card-action right-align">
