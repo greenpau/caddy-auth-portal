@@ -57,7 +57,7 @@ clean:
 
 qtest:
 	@echo "Perform quick tests ..."
-	@#time richgo test -v -run TestPlugin ./*.go
+	@go test $(VERBOSE) -coverprofile=.coverage/coverage.out -run TestLdapConfig ./*.go
 
 dep:
 	@echo "Making dependencies check ..."

@@ -391,6 +391,9 @@ func (m AuthProvider) Authenticate(w http.ResponseWriter, r *http.Request) (cadd
 
 	// Wrap up
 	if !userAuthenticated {
+		for _, k := range []string{m.TokenProvider.TokenName} {
+			w.Header().Add("Set-Cookie", k+"=delete; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT")
+		}
 		content, err := m.uiFactory.Render("login", uiArgs)
 		if err != nil {
 			m.logger.Error(
