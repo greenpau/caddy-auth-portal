@@ -286,17 +286,6 @@ func (sa *Authenticator) ConfigureUserGroups(groups []UserGroup) error {
 // AuthenticateUser checks the database for the presence of a username/email
 // and password and returns user claims.
 func (sa *Authenticator) AuthenticateUser(userInput, passwordInput string) (*jwt.UserClaims, int, error) {
-	if userInput == "" {
-		return nil, 400, fmt.Errorf("input username is empty")
-	}
-	if passwordInput == "" {
-		return nil, 400, fmt.Errorf("input password is empty")
-	}
-
-	if !emailRegexPattern.MatchString(userInput) && !usernameRegexPattern.MatchString(userInput) {
-		return nil, 400, fmt.Errorf("input username fails regex validation ")
-	}
-
 	sa.mux.Lock()
 	defer sa.mux.Unlock()
 
@@ -496,10 +485,36 @@ func (sa *Authenticator) AuthenticateUser(userInput, passwordInput string) (*jwt
 			zap.Any("roles", userRoles),
 		)
 
+		if err := ldapConnection.Bind(user.DN, passwordInput); err != nil {
+			sa.logger.Error(
+				"LDAP auth binding failed",
+				zap.String("server", server.Address),
+				zap.String("username", user.DN),
+				zap.String("error", err.Error()),
+			)
+			return nil, 401, fmt.Errorf("authentication failed, %s", err)
+		}
+
 		sa.logger.Debug(
 			"LDAP connection is ready to be closed",
 			zap.String("server", server.Address),
 		)
+
+		claims := &jwt.UserClaims{
+			Subject: userAccountName,
+		}
+		if userFullName != "" {
+			claims.Name = userFullName
+		}
+		if userMail != "" {
+			claims.Email = userMail
+		}
+		for role := range userRoles {
+			claims.Roles = append(claims.Roles, role)
+		}
+		claims.Origin = sa.searchBaseDN
+
+		return claims, 200, nil
 	}
 
 	return nil, 400, fmt.Errorf("backend is still under development")
@@ -565,6 +580,18 @@ func (b *Backend) Authenticate(reqID string, kv map[string]string) (*jwt.UserCla
 	if b.Authenticator == nil {
 		return nil, 500, fmt.Errorf("LDAP backend is nil")
 	}
+
+	if kv["username"] == "" {
+		return nil, 400, fmt.Errorf("input username is empty")
+	}
+	if kv["password"] == "" {
+		return nil, 400, fmt.Errorf("input password is empty")
+	}
+
+	if !emailRegexPattern.MatchString(kv["username"]) && !usernameRegexPattern.MatchString(kv["username"]) {
+		return nil, 400, fmt.Errorf("input username fails regex validation")
+	}
+
 	claims, statusCode, err := b.Authenticator.AuthenticateUser(kv["username"], kv["password"])
 	if statusCode == 200 {
 		claims.Origin = b.TokenProvider.TokenOrigin

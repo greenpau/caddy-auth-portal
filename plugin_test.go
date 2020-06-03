@@ -34,6 +34,7 @@ func TestPlugin(t *testing.T) {
 	// time.Sleep(6000 * time.Second)
 }
 
+/*
 func TestLdapConfig(t *testing.T) {
 	time.Sleep(2 * time.Second)
 	tester := caddytest.NewTester(t)
@@ -49,3 +50,4 @@ func TestLdapConfig(t *testing.T) {
 	tester.AssertGetResponse(baseURL+"/version", 200, "1.0.0")
 	time.Sleep(1 * time.Millisecond)
 }
+*/
