@@ -21,30 +21,40 @@ func init() {
 // Upon successful authentation for the combination, a user gets
 // assigned the roles associated with the binding.
 type UserGroup struct {
-	BaseDN       string   `json:"base_dn,omitempty"`
-	SearchFilter string   `json:"search_filter,omitempty"`
-	Roles        []string `json:"roles,omitempty"`
+	GroupDN string   `json:"dn,omitempty"`
+	Roles   []string `json:"roles,omitempty"`
 }
 
 // AuthServer represents an instance of LDAP server.
 type AuthServer struct {
-	Address          string `json:"-"`
-	IgnoreCertErrors bool   `json:"-"`
-	Timeout          int    `json:"-"`
+	Address          string `json:"addr,omitempty"`
+	IgnoreCertErrors bool   `json:"ignore_cert_errors,omitempty"`
+	Timeout          int    `json:"timeout,omitempty"`
+}
+
+// UserAttributes represent the mapping of LDAP attributes
+// to JWT fields.
+type UserAttributes struct {
+	Name     string `json:"name,omitempty"`
+	Surname  string `json:"surname,omitempty"`
+	Username string `json:"username,omitempty"`
+	MemberOf string `json:"member_of,omitempty"`
+	Email    string `json:"email,omitempty"`
 }
 
 // Backend represents authentication provider with SQLite backend.
 type Backend struct {
-	Realm            string                   `json:"realm,omitempty"`
-	BindAddresses    []string                 `json:"addr,omitempty"`
-	IgnoreCertErrors bool                     `json:"ignore_cert_errors,omitempty"`
-	BindUsername     string                   `json:"username,omitempty"`
-	BindPassword     string                   `json:"password,omitempty"`
-	Groups           []UserGroup              `json:"groups,omitempty"`
-	Timeout          int                      `json:"timeout,omitempty"`
-	TokenProvider    *jwt.TokenProviderConfig `json:"jwt,omitempty"`
-	Authenticator    *Authenticator           `json:"-"`
-	logger           *zap.Logger
+	Realm         string                   `json:"realm,omitempty"`
+	Servers       []AuthServer             `json:"servers,omitempty"`
+	BindUsername  string                   `json:"username,omitempty"`
+	BindPassword  string                   `json:"password,omitempty"`
+	Attributes    UserAttributes           `json:"attributes,omitempty"`
+	SearchBaseDN  string                   `json:"search_base_dn,omitempty"`
+	SearchFilter  string                   `json:"search_filter,omitempty"`
+	Groups        []UserGroup              `json:"groups,omitempty"`
+	TokenProvider *jwt.TokenProviderConfig `json:"jwt,omitempty"`
+	Authenticator *Authenticator           `json:"-"`
+	logger        *zap.Logger
 }
 
 // NewDatabaseBackend return an instance of authentication provider
@@ -94,33 +104,33 @@ func (sa *Authenticator) ConfigureRealm(realm string) error {
 }
 
 // ConfigureServers configures the addresses of LDAP servers.
-func (sa *Authenticator) ConfigureServers(addrs []string, ignoreCertErrors bool, timeout int) error {
+func (sa *Authenticator) ConfigureServers(servers []AuthServer) error {
 	sa.mux.Lock()
 	defer sa.mux.Unlock()
-	if len(addrs) == 0 {
-		return fmt.Errorf("no addr found")
+	if len(servers) == 0 {
+		return fmt.Errorf("no authentication servers found")
 	}
-	if timeout == 0 {
-		timeout = 5
-	}
-	if timeout > 10 {
-		return fmt.Errorf("invalid timeout value: %d", timeout)
-	}
-	for _, addr := range addrs {
-		if !strings.HasPrefix(addr, "ldaps://") {
-			return fmt.Errorf("the address does not have ldaps:// prefix, address: %s", addr)
+	for _, entry := range servers {
+		if !strings.HasPrefix(entry.Address, "ldaps://") {
+			return fmt.Errorf("the server address does not have ldaps:// prefix, address: %s", entry.Address)
+		}
+		if entry.Timeout == 0 {
+			entry.Timeout = 5
+		}
+		if entry.Timeout > 10 {
+			return fmt.Errorf("invalid timeout value: %d, cannot exceed 10 seconds", entry.Timeout)
 		}
 		server := &AuthServer{
-			Address:          addr,
-			IgnoreCertErrors: ignoreCertErrors,
-			Timeout:          timeout,
+			Address:          entry.Address,
+			IgnoreCertErrors: entry.IgnoreCertErrors,
+			Timeout:          entry.Timeout,
 		}
 		sa.logger.Info(
 			"LDAP plugin configuration",
 			zap.String("phase", "servers"),
-			zap.String("address", addr),
-			zap.Bool("ignore_cert_errors", ignoreCertErrors),
-			zap.Int("timeout", timeout),
+			zap.String("address", entry.Address),
+			zap.Bool("ignore_cert_errors", entry.IgnoreCertErrors),
+			zap.Int("timeout", entry.Timeout),
 		)
 		sa.servers = append(sa.servers, server)
 	}
@@ -150,17 +160,53 @@ func (sa *Authenticator) ConfigureBindCredentials(username, password string) err
 	return nil
 }
 
+// ConfigureSearch configures base DN, search filter, attributes for LDAP queries.
+func (sa *Authenticator) ConfigureSearch(attr UserAttributes, searchBaseDN string, searchFilter string) error {
+	sa.mux.Lock()
+	defer sa.mux.Unlock()
+	if searchBaseDN == "" {
+		return fmt.Errorf("no search_base_dn found")
+	}
+	if searchFilter == "" {
+		return fmt.Errorf("no search_filter found")
+	}
+	if attr.Name == "" {
+		attr.Name = "givenName"
+	}
+	if attr.Surname == "" {
+		attr.Surname = "sn"
+	}
+	if attr.Username == "" {
+		attr.Username = "sAMAccountName"
+	}
+	if attr.MemberOf == "" {
+		attr.MemberOf = "memberOf"
+	}
+	if attr.Email == "" {
+		attr.Email = "mail"
+	}
+	sa.logger.Info(
+		"LDAP plugin configuration",
+		zap.String("phase", "search"),
+		zap.String("search_base_dn", searchBaseDN),
+		zap.String("search_filter", searchFilter),
+		zap.String("attr.name", attr.Name),
+		zap.String("attr.surname", attr.Surname),
+		zap.String("attr.username", attr.Username),
+		zap.String("attr.member_of", attr.MemberOf),
+		zap.String("attr.email", attr.Email),
+	)
+	return nil
+}
+
 // ConfigureUserGroups configures user group bindings for LDAP searching.
 func (sa *Authenticator) ConfigureUserGroups(groups []UserGroup) error {
 	if len(groups) == 0 {
 		return fmt.Errorf("no groups found")
 	}
 	for i, group := range groups {
-		if group.BaseDN == "" {
+		if group.GroupDN == "" {
 			return fmt.Errorf("Base DN for group %d is empty", i)
-		}
-		if group.SearchFilter == "" {
-			return fmt.Errorf("Search filter for group %d is empty", i)
 		}
 		if len(group.Roles) == 0 {
 			return fmt.Errorf("Role assignments for group %d is empty", i)
@@ -171,16 +217,14 @@ func (sa *Authenticator) ConfigureUserGroups(groups []UserGroup) error {
 			}
 		}
 		saGroup := &UserGroup{
-			BaseDN:       group.BaseDN,
-			SearchFilter: group.SearchFilter,
-			Roles:        group.Roles,
+			GroupDN: group.GroupDN,
+			Roles:   group.Roles,
 		}
 		sa.logger.Info(
 			"LDAP plugin configuration",
 			zap.String("phase", "user_groups"),
 			zap.String("roles", strings.Join(saGroup.Roles, ", ")),
-			zap.String("base_dn", saGroup.BaseDN),
-			zap.String("search_filter", saGroup.SearchFilter),
+			zap.String("dn", saGroup.GroupDN),
 		)
 		sa.groups = append(sa.groups, saGroup)
 	}
@@ -213,7 +257,13 @@ func (b *Backend) ConfigureAuthenticator() error {
 		return err
 	}
 
-	if err := b.Authenticator.ConfigureServers(b.BindAddresses, b.IgnoreCertErrors, b.Timeout); err != nil {
+	if err := b.Authenticator.ConfigureSearch(b.Attributes, b.SearchBaseDN, b.SearchFilter); err != nil {
+		b.logger.Error("failed configuring base DN, search filter, attributes for LDAP queries",
+			zap.String("error", err.Error()))
+		return err
+	}
+
+	if err := b.Authenticator.ConfigureServers(b.Servers); err != nil {
 		b.logger.Error("failed to configure LDAP server addresses",
 			zap.String("error", err.Error()))
 		return err
