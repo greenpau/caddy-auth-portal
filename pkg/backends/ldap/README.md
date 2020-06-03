@@ -58,6 +58,11 @@ to a user, provided the user is a member of a group:
           "auth_url_path": "/auth",
           "backends": [
             {
+              "type": "local",
+              "path": "assets/backends/local/users.json",
+              "realm": "local"
+            },
+            {
               "type": "ldap",
               "realm": "contoso.com",
               "servers": [
