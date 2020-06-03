@@ -15,7 +15,9 @@ The following Caddy endpoint at `/auth` authentications users
 from `contoso.com` domain.
 
 There is a single LDAP server associated with the domain: `ldaps://ldaps.contoso.com`.
-The plugin ignores certificate errors when connecting to the servers.
+
+The plugin DOES NOT ignore certificate errors when connecting to the servers.
+However, one may ignore the errors by setting `ignore_cert_errors` to `true`.
 
 The LDAP attribute mapping to JWT fields is as follows.
 

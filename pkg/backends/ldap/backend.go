@@ -10,12 +10,17 @@ import (
 	"net"
 	"net/url"
 	"os"
+	"regexp"
 	"strings"
 	"sync"
 	"time"
 )
 
-var globalAuthenticator *Authenticator
+var (
+	globalAuthenticator  *Authenticator
+	emailRegexPattern    = regexp.MustCompile("^[a-zA-Z0-9.+\\._~-]{1,61}@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$")
+	usernameRegexPattern = regexp.MustCompile("^[a-zA-Z0-9.+\\._~-]{1,61}$")
+)
 
 func init() {
 	globalAuthenticator = NewAuthenticator()
@@ -286,6 +291,10 @@ func (sa *Authenticator) AuthenticateUser(userInput, passwordInput string) (*jwt
 	}
 	if passwordInput == "" {
 		return nil, 400, fmt.Errorf("input password is empty")
+	}
+
+	if !emailRegexPattern.MatchString(userInput) && !usernameRegexPattern.MatchString(userInput) {
+		return nil, 400, fmt.Errorf("input username fails regex validation ")
 	}
 
 	sa.mux.Lock()
