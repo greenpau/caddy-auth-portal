@@ -1,5 +1,13 @@
 # LDAP Backend
 
+<!-- begin-markdown-toc -->
+* [Getting Started](#getting-started)
+* [Model Configuration](#model-configuration)
+* [User Interface](#user-interface)
+* [LDAP Authentication Process](#ldap-authentication-process)
+
+<!-- end-markdown-toc -->
+
 ## Getting Started
 
 It is recommended reading the documentation for Local backend, because

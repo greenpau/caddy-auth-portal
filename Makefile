@@ -1,4 +1,4 @@
-.PHONY: test ctest covdir coverage docs linter qtest clean dep release
+.PHONY: test ctest covdir coverage docs linter qtest clean dep release logo
 PLUGIN_NAME="caddy-auth-forms"
 PLUGIN_VERSION:=$(shell cat VERSION | head -1)
 GIT_COMMIT:=$(shell git describe --dirty --always)
@@ -81,3 +81,6 @@ release:
 	@@echo "If necessary, run the following commands:"
 	@echo "  git push --delete origin v$(PLUGIN_VERSION)"
 	@echo "  git tag --delete v$(PLUGIN_VERSION)"
+
+logo:
+	@convert -background black -fill white -font DejaVu-Sans-Bold -size 640x320! -gravity center -pointsize 96 label:'caddy.auth\nforms' PNG32:assets/docs/images/logo.png
