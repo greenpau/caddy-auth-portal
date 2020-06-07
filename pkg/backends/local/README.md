@@ -3,7 +3,7 @@
 ## Configuration
 
 Please create the following
-[route](https://github.com/greenpau/caddy-auth-forms/blob/a9b8b2421c5ece99dc30c09aa9224049f1aa146c/assets/conf/Caddyfile.json#L19-L69)
+[route](https://github.com/greenpau/caddy-auth-forms/blob/a9b8b2421c5ece99dc30c09aa9224049f1aa146c/assets/conf/local/config.json#L19-L69)
 in your configuration. In the example, the route refers to `local` backend in
 the file `assets/backends/local/users.json`. Specify the path to the file
 where you want your database to reside. Do not create a file, but rather

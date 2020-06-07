@@ -22,7 +22,7 @@ all:
 		xcaddy build v2.0.0 --output ../$(PLUGIN_NAME)/bin/caddy \
 		--with github.com/greenpau/caddy-auth-forms@$(LATEST_GIT_COMMIT)=$(BUILD_DIR) \
 		--with github.com/greenpau/caddy-auth-jwt@latest=$(BUILD_DIR)/../caddy-auth-jwt
-	@#bin/caddy run -environ -config assets/conf/Caddyfile.json
+	@#bin/caddy run -environ -config assets/conf/local/config.json
 
 linter:
 	@echo "Running lint checks"
