@@ -29,3 +29,9 @@ The plugin accepts user credentials for **authentication** with:
 
 * Form-based Authentication: `POST` with `application/x-www-form-urlencoded`
 * Basic Authentication: `GET` with `Authorization: Basic` header
+
+The following digram is visual representation of the configuration of
+[`caddy-auth-forms`](https://github.com/greenpau/caddy-auth-forms) and
+[`caddy-auth-jwt`](https://github.com/greenpau/caddy-auth-jwt).
+
+![Authentication Plugins](assets/docs/images/auth_plugin_arch.png)
