@@ -181,7 +181,7 @@ func (p *AuthProviderPool) Register(m *AuthProvider) error {
 			zap.String("logo_url", m.uiFactory.LogoURL),
 			zap.String("logo_description", m.uiFactory.LogoDescription),
 			zap.Any("action_endpoint", m.uiFactory.ActionEndpoint),
-			zap.Any("private_links", m.UserInterface.PrivateLinks),
+			zap.Any("private_links", m.uiFactory.PrivateLinks),
 		)
 
 		for tmplName, tmplAlias := range uiPages {
@@ -273,7 +273,6 @@ func (p *AuthProviderPool) Register(m *AuthProvider) error {
 			}
 		}
 		m.TokenValidator.AccessList = append(m.TokenValidator.AccessList, entry)
-
 		m.logger.Info(
 			"JWT token validator provisioned",
 			zap.String("instance_name", m.Name),
@@ -352,10 +351,167 @@ func (p *AuthProviderPool) Provision(name string) error {
 	// Backend Validation
 	if len(m.Backends) == 0 {
 		m.Backends = master.Backends
+	} else {
+		for _, backend := range m.Backends {
+			if err := backend.Configure(m); err != nil {
+				return fmt.Errorf("%s: backend configuration error: %s", m.Name, err)
+			}
+			if err := backend.Validate(m); err != nil {
+				return fmt.Errorf("%s: backend validation error: %s", m.Name, err)
+			}
+			m.logger.Debug(
+				"Provisioned authentication backend",
+				zap.String("instance_name", m.Name),
+				zap.String("backend_type", backend.bt),
+			)
+		}
 	}
 
-	// TODO: continue
+	// User Interface Settings
+	uiPages := map[string]string{
+		"login":  "forms_login",
+		"portal": "forms_portal",
+	}
+	if m.UserInterface == nil {
+		m.UserInterface = &UserInterfaceParameters{}
+	}
 
+	m.uiFactory = ui.NewUserInterfaceFactory()
+	if m.UserInterface.Title == "" {
+		m.uiFactory.Title = master.uiFactory.Title
+	} else {
+		m.uiFactory.Title = m.UserInterface.Title
+	}
+
+	if m.UserInterface.LogoURL == "" {
+		m.uiFactory.LogoURL = master.uiFactory.LogoURL
+		m.uiFactory.LogoDescription = master.uiFactory.LogoDescription
+	} else {
+		m.uiFactory.LogoURL = m.UserInterface.LogoURL
+		m.uiFactory.LogoDescription = m.UserInterface.LogoDescription
+	}
+
+	m.uiFactory.ActionEndpoint = m.AuthURLPath
+
+	if len(m.UserInterface.PrivateLinks) == 0 {
+		m.UserInterface.PrivateLinks = master.UserInterface.PrivateLinks
+	}
+
+	if len(m.UserInterface.PrivateLinks) > 0 {
+		m.uiFactory.PrivateLinks = m.UserInterface.PrivateLinks
+	}
+
+	m.logger.Debug(
+		"Provisioned authentication user interface parameters",
+		zap.String("instance_name", m.Name),
+		zap.String("title", m.uiFactory.Title),
+		zap.String("logo_url", m.uiFactory.LogoURL),
+		zap.String("logo_description", m.uiFactory.LogoDescription),
+		zap.Any("action_endpoint", m.uiFactory.ActionEndpoint),
+		zap.Any("private_links", m.uiFactory.PrivateLinks),
+	)
+
+	// User Interface Templates
+	for tmplName, tmplAlias := range uiPages {
+		m.logger.Debug(
+			"Provisioning authentication user interface templates",
+			zap.String("instance_name", m.Name),
+			zap.String("template_name", tmplName),
+			zap.String("template_alias", tmplAlias),
+		)
+		useDefaultTemplate := false
+		if m.UserInterface.Templates == nil {
+			m.logger.Debug(
+				"UI templates were not defined, using default template",
+				zap.String("instance_name", m.Name),
+			)
+			useDefaultTemplate = true
+		} else {
+			if v, exists := m.UserInterface.Templates[tmplName]; !exists {
+				m.logger.Debug(
+					"UI template was not defined, using default template",
+					zap.String("instance_name", m.Name),
+					zap.String("template_name", tmplName),
+				)
+				useDefaultTemplate = true
+			} else {
+				m.logger.Debug(
+					"UI template definition found",
+					zap.String("instance_name", m.Name),
+					zap.String("template_name", tmplName),
+					zap.String("template_path", v),
+				)
+			}
+		}
+
+		if useDefaultTemplate {
+			m.logger.Debug(
+				fmt.Sprintf("adding UI template %s to UI factory", tmplAlias),
+				zap.String("instance_name", m.Name),
+			)
+			if err := m.uiFactory.AddBuiltinTemplate(tmplAlias); err != nil {
+				return fmt.Errorf(
+					"%s: UI settings validation error, failed loading built-in %s (%s) template: %s",
+					m.Name, tmplName, tmplAlias, err,
+				)
+			}
+			m.uiFactory.Templates[tmplName] = m.uiFactory.Templates[tmplAlias]
+			continue
+		}
+
+		if err := m.uiFactory.AddTemplate(tmplName, m.UserInterface.Templates[tmplName]); err != nil {
+			return fmt.Errorf(
+				"%s: UI settings validation error, failed loading template from %s: %s",
+				m.Name, m.UserInterface.Templates[tmplName], err,
+			)
+		}
+	}
+
+	for tmplName := range m.UserInterface.Templates {
+		if _, exists := uiPages[tmplName]; !exists {
+			return fmt.Errorf(
+				"%s: UI settings validation error, unsupported template type: %s",
+				m.Name, tmplName,
+			)
+		}
+	}
+
+	// JWT Token Validator
+	m.TokenValidator = jwt.NewTokenValidator()
+	m.TokenValidator.TokenSecret = m.TokenProvider.TokenSecret
+	if err := m.TokenValidator.ConfigureTokenBackends(); err != nil {
+		return fmt.Errorf(
+			"%s: token validator backend configuration failed: %s",
+			m.Name, err,
+		)
+	}
+
+	// JWT Access List
+	entry := jwt.NewAccessListEntry()
+	entry.Allow()
+	if err := entry.SetClaim("roles"); err != nil {
+		return fmt.Errorf(
+			"%s: default access list configuration error: %s",
+			m.Name, err,
+		)
+	}
+	for _, v := range []string{"anonymous", "guest", "*"} {
+		if err := entry.AddValue(v); err != nil {
+			return fmt.Errorf(
+				"%s: default access list configuration error: %s",
+				m.Name, err,
+			)
+		}
+	}
+	m.TokenValidator.AccessList = append(m.TokenValidator.AccessList, entry)
+
+	m.logger.Info(
+		"JWT token validator provisioned successfully",
+		zap.String("instance_name", m.Name),
+		zap.Any("access_list", m.TokenValidator.AccessList),
+	)
+
+	// Wrap up
 	m.Provisioned = true
 	m.ProvisionFailed = false
 

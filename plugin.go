@@ -62,6 +62,15 @@ func (m *AuthProvider) Provision(ctx caddy.Context) error {
 		"provisioned plugin instance",
 		zap.String("instance_name", m.Name),
 	)
+
+	if !m.Master {
+		if err := ProviderPool.Provision(m.Name); err != nil {
+			return fmt.Errorf(
+				"authentication provider provisioning error, instance %s, error: %s",
+				m.Name, err,
+			)
+		}
+	}
 	return nil
 }
 
@@ -83,25 +92,6 @@ func (m AuthProvider) Authenticate(w http.ResponseWriter, r *http.Request) (cadd
 
 	if reqDump, err := httputil.DumpRequest(r, true); err == nil {
 		m.logger.Debug(fmt.Sprintf("request: %s", reqDump))
-	}
-
-	if m.ProvisionFailed {
-		w.WriteHeader(500)
-		w.Write([]byte(`Internal Server Error`))
-		return caddyauth.User{}, false, fmt.Errorf("authentication provider provisioning error")
-	}
-
-	if !m.Provisioned {
-		if err := ProviderPool.Provision(m.Name); err != nil {
-			m.logger.Error(
-				"authentication provider provisioning error",
-				zap.String("instance_name", m.Name),
-				zap.String("error", err.Error()),
-			)
-			w.WriteHeader(500)
-			w.Write([]byte(`Internal Server Error`))
-			return caddyauth.User{}, false, err
-		}
 	}
 
 	uiArgs := m.uiFactory.GetArgs()
