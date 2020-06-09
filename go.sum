@@ -398,6 +398,8 @@ github.com/greenpau/caddy-auth-jwt v0.0.12 h1:F0rop2yx4iDl2BvynkPLMOp3VdYK9dfoIQ
 github.com/greenpau/caddy-auth-jwt v0.0.12/go.mod h1:BNNNgYsWWacNpJdCaHOucyOHrUyNOftl+3Fo44l9AA8=
 github.com/greenpau/caddy-auth-jwt v0.0.13 h1:zv1rCoQHaNV1Wb54PUfp7+PoJa6zj6oVJzwplO3Y3y0=
 github.com/greenpau/caddy-auth-jwt v0.0.13/go.mod h1:BNNNgYsWWacNpJdCaHOucyOHrUyNOftl+3Fo44l9AA8=
+github.com/greenpau/caddy-auth-jwt v1.0.2 h1:W/YgZwqVLSCOneE+DQGAm93e3IMFSrimK/mfIoZ6J5Q=
+github.com/greenpau/caddy-auth-jwt v1.0.2/go.mod h1:T+gd1335Kbm6oYJkMmgLBqYnY29w1V9DASI07uSlN7w=
 github.com/greenpau/caddy-auth-ui v0.0.3 h1:hwbuedNnkfqmZG0QxzSZ27Nf2m6z0WkrxArB4RvrEj4=
 github.com/greenpau/caddy-auth-ui v0.0.3/go.mod h1:qUfKUKxKh5Q6dOK4Kajlpq19MXDw3djAk/hi8Q7YaVM=
 github.com/greenpau/go-identity v1.0.3 h1:7YhwhGB2xMMAa1PXWmMfzo/KcfMZSS/tBIKnwywb0KQ=

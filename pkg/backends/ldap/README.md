@@ -92,6 +92,7 @@ The security of the `password` could be improved by the following techniques:
       "handler": "authentication",
       "providers": {
         "forms": {
+          "master": true,
           "auth_url_path": "/auth",
           "backends": [
             {
