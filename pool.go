@@ -318,6 +318,10 @@ func (p *AuthProviderPool) Provision(name string) error {
 		m.AuthURLPath = master.AuthURLPath
 	}
 
+	if m.TokenProvider == nil {
+		m.TokenProvider = jwt.NewTokenProviderConfig()
+	}
+
 	if m.TokenProvider.TokenName == "" {
 		m.TokenProvider.TokenName = master.TokenProvider.TokenName
 	}
