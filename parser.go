@@ -64,14 +64,17 @@ func parseAuthRequest(r *http.Request) (map[string]string, error) {
 	if authzHeaderStr == "" {
 		return nil, nil
 	}
+
 	authzHeaderParts := strings.Split(authzHeaderStr, ",")
 	if len(authzHeaderParts) == 0 {
 		return nil, nil
 	}
-	authzStrParts := strings.Split(authzHeaderParts[0], ", ")
+
+	authzStrParts := strings.Split(authzHeaderParts[0], " ")
 	if len(authzStrParts) != 2 {
 		return nil, nil
 	}
+
 	authzType := authzStrParts[0]
 	if authzType != "Basic" {
 		return nil, nil

@@ -193,8 +193,6 @@ func (m AuthProvider) Authenticate(w http.ResponseWriter, r *http.Request) (cadd
 		uiArgs.Title = m.UserInterface.Title
 	}
 
-	m.logger.Error("xxx", zap.Any("ui", uiArgs), zap.Any("auth", userAuthenticated))
-
 	// Wrap up
 	if !userAuthenticated {
 		for _, k := range []string{m.TokenProvider.TokenName} {
@@ -204,6 +202,7 @@ func (m AuthProvider) Authenticate(w http.ResponseWriter, r *http.Request) (cadd
 			uiArgs.Message = "Authentication failed"
 		}
 		w.Header().Set("Content-Type", contentType)
+		var contentBytes []byte
 		if contentType == "application/json" {
 			// respond with JSON
 			authResponse := AuthResponse{}
@@ -224,9 +223,7 @@ func (m AuthProvider) Authenticate(w http.ResponseWriter, r *http.Request) (cadd
 				w.Write([]byte(`Internal Server Error`))
 				return caddyauth.User{}, false, err
 			}
-			w.WriteHeader(403)
-			w.Write(content)
-			m.logger.Error("xxx", zap.Any("ui", uiArgs), zap.Any("auth", content))
+			contentBytes = content
 		} else {
 			// respond with HTML UI
 			content, err := m.uiFactory.Render("login", uiArgs)
@@ -240,8 +237,11 @@ func (m AuthProvider) Authenticate(w http.ResponseWriter, r *http.Request) (cadd
 				w.Write([]byte(`Internal Server Error`))
 				return caddyauth.User{}, false, err
 			}
-			w.Write(content.Bytes())
+			contentBytes = content.Bytes()
 		}
+
+		w.WriteHeader(401)
+		w.Write(contentBytes)
 		return caddyauth.User{}, false, nil
 	}
 
