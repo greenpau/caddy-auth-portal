@@ -31,7 +31,7 @@ func TestPlugin(t *testing.T) {
 
 	time.Sleep(1 * time.Millisecond)
 	// Uncomment the below line to perform manual testing
-	time.Sleep(6000 * time.Second)
+	// time.Sleep(6000 * time.Second)
 }
 
 /*

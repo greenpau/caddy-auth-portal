@@ -32,6 +32,9 @@
       .app-header {
         color: #EE6E73;
       }
+      .helper-btn {
+        margin-bottom: 0.5em;
+      }
       .toast-error {
         // restyle post
       }
@@ -48,7 +51,7 @@
     <div class="container hide-on-small-only no-padding" style="height: 10vh !important;"></div>
     <div class="container app-container">
       <div class="row">
-        <div class="col s12 m8 offset-m2 l6 offset-l3 app-card-container">
+        <div class="col s12 m8 offset-m2 l6 offset-l3 xl4 offset-xl4 app-card-container">
           <form action="{{ .ActionEndpoint }}" method="POST">
             <div class="card card-large app-card">
               <div class="card-content">
@@ -84,10 +87,13 @@
               </div>
             </div>
             <div class="card card-large">
-              <div class="card-content">
-                <a href="{{ .ActionEndpoint }}?register=true" class="waves-effect waves-light btn-small left">Register</a>
-                <a href="{{ .ActionEndpoint }}?forgot=true" class="waves-effect waves-light btn-small right">Forgot Password?</a>
-                <br />
+              <div class="card-content row">
+                  <div class="helper-btn col s12 m6 l6 xl6">
+                    <a href="{{ .ActionEndpoint }}?register=true" class="waves-effect waves-light btn-small">Register</a>
+                  </div>
+                  <div class="helper-btn col s12 m6 l6 xl6">
+                    <a href="{{ .ActionEndpoint }}?forgot=true" class="waves-effect waves-light btn-small">Forgot Password?</a>
+                  </div>
               </div>
             </div>
           </form>
