@@ -11,41 +11,39 @@ import (
 	"net/http"
 	"net/http/httputil"
 	"net/url"
-	"os"
 	"strings"
+	"sync"
 )
 
 const (
-	redirectToToken = "forms_plugin_redirect_url"
+	redirectToToken = "FORMS_AUTH_PLUGIN_REDIRECT_URL"
 )
 
+// ProviderPool is the global authentication provider pool.
+// It provides access to all instances of Forms plugin.
+var ProviderPool *AuthProviderPool
+
 func init() {
+	ProviderPool = &AuthProviderPool{}
 	caddy.RegisterModule(AuthProvider{})
 }
 
 // AuthProvider authorizes access to endpoints based on
-// the presense and content of JWT token.
+// the credentials provided in a request.
 type AuthProvider struct {
-	Name           string                   `json:"-"`
-	AuthURLPath    string                   `json:"auth_url_path,omitempty"`
-	UserInterface  *UserInterfaceParameters `json:"ui,omitempty"`
-	Backends       []Backend                `json:"backends,omitempty"`
-	TokenProvider  *jwt.TokenProviderConfig `json:"jwt,omitempty"`
-	TokenValidator *jwt.TokenValidator      `json:"-"`
-	logger         *zap.Logger              `json:"-"`
-	uiFactory      *ui.UserInterfaceFactory `json:"-"`
-}
-
-// UserInterfaceParameters represent a common set of configuration settings
-// for HTML UI.
-type UserInterfaceParameters struct {
-	Templates          map[string]string      `json:"templates,omitempty"`
-	AllowRoleSelection bool                   `json:"allow_role_selection,omitempty"`
-	Title              string                 `json:"title,omitempty"`
-	LogoURL            string                 `json:"logo_url,omitempty"`
-	LogoDescription    string                 `json:"logo_description,omitempty"`
-	PrivateLinks       []ui.UserInterfaceLink `json:"private_links,omitempty"`
-	AutoRedirectURL    string                 `json:"auto_redirect_url"`
+	mu              sync.Mutex
+	Name            string                   `json:"-"`
+	Provisioned     bool                     `json:"-"`
+	ProvisionFailed bool                     `json:"-"`
+	Master          bool                     `json:"master,omitempty"`
+	Context         string                   `json:"context,omitempty"`
+	AuthURLPath     string                   `json:"auth_url_path,omitempty"`
+	UserInterface   *UserInterfaceParameters `json:"ui,omitempty"`
+	Backends        []Backend                `json:"backends,omitempty"`
+	TokenProvider   *jwt.TokenProviderConfig `json:"jwt,omitempty"`
+	TokenValidator  *jwt.TokenValidator      `json:"-"`
+	logger          *zap.Logger              `json:"-"`
+	uiFactory       *ui.UserInterfaceFactory `json:"-"`
 }
 
 // CaddyModule returns the Caddy module information.
@@ -56,237 +54,24 @@ func (AuthProvider) CaddyModule() caddy.ModuleInfo {
 	}
 }
 
-// Provision provisions JWT authorization provider
+// Provision provisions forms authentication provider
 func (m *AuthProvider) Provision(ctx caddy.Context) error {
 	m.logger = ctx.Logger(m)
-	m.logger.Info("provisioning plugin instance")
-	m.Name = "forms"
+	ProviderPool.Register(m)
+	m.logger.Info(
+		"provisioned plugin instance",
+		zap.String("instance_name", m.Name),
+	)
 	return nil
 }
 
 // Validate implements caddy.Validator.
 func (m *AuthProvider) Validate() error {
-	if m.AuthURLPath == "" {
-		return fmt.Errorf("%s: auth_url_path must be set", m.Name)
-	}
-
 	m.logger.Info(
-		"Authentication URL found",
-		zap.String("auth_url_path", m.AuthURLPath),
+		"validated plugin instance",
+		zap.String("instance_name", m.Name),
 	)
-
-	m.logger.Info("validating plugin JWT settings")
-
-	if m.TokenProvider.TokenName == "" {
-		m.TokenProvider.TokenName = "access_token"
-	}
-	m.logger.Info(
-		"JWT token name found",
-		zap.String("token_name", m.TokenProvider.TokenName),
-	)
-
-	if m.TokenProvider.TokenSecret == "" {
-		if os.Getenv("JWT_TOKEN_SECRET") == "" {
-			return fmt.Errorf("%s: token_secret must be defined either "+
-				"via JWT_TOKEN_SECRET environment variable or "+
-				"via token_secret configuration element",
-				m.Name,
-			)
-		}
-		m.TokenProvider.TokenSecret = os.Getenv("JWT_TOKEN_SECRET")
-	}
-
-	if m.TokenProvider.TokenIssuer == "" {
-		m.logger.Warn("JWT token issuer not found, using default")
-		m.TokenProvider.TokenIssuer = "localhost"
-	}
-
-	if m.TokenProvider.TokenOrigin == "" {
-		m.logger.Warn("JWT token origin not found, using default")
-		m.TokenProvider.TokenOrigin = "localhost"
-	}
-
-	m.logger.Info(
-		"JWT token origin found",
-		zap.String("token_origin", m.TokenProvider.TokenOrigin),
-	)
-
-	m.logger.Info(
-		"JWT token issuer found",
-		zap.String("token_issuer", m.TokenProvider.TokenIssuer),
-	)
-
-	if m.TokenProvider.TokenLifetime == 0 {
-		m.logger.Warn("JWT token lifetime not found, using default")
-		m.TokenProvider.TokenLifetime = 900
-	}
-	m.logger.Info(
-		"JWT token lifetime found",
-		zap.Int("token_lifetime", m.TokenProvider.TokenLifetime),
-	)
-
-	// Backend Validation
-	if len(m.Backends) == 0 {
-		return fmt.Errorf("%s: no valid backend found", m.Name)
-	}
-
-	for _, backend := range m.Backends {
-		if err := backend.Configure(m); err != nil {
-			return fmt.Errorf("%s: backend configuration error: %s", m.Name, err)
-		}
-		if err := backend.Validate(m); err != nil {
-			return fmt.Errorf("%s: backend validation error: %s", m.Name, err)
-		}
-	}
-
-	// UI Validation
-	uiPages := map[string]string{
-		"login":  "forms_login",
-		"portal": "forms_portal",
-	}
-	if m.UserInterface == nil {
-		m.UserInterface = &UserInterfaceParameters{}
-	}
-
-	m.uiFactory = ui.NewUserInterfaceFactory()
-	if m.UserInterface.Title == "" {
-		m.uiFactory.Title = "Sign In"
-	} else {
-		m.uiFactory.Title = m.UserInterface.Title
-	}
-	if m.UserInterface.LogoURL != "" {
-		m.uiFactory.LogoURL = m.UserInterface.LogoURL
-		m.uiFactory.LogoDescription = m.UserInterface.LogoDescription
-	}
-
-	m.uiFactory.ActionEndpoint = m.AuthURLPath
-
-	if len(m.UserInterface.PrivateLinks) > 0 {
-		m.uiFactory.PrivateLinks = m.UserInterface.PrivateLinks
-	}
-
-	for tmplName, tmplAlias := range uiPages {
-		m.logger.Debug(
-			"configuring UI templates",
-			zap.String("template_name", tmplName),
-			zap.String("template_alias", tmplAlias),
-		)
-		useDefaultTemplate := false
-		if m.UserInterface.Templates == nil {
-			m.logger.Debug("UI templates were not defined, using default template")
-			useDefaultTemplate = true
-		} else {
-			if v, exists := m.UserInterface.Templates[tmplName]; !exists {
-				m.logger.Debug(
-					"UI template was not defined, using default template",
-					zap.String("template_name", tmplName),
-				)
-				useDefaultTemplate = true
-			} else {
-				m.logger.Debug(
-					"UI template definition found",
-					zap.String("template_name", tmplName),
-					zap.String("template_path", v),
-				)
-			}
-		}
-
-		if useDefaultTemplate {
-			m.logger.Debug(fmt.Sprintf("adding UI template %s to UI factory", tmplAlias))
-			if err := m.uiFactory.AddBuiltinTemplate(tmplAlias); err != nil {
-				return fmt.Errorf(
-					"%s: UI settings validation error, failed loading built-in %s (%s) template: %s",
-					m.Name, tmplName, tmplAlias, err,
-				)
-			}
-			m.uiFactory.Templates[tmplName] = m.uiFactory.Templates[tmplAlias]
-			continue
-		}
-
-		if err := m.uiFactory.AddTemplate(tmplName, m.UserInterface.Templates[tmplName]); err != nil {
-			return fmt.Errorf(
-				"%s: UI settings validation error, failed loading template from %s: %s",
-				m.Name, m.UserInterface.Templates[tmplName], err,
-			)
-		}
-	}
-
-	for tmplName := range m.UserInterface.Templates {
-		if _, exists := uiPages[tmplName]; !exists {
-			return fmt.Errorf(
-				"%s: UI settings validation error, unsupported template type: %s",
-				m.Name, tmplName,
-			)
-		}
-	}
-
-	m.TokenValidator = jwt.NewTokenValidator()
-	m.TokenValidator.TokenSecret = m.TokenProvider.TokenSecret
-	if err := m.TokenValidator.ConfigureTokenBackends(); err != nil {
-		return fmt.Errorf(
-			"%s: token validator backend configuration failed: %s",
-			m.Name, err,
-		)
-	}
-	entry := jwt.NewAccessListEntry()
-	entry.Allow()
-	if err := entry.SetClaim("roles"); err != nil {
-		return fmt.Errorf(
-			"%s: default access list configuration error: %s",
-			m.Name, err,
-		)
-	}
-	for _, v := range []string{"anonymous", "guest", "*"} {
-		if err := entry.AddValue(v); err != nil {
-			return fmt.Errorf(
-				"%s: default access list configuration error: %s",
-				m.Name, err,
-			)
-		}
-	}
-	m.TokenValidator.AccessList = append(m.TokenValidator.AccessList, entry)
 	return nil
-}
-
-func validateRequestCompliance(r *http.Request) (map[string]string, error) {
-	var reqFields []string
-	kv := make(map[string]string)
-	var maxBytesLimit int64 = 1000
-	var minBytesLimit int64 = 15
-	if r.ContentLength > maxBytesLimit {
-		return nil, fmt.Errorf("Request payload exceeded the limit of %d bytes: %d", maxBytesLimit, r.ContentLength)
-	}
-	if r.ContentLength < minBytesLimit {
-		return nil, fmt.Errorf("Request payload is too small: %d", r.ContentLength)
-	}
-	contentType := r.Header.Get("Content-Type")
-	if contentType != "application/x-www-form-urlencoded" {
-		return nil, fmt.Errorf("Request content type is not application/x-www-form-urlencoded")
-	}
-
-	rq := r.FormValue("activity")
-	if rq == "" {
-		rq = "login"
-	}
-
-	switch rq {
-	case "login":
-		reqFields = []string{"username", "password", "realm"}
-	default:
-		return nil, fmt.Errorf("request type is unsupported")
-	}
-
-	for _, k := range reqFields {
-		if v := r.FormValue(k); v != "" {
-			kv[k] = v
-		}
-	}
-
-	if _, exists := kv["realm"]; !exists {
-		kv["realm"] = "local"
-	}
-
-	return kv, nil
 }
 
 // Authenticate authorizes access based on the presense and content of JWT token.
@@ -295,8 +80,28 @@ func (m AuthProvider) Authenticate(w http.ResponseWriter, r *http.Request) (cadd
 	var userClaims *jwt.UserClaims
 	var userAuthenticated bool
 	var authStatusCode int
+
 	if reqDump, err := httputil.DumpRequest(r, true); err == nil {
 		m.logger.Debug(fmt.Sprintf("request: %s", reqDump))
+	}
+
+	if m.ProvisionFailed {
+		w.WriteHeader(500)
+		w.Write([]byte(`Internal Server Error`))
+		return caddyauth.User{}, false, fmt.Errorf("authentication provider provisioning error")
+	}
+
+	if !m.Provisioned {
+		if err := ProviderPool.Provision(m.Name); err != nil {
+			m.logger.Error(
+				"authentication provider provisioning error",
+				zap.String("instance_name", m.Name),
+				zap.String("error", err.Error()),
+			)
+			w.WriteHeader(500)
+			w.Write([]byte(`Internal Server Error`))
+			return caddyauth.User{}, false, err
+		}
 	}
 
 	uiArgs := m.uiFactory.GetArgs()
@@ -339,7 +144,7 @@ func (m AuthProvider) Authenticate(w http.ResponseWriter, r *http.Request) (cadd
 	// Authentication Requests
 	if r.Method == "POST" && !userAuthenticated {
 		authFound := false
-		if kv, err := validateRequestCompliance(r); err == nil {
+		if kv, err := parseRequest(r); err == nil {
 			for _, backend := range m.Backends {
 				if backend.GetRealm() != kv["realm"] {
 					continue
