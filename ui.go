@@ -14,4 +14,5 @@ type UserInterfaceParameters struct {
 	LogoDescription    string                 `json:"logo_description,omitempty"`
 	PrivateLinks       []ui.UserInterfaceLink `json:"private_links,omitempty"`
 	AutoRedirectURL    string                 `json:"auto_redirect_url"`
+	Realms             []ui.UserRealm         `json:"realms"`
 }

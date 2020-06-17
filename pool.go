@@ -174,6 +174,10 @@ func (p *AuthProviderPool) Register(m *AuthProvider) error {
 			m.uiFactory.PrivateLinks = m.UserInterface.PrivateLinks
 		}
 
+		if len(m.UserInterface.Realms) > 0 {
+			m.uiFactory.Realms = m.UserInterface.Realms
+		}
+
 		m.logger.Debug(
 			"Provisioned authentication user interface parameters",
 			zap.String("instance_name", m.Name),
@@ -182,6 +186,7 @@ func (p *AuthProviderPool) Register(m *AuthProvider) error {
 			zap.String("logo_description", m.uiFactory.LogoDescription),
 			zap.Any("action_endpoint", m.uiFactory.ActionEndpoint),
 			zap.Any("private_links", m.uiFactory.PrivateLinks),
+			zap.Any("realms", m.uiFactory.Realms),
 		)
 
 		for tmplName, tmplAlias := range uiPages {
@@ -405,6 +410,10 @@ func (p *AuthProviderPool) Provision(name string) error {
 		m.uiFactory.PrivateLinks = m.UserInterface.PrivateLinks
 	}
 
+	if len(m.UserInterface.Realms) > 0 {
+		m.uiFactory.Realms = m.UserInterface.Realms
+	}
+
 	m.logger.Debug(
 		"Provisioned authentication user interface parameters",
 		zap.String("instance_name", m.Name),
@@ -413,6 +422,7 @@ func (p *AuthProviderPool) Provision(name string) error {
 		zap.String("logo_description", m.uiFactory.LogoDescription),
 		zap.Any("action_endpoint", m.uiFactory.ActionEndpoint),
 		zap.Any("private_links", m.uiFactory.PrivateLinks),
+		zap.Any("realms", m.uiFactory.Realms),
 	)
 
 	// User Interface Templates

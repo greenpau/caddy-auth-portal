@@ -68,7 +68,7 @@
                           "type": "ldap",
                           "realm": "contoso.com",
                           "servers": [
-							{
+                            {
                               "addr": "ldaps://ldaps.contoso.com",
                               "ignore_cert_errors": true
                             }
@@ -115,6 +115,16 @@
                           "login": "assets/ui/ldap/login.template",
                           "portal": "assets/ui/portal.template"
                         },
+                        "realms": [
+                          {
+                            "label": "Local",
+                            "name": "local"
+                          },
+                          {
+                            "label": "CONTOSO.COM",
+                            "name": "contoso.com"
+                          }
+                        ],
                         "logo_url": "https://caddyserver.com/resources/images/caddy-circle-lock.svg",
                         "logo_description": "Caddy",
                         "allow_role_selection": false,
