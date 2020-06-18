@@ -410,12 +410,20 @@ func (p *AuthProviderPool) Provision(name string) error {
 		m.uiFactory.PrivateLinks = m.UserInterface.PrivateLinks
 	}
 
+	if len(m.UserInterface.Realms) == 0 {
+		m.uiFactory.Realms = master.UserInterface.Realms
+	}
+
 	if len(m.UserInterface.Realms) > 0 {
 		m.uiFactory.Realms = m.UserInterface.Realms
 	}
 
+	if m.UserInterface.Templates == nil {
+		m.UserInterface.Templates = master.UserInterface.Templates
+	}
+
 	m.logger.Debug(
-		"Provisioned authentication user interface parameters",
+		"Provisioned authentication user interface parameters for non-master instance",
 		zap.String("instance_name", m.Name),
 		zap.String("title", m.uiFactory.Title),
 		zap.String("logo_url", m.uiFactory.LogoURL),

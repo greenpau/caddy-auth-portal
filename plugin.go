@@ -59,11 +59,6 @@ func (AuthProvider) CaddyModule() caddy.ModuleInfo {
 func (m *AuthProvider) Provision(ctx caddy.Context) error {
 	m.logger = ctx.Logger(m)
 	ProviderPool.Register(m)
-	m.logger.Info(
-		"provisioned plugin instance",
-		zap.String("instance_name", m.Name),
-	)
-
 	if !m.Master {
 		if err := ProviderPool.Provision(m.Name); err != nil {
 			return fmt.Errorf(
@@ -72,6 +67,10 @@ func (m *AuthProvider) Provision(ctx caddy.Context) error {
 			)
 		}
 	}
+	m.logger.Info(
+		"provisioned plugin instance",
+		zap.String("instance_name", m.Name),
+	)
 	return nil
 }
 
