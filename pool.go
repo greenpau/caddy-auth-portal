@@ -1,4 +1,4 @@
-package forms
+package portal
 
 import (
 	"fmt"
@@ -25,7 +25,7 @@ func (p *AuthProviderPool) Register(m *AuthProvider) error {
 	defer p.mu.Unlock()
 	if m.Name == "" {
 		p.MemberCount++
-		m.Name = fmt.Sprintf("forms-%d", p.MemberCount)
+		m.Name = fmt.Sprintf("portal-%d", p.MemberCount)
 	}
 	if p.RefMembers == nil {
 		p.RefMembers = make(map[string]*AuthProvider)

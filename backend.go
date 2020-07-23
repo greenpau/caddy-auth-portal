@@ -1,13 +1,13 @@
-package forms
+package portal
 
 import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/greenpau/caddy-auth-forms/pkg/backends/bolt"
-	"github.com/greenpau/caddy-auth-forms/pkg/backends/ldap"
-	"github.com/greenpau/caddy-auth-forms/pkg/backends/local"
 	"github.com/greenpau/caddy-auth-jwt"
+	"github.com/greenpau/caddy-auth-portal/pkg/backends/bolt"
+	"github.com/greenpau/caddy-auth-portal/pkg/backends/ldap"
+	"github.com/greenpau/caddy-auth-portal/pkg/backends/local"
 	"go.uber.org/zap"
 )
 

@@ -18,8 +18,8 @@ For example, create `/etc/caddy/auth/local` directory and specify the
 Next, start the server, and find the following following log entries:
 
 ```json
-{"level":"info","ts":1588704471.5784082,"logger":"http.authentication.providers.forms","msg":"created new user","user_id":"cd5f647a-cc04-4ae2-9d0a-2d5e9b95cf98","user_name":"webadmin","user_email":"webadmin@localdomain.local","user_claims":{"roles":"superadmin"}}
-{"level":"info","ts":1588704471.5784378,"logger":"http.authentication.providers.forms","msg":"created default superadmin user for the database","user_name":"webadmin","user_secret":"d87e7749-0dd8-482b-91a2-ada370263293"}
+{"level":"info","ts":1588704471.5784082,"logger":"http.authentication.providers.portal","msg":"created new user","user_id":"cd5f647a-cc04-4ae2-9d0a-2d5e9b95cf98","user_name":"webadmin","user_email":"webadmin@localdomain.local","user_claims":{"roles":"superadmin"}}
+{"level":"info","ts":1588704471.5784378,"logger":"http.authentication.providers.portal","msg":"created default superadmin user for the database","user_name":"webadmin","user_secret":"d87e7749-0dd8-482b-91a2-ada370263293"}
 ```
 
 ## Identity Store
@@ -66,7 +66,7 @@ The plugin creates the following a file having the following structure.
 
 Finally, browse to `/auth` and login with the username and password:
 
-<img src="https://raw.githubusercontent.com/greenpau/caddy-auth-ui/master/assets/docs/_static/images/forms_login.png">
+<img src="https://raw.githubusercontent.com/greenpau/caddy-auth-ui/master/assets/docs/_static/images/portal_login.png">
 
 ## Password Management
 

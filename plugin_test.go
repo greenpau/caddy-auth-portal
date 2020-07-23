@@ -1,6 +1,6 @@
 // Copyright 2020 Paul Greenberg (greenpau@outlook.com)
 
-package forms
+package portal
 
 import (
 	"github.com/caddyserver/caddy/v2/caddytest"

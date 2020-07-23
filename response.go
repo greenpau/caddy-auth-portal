@@ -1,4 +1,4 @@
-package forms
+package portal
 
 // AuthResponse represents authentication response object.
 type AuthResponse struct {

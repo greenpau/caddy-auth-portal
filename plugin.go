@@ -1,4 +1,4 @@
-package forms
+package portal
 
 import (
 	"encoding/json"
@@ -21,7 +21,7 @@ const (
 )
 
 // ProviderPool is the global authentication provider pool.
-// It provides access to all instances of Forms plugin.
+// It provides access to all instances of authentication portal plugin.
 var ProviderPool *AuthProviderPool
 
 func init() {
@@ -50,12 +50,12 @@ type AuthProvider struct {
 // CaddyModule returns the Caddy module information.
 func (AuthProvider) CaddyModule() caddy.ModuleInfo {
 	return caddy.ModuleInfo{
-		ID:  "http.authentication.providers.forms",
+		ID:  "http.authentication.providers.portal",
 		New: func() caddy.Module { return new(AuthProvider) },
 	}
 }
 
-// Provision provisions forms authentication provider
+// Provision provisions authentication portal provider
 func (m *AuthProvider) Provision(ctx caddy.Context) error {
 	m.logger = ctx.Logger(m)
 	ProviderPool.Register(m)

@@ -48,7 +48,7 @@
                 {
                   "handler": "authentication",
                   "providers": {
-                    "forms": {
+                    "portal": {
                       "master": true,
                       "auth_url_path": "/auth",
                       "backends": [
