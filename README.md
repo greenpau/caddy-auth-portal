@@ -38,6 +38,19 @@ The following digram is visual representation of the configuration of
 
 ## Authentication Portal
 
+<table cellspacing="0" cellpadding="0" style="border-collapse: collapse; border: none; vertical-align: top;">
+  <tr style="border: none;">
+    <td style="border: none; vertical-align: top;">
+      <img src="https://raw.githubusercontent.com/greenpau/caddy-auth-ui/master/assets/docs/_static/images/forms_login.png">
+    </td>
+    <td style="border: none; vertical-align: top;">
+      <img src="https://raw.githubusercontent.com/greenpau/caddy-auth-ui/master/assets/docs/_static/images/forms_portal.png">
+    </td>
+  </tr>
+</table>
+
+## Authentication Methods
+
 ### Basic Authentication
 
 The following command demonstrates basic authentication process.
