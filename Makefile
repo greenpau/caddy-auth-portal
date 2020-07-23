@@ -19,7 +19,7 @@ all:
 	@rm -rf ./bin/caddy
 	@rm -rf ../xcaddy-$(PLUGIN_NAME)/*
 	@mkdir -p ../xcaddy-$(PLUGIN_NAME) && cd ../xcaddy-$(PLUGIN_NAME) && \
-		xcaddy build v2.0.0 --output ../$(PLUGIN_NAME)/bin/caddy \
+		xcaddy build v2.1.1 --output ../$(PLUGIN_NAME)/bin/caddy \
 		--with github.com/greenpau/caddy-auth-portal@$(LATEST_GIT_COMMIT)=$(BUILD_DIR) \
 		--with github.com/greenpau/caddy-auth-jwt@latest=$(BUILD_DIR)/../caddy-auth-jwt \
 		--with github.com/greenpau/caddy-auth-ui@latest=$(BUILD_DIR)/../caddy-auth-ui
