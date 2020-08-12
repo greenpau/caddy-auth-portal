@@ -92,7 +92,7 @@ The security of the `password` could be improved by the following techniques:
       "handler": "authentication",
       "providers": {
         "portal": {
-          "master": true,
+          "primary": true,
           "auth_url_path": "/auth",
           "backends": [
             {
@@ -191,7 +191,7 @@ when authenticating.
 
 For example, the following code adds an HTML input:
 
-<img src="https://raw.githubusercontent.com/greenpau/caddy-auth-portal/master/assets/docs/images/login_form_domain_code.png">
+<img src="https://raw.githubusercontent.com/greenpau/caddy-auth-portal/main/assets/docs/images/login_form_domain_code.png">
 
 The code is:
 
@@ -204,7 +204,7 @@ The code is:
 
 It results in having free form input box.
 
-<img src="https://raw.githubusercontent.com/greenpau/caddy-auth-portal/master/assets/docs/images/login_form_domain_input.png">
+<img src="https://raw.githubusercontent.com/greenpau/caddy-auth-portal/main/assets/docs/images/login_form_domain_input.png">
 
 A user may input the word `local` for Local backend and the
 name of the domain for LDAP backend.
@@ -212,10 +212,10 @@ name of the domain for LDAP backend.
 <table cellspacing="0" cellpadding="0" style="border-collapse: collapse; border: none; vertical-align: top;">
   <tr style="border: none;">
     <td style="border: none; vertical-align: top;">
-      <img src="https://raw.githubusercontent.com/greenpau/caddy-auth-portal/master/assets/docs/images/login_form_domain_input_with_local.png">
+      <img src="https://raw.githubusercontent.com/greenpau/caddy-auth-portal/main/assets/docs/images/login_form_domain_input_with_local.png">
     </td>
     <td style="border: none; vertical-align: top;">
-      <img src="https://raw.githubusercontent.com/greenpau/caddy-auth-portal/master/assets/docs/images/login_form_domain_input_with_domain.png">
+      <img src="https://raw.githubusercontent.com/greenpau/caddy-auth-portal/main/assets/docs/images/login_form_domain_input_with_domain.png">
     </td>
   </tr>
 </table>
@@ -246,7 +246,7 @@ Additionally, add the following to `style`:
 
 It results in having fixed dropdown box.
 
-<img src="https://raw.githubusercontent.com/greenpau/caddy-auth-portal/master/assets/docs/images/login_form_dropdown_input.png">
+<img src="https://raw.githubusercontent.com/greenpau/caddy-auth-portal/main/assets/docs/images/login_form_dropdown_input.png">
 
 ## LDAP Authentication Process
 

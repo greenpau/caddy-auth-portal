@@ -12,11 +12,11 @@ import (
 
 // AuthProviderPool provides access to all instances of the plugin.
 type AuthProviderPool struct {
-	mu          sync.Mutex
-	Members     []*AuthProvider
-	RefMembers  map[string]*AuthProvider
-	Masters     map[string]*AuthProvider
-	MemberCount int
+	mu               sync.Mutex
+	Members          []*AuthProvider
+	RefMembers       map[string]*AuthProvider
+	PrimaryInstances map[string]*AuthProvider
+	MemberCount      int
 }
 
 // Register registers authentication provider instance with the pool.
@@ -37,17 +37,17 @@ func (p *AuthProviderPool) Register(m *AuthProvider) error {
 	if m.Context == "" {
 		m.Context = "default"
 	}
-	if p.Masters == nil {
-		p.Masters = make(map[string]*AuthProvider)
+	if p.PrimaryInstances == nil {
+		p.PrimaryInstances = make(map[string]*AuthProvider)
 	}
-	if m.Master {
-		if _, exists := p.Masters[m.Context]; exists {
-			return fmt.Errorf("found more than one master instance of the plugin for %s context", m.Context)
+	if m.PrimaryInstance {
+		if _, exists := p.PrimaryInstances[m.Context]; exists {
+			return fmt.Errorf("found more than one primaryInstance instance of the plugin for %s context", m.Context)
 		}
-		p.Masters[m.Context] = m
+		p.PrimaryInstances[m.Context] = m
 	}
 
-	if m.Master {
+	if m.PrimaryInstance {
 		if m.AuthURLPath == "" {
 			return fmt.Errorf("%s: auth_url_path must be set", m.Name)
 		}
@@ -289,7 +289,7 @@ func (p *AuthProviderPool) Register(m *AuthProvider) error {
 	return nil
 }
 
-// Provision provisions non-master instances in an authentication context.
+// Provision provisions non-primaryInstance instances in an authentication context.
 func (p *AuthProviderPool) Provision(name string) error {
 	if name == "" {
 		return fmt.Errorf("authentication provider name is empty")
@@ -313,14 +313,14 @@ func (p *AuthProviderPool) Provision(name string) error {
 	if m.Context == "" {
 		m.Context = "default"
 	}
-	master, masterExists := p.Masters[m.Context]
-	if !masterExists {
+	primaryInstance, primaryInstanceExists := p.PrimaryInstances[m.Context]
+	if !primaryInstanceExists {
 		m.ProvisionFailed = true
-		return fmt.Errorf("no master authentication provider found in %s context when configuring %s", m.Context, name)
+		return fmt.Errorf("no primaryInstance authentication provider found in %s context when configuring %s", m.Context, name)
 	}
 
 	if m.AuthURLPath == "" {
-		m.AuthURLPath = master.AuthURLPath
+		m.AuthURLPath = primaryInstance.AuthURLPath
 	}
 
 	if m.TokenProvider == nil {
@@ -328,23 +328,23 @@ func (p *AuthProviderPool) Provision(name string) error {
 	}
 
 	if m.TokenProvider.TokenName == "" {
-		m.TokenProvider.TokenName = master.TokenProvider.TokenName
+		m.TokenProvider.TokenName = primaryInstance.TokenProvider.TokenName
 	}
 
 	if m.TokenProvider.TokenSecret == "" {
-		m.TokenProvider.TokenSecret = master.TokenProvider.TokenSecret
+		m.TokenProvider.TokenSecret = primaryInstance.TokenProvider.TokenSecret
 	}
 
 	if m.TokenProvider.TokenIssuer == "" {
-		m.TokenProvider.TokenIssuer = master.TokenProvider.TokenIssuer
+		m.TokenProvider.TokenIssuer = primaryInstance.TokenProvider.TokenIssuer
 	}
 
 	if m.TokenProvider.TokenOrigin == "" {
-		m.TokenProvider.TokenOrigin = master.TokenProvider.TokenOrigin
+		m.TokenProvider.TokenOrigin = primaryInstance.TokenProvider.TokenOrigin
 	}
 
 	if m.TokenProvider.TokenLifetime == 0 {
-		m.TokenProvider.TokenLifetime = master.TokenProvider.TokenLifetime
+		m.TokenProvider.TokenLifetime = primaryInstance.TokenProvider.TokenLifetime
 	}
 
 	m.logger.Debug(
@@ -359,7 +359,7 @@ func (p *AuthProviderPool) Provision(name string) error {
 
 	// Backend Validation
 	if len(m.Backends) == 0 {
-		m.Backends = master.Backends
+		m.Backends = primaryInstance.Backends
 	} else {
 		for _, backend := range m.Backends {
 			if err := backend.Configure(m); err != nil {
@@ -387,14 +387,14 @@ func (p *AuthProviderPool) Provision(name string) error {
 
 	m.uiFactory = ui.NewUserInterfaceFactory()
 	if m.UserInterface.Title == "" {
-		m.uiFactory.Title = master.uiFactory.Title
+		m.uiFactory.Title = primaryInstance.uiFactory.Title
 	} else {
 		m.uiFactory.Title = m.UserInterface.Title
 	}
 
 	if m.UserInterface.LogoURL == "" {
-		m.uiFactory.LogoURL = master.uiFactory.LogoURL
-		m.uiFactory.LogoDescription = master.uiFactory.LogoDescription
+		m.uiFactory.LogoURL = primaryInstance.uiFactory.LogoURL
+		m.uiFactory.LogoDescription = primaryInstance.uiFactory.LogoDescription
 	} else {
 		m.uiFactory.LogoURL = m.UserInterface.LogoURL
 		m.uiFactory.LogoDescription = m.UserInterface.LogoDescription
@@ -403,7 +403,7 @@ func (p *AuthProviderPool) Provision(name string) error {
 	m.uiFactory.ActionEndpoint = m.AuthURLPath
 
 	if len(m.UserInterface.PrivateLinks) == 0 {
-		m.UserInterface.PrivateLinks = master.UserInterface.PrivateLinks
+		m.UserInterface.PrivateLinks = primaryInstance.UserInterface.PrivateLinks
 	}
 
 	if len(m.UserInterface.PrivateLinks) > 0 {
@@ -411,7 +411,7 @@ func (p *AuthProviderPool) Provision(name string) error {
 	}
 
 	if len(m.UserInterface.Realms) == 0 {
-		m.uiFactory.Realms = master.UserInterface.Realms
+		m.uiFactory.Realms = primaryInstance.UserInterface.Realms
 	}
 
 	if len(m.UserInterface.Realms) > 0 {
@@ -419,11 +419,11 @@ func (p *AuthProviderPool) Provision(name string) error {
 	}
 
 	if m.UserInterface.Templates == nil {
-		m.UserInterface.Templates = master.UserInterface.Templates
+		m.UserInterface.Templates = primaryInstance.UserInterface.Templates
 	}
 
 	m.logger.Debug(
-		"Provisioned authentication user interface parameters for non-master instance",
+		"Provisioned authentication user interface parameters for non-primaryInstance instance",
 		zap.String("instance_name", m.Name),
 		zap.String("title", m.uiFactory.Title),
 		zap.String("logo_url", m.uiFactory.LogoURL),

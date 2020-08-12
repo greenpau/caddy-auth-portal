@@ -73,7 +73,7 @@ release:
 	@echo "Making release"
 	@go mod tidy
 	@go mod verify
-	@if [ $(GIT_BRANCH) != "master" ]; then echo "cannot release to non-master branch $(GIT_BRANCH)" && false; fi
+	@if [ $(GIT_BRANCH) != "main" ]; then echo "cannot release to non-main branch $(GIT_BRANCH)" && false; fi
 	@git diff-index --quiet HEAD -- || ( echo "git directory is dirty, commit changes first" && false )
 	@versioned -patch
 	@echo "Patched version"

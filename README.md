@@ -1,6 +1,6 @@
 # caddy-auth-portal
 
-<a href="https://github.com/greenpau/caddy-auth-portal/actions/" target="_blank"><img src="https://github.com/greenpau/caddy-auth-portal/workflows/build/badge.svg?branch=master"></a>
+<a href="https://github.com/greenpau/caddy-auth-portal/actions/" target="_blank"><img src="https://github.com/greenpau/caddy-auth-portal/workflows/build/badge.svg?branch=main"></a>
 <a href="https://pkg.go.dev/github.com/greenpau/caddy-auth-portal" target="_blank"><img src="https://img.shields.io/badge/godoc-reference-blue.svg"></a>
 <a href="https://caddy.community" target="_blank"><img src="https://img.shields.io/badge/community-forum-ff69b4.svg"></a>
 
@@ -41,10 +41,10 @@ The following digram is visual representation of the configuration of
 <table cellspacing="0" cellpadding="0" style="border-collapse: collapse; border: none; vertical-align: top;">
   <tr style="border: none;">
     <td style="border: none; vertical-align: top;">
-      <img src="https://raw.githubusercontent.com/greenpau/caddy-auth-ui/master/assets/docs/_static/images/forms_login.png">
+      <img src="https://raw.githubusercontent.com/greenpau/caddy-auth-ui/main/assets/docs/_static/images/forms_login.png">
     </td>
     <td style="border: none; vertical-align: top;">
-      <img src="https://raw.githubusercontent.com/greenpau/caddy-auth-ui/master/assets/docs/_static/images/forms_portal.png">
+      <img src="https://raw.githubusercontent.com/greenpau/caddy-auth-ui/main/assets/docs/_static/images/forms_portal.png">
     </td>
   </tr>
 </table>

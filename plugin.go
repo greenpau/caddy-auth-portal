@@ -36,7 +36,7 @@ type AuthProvider struct {
 	Name            string                   `json:"-"`
 	Provisioned     bool                     `json:"-"`
 	ProvisionFailed bool                     `json:"-"`
-	Master          bool                     `json:"master,omitempty"`
+	PrimaryInstance bool                     `json:"primary,omitempty"`
 	Context         string                   `json:"context,omitempty"`
 	AuthURLPath     string                   `json:"auth_url_path,omitempty"`
 	UserInterface   *UserInterfaceParameters `json:"ui,omitempty"`
@@ -59,7 +59,7 @@ func (AuthProvider) CaddyModule() caddy.ModuleInfo {
 func (m *AuthProvider) Provision(ctx caddy.Context) error {
 	m.logger = ctx.Logger(m)
 	ProviderPool.Register(m)
-	if !m.Master {
+	if !m.PrimaryInstance {
 		if err := ProviderPool.Provision(m.Name); err != nil {
 			return fmt.Errorf(
 				"authentication provider provisioning error, instance %s, error: %s",

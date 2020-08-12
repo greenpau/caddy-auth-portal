@@ -66,7 +66,7 @@ The plugin creates the following a file having the following structure.
 
 Finally, browse to `/auth` and login with the username and password:
 
-<img src="https://raw.githubusercontent.com/greenpau/caddy-auth-ui/master/assets/docs/_static/images/portal_login.png">
+<img src="https://raw.githubusercontent.com/greenpau/caddy-auth-ui/main/assets/docs/_static/images/portal_login.png">
 
 ## Password Management
 
