@@ -58,7 +58,12 @@ func (AuthProvider) CaddyModule() caddy.ModuleInfo {
 // Provision provisions authentication portal provider
 func (m *AuthProvider) Provision(ctx caddy.Context) error {
 	m.logger = ctx.Logger(m)
-	ProviderPool.Register(m)
+	if err := ProviderPool.Register(m); err != nil {
+		return fmt.Errorf(
+			"authentication provider registration error, instance %s, error: %s",
+			m.Name, err,
+		)
+	}
 	if !m.PrimaryInstance {
 		if err := ProviderPool.Provision(m.Name); err != nil {
 			return fmt.Errorf(

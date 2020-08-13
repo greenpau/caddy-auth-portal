@@ -23,6 +23,7 @@ type AuthProviderPool struct {
 func (p *AuthProviderPool) Register(m *AuthProvider) error {
 	p.mu.Lock()
 	defer p.mu.Unlock()
+
 	if m.Name == "" {
 		p.MemberCount++
 		m.Name = fmt.Sprintf("portal-%d", p.MemberCount)
@@ -42,7 +43,7 @@ func (p *AuthProviderPool) Register(m *AuthProvider) error {
 	}
 	if m.PrimaryInstance {
 		if _, exists := p.PrimaryInstances[m.Context]; exists {
-			return fmt.Errorf("found more than one primaryInstance instance of the plugin for %s context", m.Context)
+			return fmt.Errorf("found more than one primary instance of the plugin for %s context", m.Context)
 		}
 		p.PrimaryInstances[m.Context] = m
 	}
@@ -163,6 +164,7 @@ func (p *AuthProviderPool) Register(m *AuthProvider) error {
 		} else {
 			m.uiFactory.Title = m.UserInterface.Title
 		}
+
 		if m.UserInterface.LogoURL != "" {
 			m.uiFactory.LogoURL = m.UserInterface.LogoURL
 			m.uiFactory.LogoDescription = m.UserInterface.LogoDescription
@@ -289,7 +291,7 @@ func (p *AuthProviderPool) Register(m *AuthProvider) error {
 	return nil
 }
 
-// Provision provisions non-primaryInstance instances in an authentication context.
+// Provision provisions non-primary instances in an authentication context.
 func (p *AuthProviderPool) Provision(name string) error {
 	if name == "" {
 		return fmt.Errorf("authentication provider name is empty")
@@ -316,7 +318,7 @@ func (p *AuthProviderPool) Provision(name string) error {
 	primaryInstance, primaryInstanceExists := p.PrimaryInstances[m.Context]
 	if !primaryInstanceExists {
 		m.ProvisionFailed = true
-		return fmt.Errorf("no primaryInstance authentication provider found in %s context when configuring %s", m.Context, name)
+		return fmt.Errorf("no primary authentication provider found in %s context when configuring %s", m.Context, name)
 	}
 
 	if m.AuthURLPath == "" {
