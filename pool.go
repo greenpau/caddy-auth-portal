@@ -286,6 +286,7 @@ func (p *AuthProviderPool) Register(m *AuthProvider) error {
 			zap.Any("access_list", m.TokenValidator.AccessList),
 		)
 
+		m.TokenValidator.TokenSources = []string{"cookie", "header", "query"}
 		m.Provisioned = true
 	}
 	return nil
@@ -534,6 +535,8 @@ func (p *AuthProviderPool) Provision(name string) error {
 		zap.String("instance_name", m.Name),
 		zap.Any("access_list", m.TokenValidator.AccessList),
 	)
+
+	m.TokenValidator.TokenSources = []string{"cookie", "header", "query"}
 
 	// Wrap up
 	m.Provisioned = true
