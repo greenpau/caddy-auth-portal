@@ -138,9 +138,25 @@ func (m AuthProvider) Authenticate(w http.ResponseWriter, r *http.Request) (cadd
 	}
 
 	// Try to authorize with JWT tokens
-	userClaims, userAuthenticated, _ = m.TokenValidator.Authorize(r)
+	userClaims, userAuthenticated, err := m.TokenValidator.Authorize(r)
 	if userAuthenticated {
 		uiArgs.Authenticated = true
+	} else {
+		if err != nil {
+			m.logger.Debug(
+				"Authorization failed",
+				zap.String("request_id", reqID),
+				zap.Any("error", err.Error()),
+			)
+			if err.Error() == "[Token is expired]" {
+				for _, k := range []string{redirectToToken, m.TokenProvider.TokenName} {
+					w.Header().Add("Set-Cookie", k+"=delete; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT")
+				}
+				w.Header().Set("Location", m.AuthURLPath)
+				w.WriteHeader(303)
+				return caddyauth.User{}, false, nil
+			}
+		}
 	}
 
 	// Authentication Requests
