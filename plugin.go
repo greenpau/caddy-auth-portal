@@ -138,7 +138,7 @@ func (m AuthProvider) Authenticate(w http.ResponseWriter, r *http.Request) (cadd
 	}
 
 	// Try to authorize with JWT tokens
-	userClaims, userAuthenticated, err := m.TokenValidator.Authorize(r)
+	userClaims, userAuthenticated, err := m.TokenValidator.Authorize(r, nil)
 	if userAuthenticated {
 		uiArgs.Authenticated = true
 	} else {
