@@ -16,18 +16,20 @@ package portal
 
 import (
 	"encoding/json"
+	"github.com/caddyserver/caddy/v2"
+	"github.com/caddyserver/caddy/v2/caddyconfig"
 	"github.com/caddyserver/caddy/v2/caddyconfig/httpcaddyfile"
 	"github.com/caddyserver/caddy/v2/modules/caddyhttp"
 	"strings"
 )
 
 func init() {
-	httpcaddyfile.RegisterHandlerDirective("auth_portal", parseCaddyfileAuthPortal)
+	httpcaddyfile.RegisterDirective("auth_portal", parseCaddyfileAuthPortal)
 }
 
 // parseCaddyfileAuthPortal sets up an authentication portal. Syntax:
 //
-//     auth_portal {
+//     auth_portal /auth* {
 //         <directives...>
 //     }
 //
@@ -43,17 +45,6 @@ func parseCaddyfileAuthPortal(h httpcaddyfile.Helper) ([]httpcaddyfile.ConfigVal
 	path := h.Val()
 	if !strings.HasPrefix(path, "/") {
 		return nil, h.Errf("path matcher must begin with '/', got %s", path)
-	}
-
-	// we only want to strip what comes before the '/' if
-	// the user specified it (e.g. /api/* should only strip /api)
-	var stripPath string
-	if strings.HasSuffix(path, "/*") {
-		stripPath = path[:len(path)-2]
-	} else if strings.HasSuffix(path, "*") {
-		stripPath = path[:len(path)-1]
-	} else {
-		stripPath = path
 	}
 
 	// the ParseSegmentAsSubroute function expects the cursor
@@ -80,9 +71,7 @@ func parseCaddyfileAuthPortal(h httpcaddyfile.Helper) ([]httpcaddyfile.ConfigVal
 	// build a route with a rewrite handler to strip the path prefix
 	route := caddyhttp.Route{
 		HandlersRaw: []json.RawMessage{
-			caddyconfig.JSONModuleObject(AuthProvider{
-				StripPathPrefix: stripPath,
-			}, "handler", "authentication", nil),
+			caddyconfig.JSONModuleObject(AuthProvider{}, "handler", "authentication", nil),
 		},
 	}
 
