@@ -33,7 +33,7 @@ func init() {
 	httpcaddyfile.RegisterDirective("auth_portal", parseCaddyfileAuthPortal)
 }
 
-func initLogger() *zap.Logger {
+func initCaddyfileLogger() *zap.Logger {
 	logAtom := zap.NewAtomicLevel()
 	logAtom.SetLevel(zapcore.DebugLevel)
 	logEncoderConfig := zap.NewProductionEncoderConfig()
@@ -52,7 +52,6 @@ func initLogger() *zap.Logger {
 //
 //     auth_portal {
 //       path /auth
-//       context <default|name>
 //       backends {
 //         local_backend {
 //		     type <local>
@@ -74,10 +73,6 @@ func initLogger() *zap.Logger {
 //     }
 //
 func parseCaddyfileAuthPortal(h httpcaddyfile.Helper) ([]httpcaddyfile.ConfigValue, error) {
-
-	logger := initLogger()
-	backends := []string{}
-
 	portal := AuthPortal{
 		PrimaryInstance: true,
 		Context:         "default",
@@ -88,6 +83,8 @@ func parseCaddyfileAuthPortal(h httpcaddyfile.Helper) ([]httpcaddyfile.ConfigVal
 		TokenProvider: &jwt.TokenProviderConfig{},
 		Backends:      []Backend{},
 	}
+
+	// logger := initLogger()
 
 	for h.Next() {
 		for nesting := h.Nesting(); h.NextBlock(nesting); {
@@ -101,34 +98,29 @@ func parseCaddyfileAuthPortal(h httpcaddyfile.Helper) ([]httpcaddyfile.ConfigVal
 				portal.Context = args[0]
 			case "backends":
 				for nesting := h.Nesting(); h.NextBlock(nesting); {
-
-					//logger.Debug("stage 3", zap.Any("root_directive", rootDirective), zap.Any("args", args))
-
 					backendName := h.Val()
 					backendProps := make(map[string]interface{})
 					for subNesting := h.Nesting(); h.NextBlock(subNesting); {
-						// panic(spew.Sdump(h))
-						//return nil, h.Errf("xxx: %v", spew.Sdump(h))
 						backendArg := h.Val()
-						// args := h.RemainingArgs()
-						// backendArg := args[1]
 						switch backendArg {
-						case "type", "file", "realm":
+						case "type", "path", "realm":
 							if !h.NextArg() {
 								return nil, h.Errf("auth backend %s subdirective %s has no value", backendName, backendArg)
 							}
-							logger.Debug("stage 3", zap.Any("root_directive", rootDirective), zap.Any("backendArg", backendArg), zap.Any("args", h.Val()))
 							backendProps[backendArg] = h.Val()
 						default:
 							return nil, h.Errf("unknown auth backend %s subdirective: %s", backendName, backendArg)
 						}
 					}
-
 					backendJSON, err := json.Marshal(backendProps)
 					if err != nil {
 						return nil, h.Errf("auth backend %s subdirective failed to compile to JSON: %s", backendName, err.Error())
 					}
-					backends = append(backends, string(backendJSON))
+					backend := Backend{}
+					if err := backend.UnmarshalJSON(backendJSON); err != nil {
+						return nil, h.Errf("auth backend %s subdirective failed to compile to JSON: %s", backendName, err.Error())
+					}
+					portal.Backends = append(portal.Backends, backend)
 				}
 			case "jwt":
 				for nesting := h.Nesting(); h.NextBlock(nesting); {
@@ -160,9 +152,8 @@ func parseCaddyfileAuthPortal(h httpcaddyfile.Helper) ([]httpcaddyfile.ConfigVal
 						if !h.NextArg() {
 							return nil, h.Errf("%s %s subdirective has no value", rootDirective, subDirective)
 						}
-						templateName := strings.TrimRight(subDirective, "_template")
+						templateName := strings.TrimSuffix(subDirective, "_template")
 						portal.UserInterface.Templates[templateName] = h.Val()
-						logger.Debug("stage 3", zap.Any("root_directive", rootDirective), zap.Any("subDirective", subDirective), zap.Any("args", h.Val()))
 					} else {
 						switch subDirective {
 						case "logo_url":

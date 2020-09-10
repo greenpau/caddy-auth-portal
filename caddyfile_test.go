@@ -26,7 +26,7 @@ func TestCaddyfile(t *testing.T) {
           backends {
             local_backend {
               type local
-              file /etc/gatekeeper/auth/local/users.json
+              path /etc/gatekeeper/auth/local/users.json
               realm local
             }
           }
