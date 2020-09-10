@@ -3,17 +3,18 @@ package portal
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/caddyserver/caddy/v2"
-	"github.com/caddyserver/caddy/v2/modules/caddyhttp/caddyauth"
-	"github.com/greenpau/caddy-auth-jwt"
-	"github.com/greenpau/caddy-auth-ui"
-	"github.com/satori/go.uuid"
-	"go.uber.org/zap"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
 	"strings"
 	"sync"
+
+	"github.com/caddyserver/caddy/v2"
+	"github.com/caddyserver/caddy/v2/modules/caddyhttp/caddyauth"
+	jwt "github.com/greenpau/caddy-auth-jwt"
+	ui "github.com/greenpau/caddy-auth-ui"
+	uuid "github.com/satori/go.uuid"
+	"go.uber.org/zap"
 )
 
 const (
@@ -43,8 +44,8 @@ type AuthProvider struct {
 	Backends        []Backend                `json:"backends,omitempty"`
 	TokenProvider   *jwt.TokenProviderConfig `json:"jwt,omitempty"`
 	TokenValidator  *jwt.TokenValidator      `json:"-"`
-	logger          *zap.Logger              `json:"-"`
-	uiFactory       *ui.UserInterfaceFactory `json:"-"`
+	logger          *zap.Logger
+	uiFactory       *ui.UserInterfaceFactory
 }
 
 // CaddyModule returns the Caddy module information.

@@ -4,7 +4,8 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/greenpau/caddy-auth-jwt"
+
+	jwt "github.com/greenpau/caddy-auth-jwt"
 	"github.com/greenpau/caddy-auth-portal/pkg/backends/bolt"
 	"github.com/greenpau/caddy-auth-portal/pkg/backends/ldap"
 	"github.com/greenpau/caddy-auth-portal/pkg/backends/local"
@@ -103,6 +104,4 @@ func (b *Backend) UnmarshalJSON(data []byte) error {
 	}
 	b.driver = driver
 	return nil
-
-	return fmt.Errorf("invalid configuration: %s", data)
 }
