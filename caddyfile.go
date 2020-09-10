@@ -20,6 +20,7 @@ import (
 	"strings"
 
 	jwt "github.com/greenpau/caddy-auth-jwt"
+	ui "github.com/greenpau/caddy-auth-ui"
 
 	"github.com/caddyserver/caddy/v2"
 	"github.com/caddyserver/caddy/v2/caddyconfig"
@@ -171,6 +172,18 @@ func parseCaddyfileAuthPortal(h httpcaddyfile.Helper) ([]httpcaddyfile.ConfigVal
 								return nil, h.Errf("%s %s subdirective has no value", rootDirective, subDirective)
 							}
 							portal.UserInterface.AutoRedirectURL = h.Val()
+						case "links":
+							for subNesting := h.Nesting(); h.NextBlock(subNesting); {
+								title := h.Val()
+								args := h.RemainingArgs()
+								if len(args) == 0 {
+									return nil, h.Errf("auth backend %s subdirective %s has no value", subDirective, title)
+								}
+								portal.UserInterface.PrivateLinks = append(portal.UserInterface.PrivateLinks, ui.UserInterfaceLink{
+									Title: title,
+									Link:  args[0],
+								})
+							}
 						default:
 							return nil, h.Errf("unsupported subdirective for %s: %s", rootDirective, subDirective)
 						}
