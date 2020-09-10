@@ -43,7 +43,15 @@ func (p *AuthPortalPool) Register(m *AuthPortal) error {
 	}
 	if m.PrimaryInstance {
 		if _, exists := p.PrimaryInstances[m.Context]; exists {
-			return fmt.Errorf("found more than one primary instance of the plugin for %s context", m.Context)
+			// The time different check is necessary to determine whether this is a configuration
+			// load or reload. Typically, the provisioning of a plugin would happen in a second.
+			timeDiff := m.startedAt.Sub(p.PrimaryInstances[m.Context].startedAt).Milliseconds()
+			if timeDiff < 1000 {
+				return fmt.Errorf(
+					"found more than one primary instance of the plugin for %s context: %v, %v",
+					m.Context, p.PrimaryInstances, timeDiff,
+				)
+			}
 		}
 		p.PrimaryInstances[m.Context] = m
 	}

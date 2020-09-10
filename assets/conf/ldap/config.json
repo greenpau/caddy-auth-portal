@@ -1,6 +1,6 @@
 {
   "admin": {
-    "disabled": true,
+    "disabled": false,
     "config": {
       "persist": false
     }

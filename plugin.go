@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
-	"sync"
+	"time"
 
 	"github.com/caddyserver/caddy/v2"
 	"github.com/caddyserver/caddy/v2/modules/caddyhttp"
@@ -33,7 +33,6 @@ func init() {
 // AuthPortal authorizes access to endpoints based on
 // the credentials provided in a request.
 type AuthPortal struct {
-	mu              sync.Mutex
 	Name            string                   `json:"-"`
 	Provisioned     bool                     `json:"-"`
 	ProvisionFailed bool                     `json:"-"`
@@ -46,6 +45,7 @@ type AuthPortal struct {
 	TokenValidator  *jwt.TokenValidator      `json:"-"`
 	logger          *zap.Logger
 	uiFactory       *ui.UserInterfaceFactory
+	startedAt       time.Time
 }
 
 // CaddyModule returns the Caddy module information.
@@ -59,6 +59,7 @@ func (AuthPortal) CaddyModule() caddy.ModuleInfo {
 // Provision provisions authentication portal provider
 func (m *AuthPortal) Provision(ctx caddy.Context) error {
 	m.logger = ctx.Logger(m)
+	m.startedAt = time.Now().UTC()
 	if err := PortalPool.Register(m); err != nil {
 		return fmt.Errorf(
 			"authentication provider registration error, instance %s, error: %s",
@@ -76,6 +77,7 @@ func (m *AuthPortal) Provision(ctx caddy.Context) error {
 	m.logger.Info(
 		"provisioned plugin instance",
 		zap.String("instance_name", m.Name),
+		zap.Time("started_at", m.startedAt),
 	)
 	return nil
 }
