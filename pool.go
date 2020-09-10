@@ -10,17 +10,17 @@ import (
 	"sync"
 )
 
-// AuthProviderPool provides access to all instances of the plugin.
-type AuthProviderPool struct {
+// AuthPortalPool provides access to all instances of the plugin.
+type AuthPortalPool struct {
 	mu               sync.Mutex
-	Members          []*AuthProvider
-	RefMembers       map[string]*AuthProvider
-	PrimaryInstances map[string]*AuthProvider
+	Members          []*AuthPortal
+	RefMembers       map[string]*AuthPortal
+	PrimaryInstances map[string]*AuthPortal
 	MemberCount      int
 }
 
 // Register registers authentication provider instance with the pool.
-func (p *AuthProviderPool) Register(m *AuthProvider) error {
+func (p *AuthPortalPool) Register(m *AuthPortal) error {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 
@@ -29,7 +29,7 @@ func (p *AuthProviderPool) Register(m *AuthProvider) error {
 		m.Name = fmt.Sprintf("portal-%d", p.MemberCount)
 	}
 	if p.RefMembers == nil {
-		p.RefMembers = make(map[string]*AuthProvider)
+		p.RefMembers = make(map[string]*AuthPortal)
 	}
 	if _, exists := p.RefMembers[m.Name]; !exists {
 		p.RefMembers[m.Name] = m
@@ -39,7 +39,7 @@ func (p *AuthProviderPool) Register(m *AuthProvider) error {
 		m.Context = "default"
 	}
 	if p.PrimaryInstances == nil {
-		p.PrimaryInstances = make(map[string]*AuthProvider)
+		p.PrimaryInstances = make(map[string]*AuthPortal)
 	}
 	if m.PrimaryInstance {
 		if _, exists := p.PrimaryInstances[m.Context]; exists {
@@ -293,7 +293,7 @@ func (p *AuthProviderPool) Register(m *AuthProvider) error {
 }
 
 // Provision provisions non-primary instances in an authentication context.
-func (p *AuthProviderPool) Provision(name string) error {
+func (p *AuthPortalPool) Provision(name string) error {
 	if name == "" {
 		return fmt.Errorf("authentication provider name is empty")
 	}

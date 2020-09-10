@@ -4,12 +4,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"net/http/httputil"
 	"net/url"
 	"strings"
 	"sync"
 
 	"github.com/caddyserver/caddy/v2"
+	"github.com/caddyserver/caddy/v2/modules/caddyhttp"
 	"github.com/caddyserver/caddy/v2/modules/caddyhttp/caddyauth"
 	jwt "github.com/greenpau/caddy-auth-jwt"
 	ui "github.com/greenpau/caddy-auth-ui"
@@ -18,21 +18,21 @@ import (
 )
 
 const (
-	redirectToToken = "FORMS_AUTH_PLUGIN_REDIRECT_URL"
+	redirectToToken = "AUTH_PORTAL_REDIRECT_URL"
 )
 
-// ProviderPool is the global authentication provider pool.
+// PortalPool is the global authentication provider pool.
 // It provides access to all instances of authentication portal plugin.
-var ProviderPool *AuthProviderPool
+var PortalPool *AuthPortalPool
 
 func init() {
-	ProviderPool = &AuthProviderPool{}
-	caddy.RegisterModule(AuthProvider{})
+	PortalPool = &AuthPortalPool{}
+	caddy.RegisterModule(AuthPortal{})
 }
 
-// AuthProvider authorizes access to endpoints based on
+// AuthPortal authorizes access to endpoints based on
 // the credentials provided in a request.
-type AuthProvider struct {
+type AuthPortal struct {
 	mu              sync.Mutex
 	Name            string                   `json:"-"`
 	Provisioned     bool                     `json:"-"`
@@ -49,24 +49,24 @@ type AuthProvider struct {
 }
 
 // CaddyModule returns the Caddy module information.
-func (AuthProvider) CaddyModule() caddy.ModuleInfo {
+func (AuthPortal) CaddyModule() caddy.ModuleInfo {
 	return caddy.ModuleInfo{
-		ID:  "http.authentication.providers.portal",
-		New: func() caddy.Module { return new(AuthProvider) },
+		ID:  "http.handlers.auth_portal",
+		New: func() caddy.Module { return new(AuthPortal) },
 	}
 }
 
 // Provision provisions authentication portal provider
-func (m *AuthProvider) Provision(ctx caddy.Context) error {
+func (m *AuthPortal) Provision(ctx caddy.Context) error {
 	m.logger = ctx.Logger(m)
-	if err := ProviderPool.Register(m); err != nil {
+	if err := PortalPool.Register(m); err != nil {
 		return fmt.Errorf(
 			"authentication provider registration error, instance %s, error: %s",
 			m.Name, err,
 		)
 	}
 	if !m.PrimaryInstance {
-		if err := ProviderPool.Provision(m.Name); err != nil {
+		if err := PortalPool.Provision(m.Name); err != nil {
 			return fmt.Errorf(
 				"authentication provider provisioning error, instance %s, error: %s",
 				m.Name, err,
@@ -81,7 +81,7 @@ func (m *AuthProvider) Provision(ctx caddy.Context) error {
 }
 
 // Validate implements caddy.Validator.
-func (m *AuthProvider) Validate() error {
+func (m *AuthPortal) Validate() error {
 	m.logger.Info(
 		"validated plugin instance",
 		zap.String("instance_name", m.Name),
@@ -90,17 +90,13 @@ func (m *AuthProvider) Validate() error {
 }
 
 // Authenticate authorizes access based on the presense and content of JWT token.
-func (m AuthProvider) Authenticate(w http.ResponseWriter, r *http.Request) (caddyauth.User, bool, error) {
+func (m AuthPortal) ServeHTTP(w http.ResponseWriter, r *http.Request, _ caddyhttp.Handler) error {
 	var reqID string
 	var userClaims *jwt.UserClaims
 	var userAuthenticated bool
 	var authStatusCode int
 	var authBackendFound bool
 	var credentialsFound bool
-
-	if reqDump, err := httputil.DumpRequest(r, true); err == nil {
-		m.logger.Debug(fmt.Sprintf("request: %s", reqDump))
-	}
 
 	uiArgs := m.uiFactory.GetArgs()
 
@@ -131,7 +127,7 @@ func (m AuthProvider) Authenticate(w http.ResponseWriter, r *http.Request) (cadd
 			}
 			w.Header().Set("Location", m.AuthURLPath)
 			w.WriteHeader(303)
-			return caddyauth.User{}, false, nil
+			return nil
 		}
 		if redirectURL, exists := q["redirect_url"]; exists {
 			w.Header().Set("Set-Cookie", redirectToToken+"="+redirectURL[0])
@@ -155,7 +151,7 @@ func (m AuthProvider) Authenticate(w http.ResponseWriter, r *http.Request) (cadd
 				}
 				w.Header().Set("Location", m.AuthURLPath)
 				w.WriteHeader(303)
-				return caddyauth.User{}, false, nil
+				return nil
 			}
 		}
 	}
@@ -242,7 +238,7 @@ func (m AuthProvider) Authenticate(w http.ResponseWriter, r *http.Request) (cadd
 				)
 				w.WriteHeader(500)
 				w.Write([]byte(`Internal Server Error`))
-				return caddyauth.User{}, false, err
+				return err
 			}
 			contentBytes = content
 		} else {
@@ -256,14 +252,14 @@ func (m AuthProvider) Authenticate(w http.ResponseWriter, r *http.Request) (cadd
 				)
 				w.WriteHeader(500)
 				w.Write([]byte(`Internal Server Error`))
-				return caddyauth.User{}, false, err
+				return err
 			}
 			contentBytes = content.Bytes()
 		}
 
 		w.WriteHeader(401)
 		w.Write(contentBytes)
-		return caddyauth.User{}, false, nil
+		return nil
 	}
 
 	if m.UserInterface.Title == "" {
@@ -316,14 +312,14 @@ func (m AuthProvider) Authenticate(w http.ResponseWriter, r *http.Request) (cadd
 			w.Header().Set("Location", redirectURL.String())
 			w.Header().Add("Set-Cookie", redirectToToken+"=delete; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT")
 			w.WriteHeader(303)
-			return userIdentity, true, nil
+			return nil
 		}
 	}
 
 	if r.Method == "POST" {
 		w.Header().Set("Location", m.AuthURLPath)
 		w.WriteHeader(303)
-		return userIdentity, true, nil
+		return nil
 	}
 
 	w.Header().Set("Content-Type", contentType)
@@ -341,7 +337,7 @@ func (m AuthProvider) Authenticate(w http.ResponseWriter, r *http.Request) (cadd
 			)
 			w.WriteHeader(500)
 			w.Write([]byte(`Internal Server Error`))
-			return caddyauth.User{}, false, err
+			return err
 		}
 		w.Write(content)
 	} else {
@@ -355,16 +351,16 @@ func (m AuthProvider) Authenticate(w http.ResponseWriter, r *http.Request) (cadd
 			)
 			w.WriteHeader(500)
 			w.Write([]byte(`Internal Server Error`))
-			return caddyauth.User{}, false, err
+			return err
 		}
 		w.Write(content.Bytes())
 	}
-	return userIdentity, true, nil
+	return nil
 }
 
 // Interface guards
 var (
-	_ caddy.Provisioner       = (*AuthProvider)(nil)
-	_ caddy.Validator         = (*AuthProvider)(nil)
-	_ caddyauth.Authenticator = (*AuthProvider)(nil)
+	_ caddy.Provisioner           = (*AuthPortal)(nil)
+	_ caddy.Validator             = (*AuthPortal)(nil)
+	_ caddyhttp.MiddlewareHandler = (*AuthPortal)(nil)
 )

@@ -76,31 +76,29 @@ func initLogger() *zap.Logger {
 func parseCaddyfileAuthPortal(h httpcaddyfile.Helper) ([]httpcaddyfile.ConfigValue, error) {
 
 	logger := initLogger()
-	var primaryInstance bool = true
-	var instanceContext string = "default"
-	var authURLPath string = "/auth"
-	var userInterface *UserInterfaceParameters
-	var tokenProvider *jwt.TokenProviderConfig
 	backends := []string{}
 
+	portal := AuthPortal{
+		PrimaryInstance: true,
+		Context:         "default",
+		AuthURLPath:     "/auth",
+		UserInterface: &UserInterfaceParameters{
+			Templates: make(map[string]string),
+		},
+		TokenProvider: &jwt.TokenProviderConfig{},
+		Backends:      []Backend{},
+	}
+
 	for h.Next() {
-		logger.Debug("stage 1")
 		for nesting := h.Nesting(); h.NextBlock(nesting); {
-			logger.Debug("stage 2 ")
-			logger.Debug("stage 2", zap.Any("val", h.Val()))
 			rootDirective := h.Val()
 			switch rootDirective {
 			case "path":
 				args := h.RemainingArgs()
-				authURLPath = args[0]
-				logger.Debug("stage 2", zap.Any("root_directive", rootDirective), zap.Any("args", args))
-				logger.Debug("stage 2", zap.Any("root_directive", rootDirective), zap.Any("authURLPath", authURLPath))
-
+				portal.AuthURLPath = args[0]
 			case "context":
 				args := h.RemainingArgs()
-				instanceContext = args[0]
-				logger.Debug("stage 2", zap.Any("root_directive", rootDirective), zap.Any("args", args))
-				logger.Debug("stage 2", zap.Any("root_directive", rootDirective), zap.Any("instanceContext", authURLPath))
+				portal.Context = args[0]
 			case "backends":
 				for nesting := h.Nesting(); h.NextBlock(nesting); {
 
@@ -125,6 +123,7 @@ func parseCaddyfileAuthPortal(h httpcaddyfile.Helper) ([]httpcaddyfile.ConfigVal
 							return nil, h.Errf("unknown auth backend %s subdirective: %s", backendName, backendArg)
 						}
 					}
+
 					backendJSON, err := json.Marshal(backendProps)
 					if err != nil {
 						return nil, h.Errf("auth backend %s subdirective failed to compile to JSON: %s", backendName, err.Error())
@@ -132,9 +131,6 @@ func parseCaddyfileAuthPortal(h httpcaddyfile.Helper) ([]httpcaddyfile.ConfigVal
 					backends = append(backends, string(backendJSON))
 				}
 			case "jwt":
-				if tokenProvider == nil {
-					tokenProvider = &jwt.TokenProviderConfig{}
-				}
 				for nesting := h.Nesting(); h.NextBlock(nesting); {
 					subDirective := h.Val()
 					switch subDirective {
@@ -142,32 +138,22 @@ func parseCaddyfileAuthPortal(h httpcaddyfile.Helper) ([]httpcaddyfile.ConfigVal
 						if !h.NextArg() {
 							return nil, h.Errf("%s %s subdirective has no value", rootDirective, subDirective)
 						}
-						tokenProvider.TokenName = h.Val()
-						logger.Debug("stage 3", zap.Any("root_directive", rootDirective), zap.Any("subDirective", subDirective), zap.Any("args", tokenProvider.TokenName))
+						portal.TokenProvider.TokenName = h.Val()
 					case "token_secret":
 						if !h.NextArg() {
 							return nil, h.Errf("%s %s subdirective has no value", rootDirective, subDirective)
 						}
-						tokenProvider.TokenSecret = h.Val()
-						logger.Debug("stage 3", zap.Any("root_directive", rootDirective), zap.Any("subDirective", subDirective), zap.Any("args", tokenProvider.TokenSecret))
-
+						portal.TokenProvider.TokenSecret = h.Val()
 					case "token_issuer":
 						if !h.NextArg() {
 							return nil, h.Errf("%s %s subdirective has no value", rootDirective, subDirective)
 						}
-						tokenProvider.TokenIssuer = h.Val()
-						logger.Debug("stage 3", zap.Any("root_directive", rootDirective), zap.Any("subDirective", subDirective), zap.Any("args", tokenProvider.TokenIssuer))
-
+						portal.TokenProvider.TokenIssuer = h.Val()
 					default:
 						return nil, h.Errf("unknown subdirective for %s: %s", rootDirective, subDirective)
 					}
 				}
 			case "ui":
-				if userInterface == nil {
-					userInterface = &UserInterfaceParameters{
-						Templates: make(map[string]string),
-					}
-				}
 				for nesting := h.Nesting(); h.NextBlock(nesting); {
 					subDirective := h.Val()
 					if strings.HasSuffix(subDirective, "_template") {
@@ -175,32 +161,25 @@ func parseCaddyfileAuthPortal(h httpcaddyfile.Helper) ([]httpcaddyfile.ConfigVal
 							return nil, h.Errf("%s %s subdirective has no value", rootDirective, subDirective)
 						}
 						templateName := strings.TrimRight(subDirective, "_template")
-						userInterface.Templates[templateName] = h.Val()
+						portal.UserInterface.Templates[templateName] = h.Val()
 						logger.Debug("stage 3", zap.Any("root_directive", rootDirective), zap.Any("subDirective", subDirective), zap.Any("args", h.Val()))
-
 					} else {
 						switch subDirective {
 						case "logo_url":
 							if !h.NextArg() {
 								return nil, h.Errf("%s %s subdirective has no value", rootDirective, subDirective)
 							}
-							userInterface.LogoURL = h.Val()
-							logger.Debug("stage 3", zap.Any("root_directive", rootDirective), zap.Any("subDirective", subDirective), zap.Any("args", h.Val()))
-
+							portal.UserInterface.LogoURL = h.Val()
 						case "logo_description":
 							if !h.NextArg() {
 								return nil, h.Errf("%s %s subdirective has no value", rootDirective, subDirective)
 							}
-							userInterface.LogoDescription = h.Val()
-							logger.Debug("stage 3", zap.Any("root_directive", rootDirective), zap.Any("subDirective", subDirective), zap.Any("args", h.Val()))
-
+							portal.UserInterface.LogoDescription = h.Val()
 						case "auto_redirect_url":
 							if !h.NextArg() {
 								return nil, h.Errf("%s %s subdirective has no value", rootDirective, subDirective)
 							}
-							userInterface.AutoRedirectURL = h.Val()
-							logger.Debug("stage 3", zap.Any("root_directive", rootDirective), zap.Any("subDirective", subDirective), zap.Any("args", h.Val()))
-
+							portal.UserInterface.AutoRedirectURL = h.Val()
 						default:
 							return nil, h.Errf("unsupported subdirective for %s: %s", rootDirective, subDirective)
 						}
@@ -212,148 +191,29 @@ func parseCaddyfileAuthPortal(h httpcaddyfile.Helper) ([]httpcaddyfile.ConfigVal
 		}
 	}
 
-	if authURLPath == "" {
-		authURLPath = "/auth"
+	if portal.AuthURLPath == "" {
+		portal.AuthURLPath = "/auth"
 	}
-	if strings.HasSuffix(authURLPath, "*") {
-		return nil, h.Errf("path directive must not end with '*', got %s", authURLPath)
+	if strings.HasSuffix(portal.AuthURLPath, "*") {
+		return nil, h.Errf("path directive must not end with '*', got %s", portal.AuthURLPath)
 	}
-	if !strings.HasPrefix(authURLPath, "/") {
-		return nil, h.Errf("path directive must begin with '/', got %s", authURLPath)
+	if !strings.HasPrefix(portal.AuthURLPath, "/") {
+		return nil, h.Errf("path directive must begin with '/', got %s", portal.AuthURLPath)
 	}
 
-	if instanceContext == "" {
+	if portal.Context == "" {
 		return nil, h.Errf("context directive must not be empty")
 	}
 
-	logger.Debug("stage 4")
-
-	/*
-		if !h.Next() {
-			return nil, h.ArgErr()
-		}
-	*/
-
-	logger.Debug("stage 5")
-
-	/*
-		if !h.NextArg() {
-			return nil, h.ArgErr()
-		}
-	*/
-
-	logger.Debug("stage 6")
-
-	// the ParseSegmentAsSubroute function expects the cursor
-	// to be at the token just before the block opening,
-	// so we need to rewind because we already read past it
 	h.Reset()
-
-	logger.Debug("stage 7")
-
 	h.Next()
-
-	logger.Debug("stage 8")
-
-	// parse the block contents as a subroute handler
-	/*
-		handler, err := httpcaddyfile.ParseSegmentAsSubroute(h)
-		if err != nil {
-
-			logger.Debug("error @ stage 9")
-			return nil, err
-		}
-	*/
-
-	logger.Debug("stage 9")
-
-	subroute := new(caddyhttp.Subroute)
-
-	/*
-		subroute, ok := handler.(*caddyhttp.Subroute)
-		if !ok {
-			return nil, h.Errf("segment was not parsed as a subroute")
-		}
-	*/
-
-	logger.Debug("stage 10")
-
-	// make a matcher on the path and everything below it
 	pathMatcher := caddy.ModuleMap{
-		"path": h.JSON(caddyhttp.MatchPath{authURLPath + "*"}),
+		"path": h.JSON(caddyhttp.MatchPath{portal.AuthURLPath + "*"}),
 	}
-
-	/*
-
-		var buffer bytes.Buffer
-		buffer.WriteString("[{")
-		buffer.WriteString("\"handler\":\"authentication\",")
-		buffer.WriteString("\"providers\":{")
-		buffer.WriteString("\"portal\":{")
-		if primaryInstance {
-			buffer.WriteString("\"primary\":true,")
-		} else {
-			buffer.WriteString("\"primary\":false,")
-		}
-		buffer.WriteString("\"context\":\"" + instanceContext + "\",")
-
-		if userInterface != nil {
-			userInterfaceJSON, err := json.Marshal(userInterface)
-			if err != nil {
-				return nil, h.Errf("auth backend ui subdirective failed to compile to JSON: %s", err.Error())
-			}
-			buffer.WriteString("\"ui\":{" + string(userInterfaceJSON) + "},")
-		}
-
-		if tokenProvider != nil {
-			tokenProviderJSON, err := json.Marshal(tokenProvider)
-			if err != nil {
-				return nil, h.Errf("auth backend jwt subdirective failed to compile to JSON: %s", err.Error())
-			}
-			buffer.WriteString("\"jwt\":{" + string(tokenProviderJSON) + "},")
-		}
-
-		if len(backends) > 0 {
-			buffer.WriteString("\"backends\":[")
-			buffer.WriteString("],")
-		}
-
-		buffer.WriteString("\"auth_url_path\":\"" + authURLPath + "\"")
-		buffer.WriteString("}}}]")
-
-		//var buf string
-		// buf = buffer.String()
-
-		// panic(spew.Sdump(buffer.String()))
-
-		// return nil, fmt.Errorf(spew.Sdump(buf))
-
-		// build a route with a rewrite handler to strip the path prefix
-		route := caddyhttp.Route{
-			//HandlersRaw: []json.RawMessage{buffer.Bytes()},
-			HandlersRaw: []json.RawMessage{caddyconfig.JSONModuleObject(buffer.Bytes(), "handler", "authentication", nil)},
-		}
-	*/
-
-	var handlers []json.RawMessage
-
-	handler := AuthProvider{
-		PrimaryInstance: primaryInstance,
-		Context:         instanceContext,
-		AuthURLPath:     authURLPath,
-		UserInterface:   userInterface,
-		TokenProvider:   tokenProvider,
-		Backends:        []Backend{},
-	}
-
-	handlers = append(handlers, caddyconfig.JSONModuleObject(handler, "authentication", "providers.portal", nil))
 	route := caddyhttp.Route{
-		HandlersRaw: handlers,
+		HandlersRaw: []json.RawMessage{caddyconfig.JSONModuleObject(portal, "handler", "auth_portal", nil)},
 	}
-
-	// prepend the route to the subroute
+	subroute := new(caddyhttp.Subroute)
 	subroute.Routes = append([]caddyhttp.Route{route}, subroute.Routes...)
-
-	// build and return a route from the subroute
 	return h.NewRoute(pathMatcher, subroute), nil
 }
