@@ -15,7 +15,6 @@
 package portal
 
 import (
-	"bytes"
 	"encoding/json"
 	"os"
 	"strings"
@@ -284,53 +283,72 @@ func parseCaddyfileAuthPortal(h httpcaddyfile.Helper) ([]httpcaddyfile.ConfigVal
 		"path": h.JSON(caddyhttp.MatchPath{authURLPath + "*"}),
 	}
 
-	var buffer bytes.Buffer
-	buffer.WriteString("[{")
-	buffer.WriteString("\"handler\":\"authentication\",")
-	buffer.WriteString("\"providers\":{")
-	buffer.WriteString("\"portal\":{")
-	if primaryInstance {
-		buffer.WriteString("\"primary\":true,")
-	} else {
-		buffer.WriteString("\"primary\":false,")
-	}
-	buffer.WriteString("\"context\":\"" + instanceContext + "\",")
+	/*
 
-	if userInterface != nil {
-		userInterfaceJSON, err := json.Marshal(userInterface)
-		if err != nil {
-			return nil, h.Errf("auth backend ui subdirective failed to compile to JSON: %s", err.Error())
+		var buffer bytes.Buffer
+		buffer.WriteString("[{")
+		buffer.WriteString("\"handler\":\"authentication\",")
+		buffer.WriteString("\"providers\":{")
+		buffer.WriteString("\"portal\":{")
+		if primaryInstance {
+			buffer.WriteString("\"primary\":true,")
+		} else {
+			buffer.WriteString("\"primary\":false,")
 		}
-		buffer.WriteString("\"ui\":{" + string(userInterfaceJSON) + "},")
-	}
+		buffer.WriteString("\"context\":\"" + instanceContext + "\",")
 
-	if tokenProvider != nil {
-		tokenProviderJSON, err := json.Marshal(tokenProvider)
-		if err != nil {
-			return nil, h.Errf("auth backend jwt subdirective failed to compile to JSON: %s", err.Error())
+		if userInterface != nil {
+			userInterfaceJSON, err := json.Marshal(userInterface)
+			if err != nil {
+				return nil, h.Errf("auth backend ui subdirective failed to compile to JSON: %s", err.Error())
+			}
+			buffer.WriteString("\"ui\":{" + string(userInterfaceJSON) + "},")
 		}
-		buffer.WriteString("\"jwt\":{" + string(tokenProviderJSON) + "},")
+
+		if tokenProvider != nil {
+			tokenProviderJSON, err := json.Marshal(tokenProvider)
+			if err != nil {
+				return nil, h.Errf("auth backend jwt subdirective failed to compile to JSON: %s", err.Error())
+			}
+			buffer.WriteString("\"jwt\":{" + string(tokenProviderJSON) + "},")
+		}
+
+		if len(backends) > 0 {
+			buffer.WriteString("\"backends\":[")
+			buffer.WriteString("],")
+		}
+
+		buffer.WriteString("\"auth_url_path\":\"" + authURLPath + "\"")
+		buffer.WriteString("}}}]")
+
+		//var buf string
+		// buf = buffer.String()
+
+		// panic(spew.Sdump(buffer.String()))
+
+		// return nil, fmt.Errorf(spew.Sdump(buf))
+
+		// build a route with a rewrite handler to strip the path prefix
+		route := caddyhttp.Route{
+			//HandlersRaw: []json.RawMessage{buffer.Bytes()},
+			HandlersRaw: []json.RawMessage{caddyconfig.JSONModuleObject(buffer.Bytes(), "handler", "authentication", nil)},
+		}
+	*/
+
+	var handlers []json.RawMessage
+
+	handler := AuthProvider{
+		PrimaryInstance: primaryInstance,
+		Context:         instanceContext,
+		AuthURLPath:     authURLPath,
+		UserInterface:   userInterface,
+		TokenProvider:   tokenProvider,
+		Backends:        []Backend{},
 	}
 
-	if len(backends) > 0 {
-		buffer.WriteString("\"backends\":[")
-		buffer.WriteString("],")
-	}
-
-	buffer.WriteString("\"auth_url_path\":\"" + authURLPath + "\"")
-	buffer.WriteString("}}}]")
-
-	//var buf string
-	// buf = buffer.String()
-
-	// panic(spew.Sdump(buffer.String()))
-
-	// return nil, fmt.Errorf(spew.Sdump(buf))
-
-	// build a route with a rewrite handler to strip the path prefix
+	handlers = append(handlers, caddyconfig.JSONModuleObject(handler, "authentication", "providers.portal", nil))
 	route := caddyhttp.Route{
-		//HandlersRaw: []json.RawMessage{buffer.Bytes()},
-		HandlersRaw: []json.RawMessage{caddyconfig.JSONModuleObject(buffer.Bytes(), "handler", "authentication", nil)},
+		HandlersRaw: handlers,
 	}
 
 	// prepend the route to the subroute
