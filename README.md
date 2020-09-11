@@ -95,10 +95,6 @@ localhost:8443 {
         token_issuer e1008f2d-ccfa-4e62-bbe6-c202ec2988cc
       }
       ui {
-        login_template "/etc/gatekeeper/ui/forms_login.template"
-        portal_template "/etc/gatekeeper/ui/forms_portal.template"
-        logo_url "https://caddyserver.com/resources/images/caddy-circle-lock.svg"
-        logo_description "Caddy"
         links {
           "Prometheus" /prometheus
           "Alertmanager" /alertmanager
@@ -146,6 +142,26 @@ localhost:8443 {
   }
 }
 ```
+
+If you would like to style the UI differently, then specify your
+templates and settings:
+
+```
+      ui {
+        login_template "/etc/gatekeeper/ui/forms_login.template"
+        portal_template "/etc/gatekeeper/ui/forms_portal.template"
+        logo_url "https://caddyserver.com/resources/images/caddy-circle-lock.svg"
+        logo_description "Caddy"
+        links {
+          "Prometheus" /prometheus
+          "Alertmanager" /alertmanager
+          "My App" /myapp
+        }
+      }
+```
+
+In fact, if you are not going to display any links, then
+remove the `ui` section and use an auto-redirect feature.
 
 ## Authentication Methods
 

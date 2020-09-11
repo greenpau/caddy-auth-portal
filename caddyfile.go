@@ -20,6 +20,7 @@ import (
 	"strings"
 
 	jwt "github.com/greenpau/caddy-auth-jwt"
+	"github.com/greenpau/caddy-auth-portal/pkg/utils"
 	ui "github.com/greenpau/caddy-auth-ui"
 
 	"github.com/caddyserver/caddy/v2"
@@ -61,6 +62,9 @@ func initCaddyfileLogger() *zap.Logger {
 //		     realm <name>
 //	       }
 //	     }
+//
+//       local_backend <file/path/to/user/db> <realm/name>
+//
 //	     jwt {
 //	       token_name <value>
 //	       token_secret <value>
@@ -82,8 +86,7 @@ func parseCaddyfileAuthPortal(h httpcaddyfile.Helper) ([]httpcaddyfile.ConfigVal
 		UserInterface: &UserInterfaceParameters{
 			Templates: make(map[string]string),
 		},
-		TokenProvider: &jwt.TokenProviderConfig{},
-		Backends:      []Backend{},
+		Backends: []Backend{},
 	}
 
 	// logger := initLogger()
@@ -98,6 +101,28 @@ func parseCaddyfileAuthPortal(h httpcaddyfile.Helper) ([]httpcaddyfile.ConfigVal
 			case "context":
 				args := h.RemainingArgs()
 				portal.Context = args[0]
+			case "local_backend":
+				args := h.RemainingArgs()
+				if len(args) == 0 {
+					return nil, h.Errf("auth backend %s directive has no value", rootDirective)
+				}
+				backendProps := make(map[string]interface{})
+				backendProps["type"] = "local"
+				backendProps["path"] = args[0]
+				if len(args) > 1 {
+					backendProps["realm"] = args[1]
+				} else {
+					backendProps["realm"] = "local"
+				}
+				backendJSON, err := json.Marshal(backendProps)
+				if err != nil {
+					return nil, h.Errf("auth backend %s directive failed to compile to JSON: %s", rootDirective, err.Error())
+				}
+				backend := Backend{}
+				if err := backend.UnmarshalJSON(backendJSON); err != nil {
+					return nil, h.Errf("auth backend %s directive failed to compile to JSON: %s", rootDirective, err.Error())
+				}
+				portal.Backends = append(portal.Backends, backend)
 			case "backends":
 				for nesting := h.Nesting(); h.NextBlock(nesting); {
 					backendName := h.Val()
@@ -125,6 +150,9 @@ func parseCaddyfileAuthPortal(h httpcaddyfile.Helper) ([]httpcaddyfile.ConfigVal
 					portal.Backends = append(portal.Backends, backend)
 				}
 			case "jwt":
+				if portal.TokenProvider == nil {
+					portal.TokenProvider = &jwt.TokenProviderConfig{}
+				}
 				for nesting := h.Nesting(); h.NextBlock(nesting); {
 					subDirective := h.Val()
 					switch subDirective {
@@ -208,6 +236,11 @@ func parseCaddyfileAuthPortal(h httpcaddyfile.Helper) ([]httpcaddyfile.ConfigVal
 
 	if portal.Context == "" {
 		return nil, h.Errf("context directive must not be empty")
+	}
+
+	if portal.TokenProvider == nil {
+		portal.TokenProvider = &jwt.TokenProviderConfig{}
+		portal.TokenProvider.TokenSecret = utils.GetRandomStringFromRange(32, 64)
 	}
 
 	h.Reset()
