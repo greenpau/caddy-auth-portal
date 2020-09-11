@@ -10,7 +10,7 @@ import (
 	"github.com/caddyserver/caddy/v2/caddytest"
 )
 
-func TestCaddyfile(t *testing.T) {
+func TestLocalCaddyfile(t *testing.T) {
 	scheme := "http"
 	host := "localhost"
 	port := "8080"

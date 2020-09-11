@@ -264,7 +264,9 @@ func (p *AuthPortalPool) Register(m *AuthPortal) error {
 		}
 
 		m.TokenValidator = jwt.NewTokenValidator()
-		m.TokenValidator.TokenSecret = m.TokenProvider.TokenSecret
+		tokenConfig := jwt.NewCommonTokenConfig()
+		tokenConfig.TokenSecret = m.TokenProvider.TokenSecret
+		m.TokenValidator.TokenConfigs = []*jwt.CommonTokenConfig{tokenConfig}
 		if err := m.TokenValidator.ConfigureTokenBackends(); err != nil {
 			return fmt.Errorf(
 				"%s: token validator backend configuration failed: %s",
@@ -511,7 +513,9 @@ func (p *AuthPortalPool) Provision(name string) error {
 
 	// JWT Token Validator
 	m.TokenValidator = jwt.NewTokenValidator()
-	m.TokenValidator.TokenSecret = m.TokenProvider.TokenSecret
+	tokenConfig := jwt.NewCommonTokenConfig()
+	tokenConfig.TokenSecret = m.TokenProvider.TokenSecret
+	m.TokenValidator.TokenConfigs = []*jwt.CommonTokenConfig{tokenConfig}
 	if err := m.TokenValidator.ConfigureTokenBackends(); err != nil {
 		return fmt.Errorf(
 			"%s: token validator backend configuration failed: %s",

@@ -53,6 +53,7 @@ func initCaddyfileLogger() *zap.Logger {
 //
 //     auth_portal {
 //       path /auth
+//       context <default|name>
 //       backends {
 //         local_backend {
 //		     type <local>
