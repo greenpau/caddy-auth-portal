@@ -35,7 +35,7 @@ func TestLocalCaddyfile(t *testing.T) {
           backends {
             local_backend {
               type local
-              path /etc/gatekeeper/auth/local/users.json
+              path assets/conf/local/auth/users.conf
               realm local
             }
           }
@@ -45,8 +45,8 @@ func TestLocalCaddyfile(t *testing.T) {
             token_issuer `+tokenIssuer+`
           }
           ui {
-            login_template "/etc/gatekeeper/ui/forms_login.template"
-            portal_template "/etc/gatekeeper/ui/forms_portal.template"
+            login_template "assets/conf/local/ui/login.template"
+            portal_template "assets/conf/local/ui/portal.template"
             logo_url "https://caddyserver.com/resources/images/caddy-circle-lock.svg"
             logo_description "Caddy"
             links {
