@@ -4,7 +4,8 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/greenpau/caddy-auth-jwt"
+
+	jwt "github.com/greenpau/caddy-auth-jwt"
 	"github.com/greenpau/caddy-auth-portal/pkg/backends/bolt"
 	"github.com/greenpau/caddy-auth-portal/pkg/backends/ldap"
 	"github.com/greenpau/caddy-auth-portal/pkg/backends/local"
@@ -33,7 +34,7 @@ func (b *Backend) GetRealm() string {
 }
 
 // Configure configures backend with the authentication provider settings.
-func (b *Backend) Configure(p *AuthProvider) error {
+func (b *Backend) Configure(p *AuthPortal) error {
 	if err := b.driver.ConfigureLogger(p.logger); err != nil {
 		return err
 	}
@@ -53,7 +54,7 @@ func (b *Backend) Authenticate(reqID string, data map[string]string) (*jwt.UserC
 }
 
 // Validate checks whether an authentication provider is functional.
-func (b *Backend) Validate(p *AuthProvider) error {
+func (b *Backend) Validate(p *AuthPortal) error {
 	return b.driver.Validate()
 }
 
@@ -103,6 +104,4 @@ func (b *Backend) UnmarshalJSON(data []byte) error {
 	}
 	b.driver = driver
 	return nil
-
-	return fmt.Errorf("invalid configuration: %s", data)
 }
