@@ -6,6 +6,7 @@ import (
 	"os"
 	//"strings"
 	"github.com/greenpau/caddy-auth-jwt"
+	"github.com/greenpau/caddy-auth-portal/pkg/cookies"
 	"github.com/greenpau/caddy-auth-ui"
 	"sync"
 )
@@ -153,8 +154,13 @@ func (p *AuthPortalPool) Register(m *AuthPortal) error {
 			m.logger.Debug(
 				"Provisioned authentication backend",
 				zap.String("instance_name", m.Name),
-				zap.String("backend_type", backend.bt),
+				zap.String("backend_type", backend.authMethod),
 			)
+		}
+
+		// Cookies Validation
+		if m.Cookies == nil {
+			m.Cookies = &cookies.Cookies{}
 		}
 
 		// UI Validation
@@ -384,9 +390,14 @@ func (p *AuthPortalPool) Provision(name string) error {
 			m.logger.Debug(
 				"Provisioned authentication backend",
 				zap.String("instance_name", m.Name),
-				zap.String("backend_type", backend.bt),
+				zap.String("backend_type", backend.authMethod),
 			)
 		}
+	}
+
+	// Cookies Validation
+	if m.Cookies == nil {
+		m.Cookies = &cookies.Cookies{}
 	}
 
 	// User Interface Settings

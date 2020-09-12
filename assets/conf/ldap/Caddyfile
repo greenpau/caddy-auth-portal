@@ -14,6 +14,29 @@
           path assets/conf/local/auth/users.conf
           realm local
         }
+        ldap_backend {
+          method ldap
+          realm contoso.com
+          servers {
+            ldaps://ldaps.contoso.com ignore_cert_errors
+          }
+          attributes {
+            name givenName
+            surname sn
+            username sAMAccountName
+            member_of memberOf
+            email mail
+          }
+          username "CN=authzsvc,OU=Service Accounts,OU=Administrative Accounts,DC=CONTOSO,DC=COM"
+          password "P@ssW0rd123"
+          search_base_dn "DC=CONTOSO,DC=COM"
+          search_filter "(&(|(sAMAccountName=%s)(mail=%s))(objectclass=user))"
+          groups {
+            "CN=Admins,OU=Security,OU=Groups,DC=CONTOSO,DC=COM" admin
+            "CN=Editors,OU=Security,OU=Groups,DC=CONTOSO,DC=COM" editor
+            "CN=Viewers,OU=Security,OU=Groups,DC=CONTOSO,DC=COM" viewer
+          }
+        }
       }
       jwt {
         token_name access_token
@@ -21,7 +44,7 @@
         token_issuer e1008f2d-ccfa-4e62-bbe6-c202ec2988cc
       }
       ui {
-        login_template "assets/conf/local/ui/login.template"
+        login_template "assets/ui/ldap/login.template"
         portal_template "assets/conf/local/ui/portal.template"
         logo_url "https://caddyserver.com/resources/images/caddy-circle-lock.svg"
         logo_description "Caddy"
@@ -47,6 +70,7 @@
       auth_url /auth
       allow roles anonymous guest admin
       allow roles superadmin
+      allow roles admin editor viewer
       allow roles AzureAD_Administrator AzureAD_Editor AzureAD_Viewer
     }
     uri strip_prefix /prometheus

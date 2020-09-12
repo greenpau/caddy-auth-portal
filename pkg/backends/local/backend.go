@@ -19,19 +19,21 @@ func init() {
 	return
 }
 
-// Backend represents authentication provider with SQLite backend.
+// Backend represents authentication provider with local backend.
 type Backend struct {
+	Method        string                   `json:"method,omitempty"`
 	Realm         string                   `json:"realm,omitempty"`
 	Path          string                   `json:"path,omitempty"`
-	TokenProvider *jwt.TokenProviderConfig `json:"jwt,omitempty"`
+	TokenProvider *jwt.TokenProviderConfig `json:"-"`
 	Authenticator *Authenticator           `json:"-"`
 	logger        *zap.Logger
 }
 
 // NewDatabaseBackend return an instance of authentication provider
-// with SQLite backend.
+// with local backend.
 func NewDatabaseBackend() *Backend {
 	b := &Backend{
+		Method:        "local",
 		TokenProvider: jwt.NewTokenProviderConfig(),
 		Authenticator: globalAuthenticator,
 	}

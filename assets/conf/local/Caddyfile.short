@@ -4,33 +4,10 @@
   debug
 }
 
-127.0.0.1:8443 {
+localhost:8443 {
   route /auth* {
     auth_portal {
-      path /auth
-      backends {
-        local_backend {
-          method local
-          path assets/conf/local/auth/users.conf
-          realm local
-        }
-      }
-      jwt {
-        token_name access_token
-        token_secret 0e2fdcf8-6868-41a7-884b-7308795fc286
-        token_issuer e1008f2d-ccfa-4e62-bbe6-c202ec2988cc
-      }
-      ui {
-        login_template "assets/conf/local/ui/login.template"
-        portal_template "assets/conf/local/ui/portal.template"
-        logo_url "https://caddyserver.com/resources/images/caddy-circle-lock.svg"
-        logo_description "Caddy"
-        links {
-          "Prometheus" /prometheus
-          "Alertmanager" /alertmanager
-          "My App" /myapp
-        }
-      }
+      local_backend assets/conf/local/auth/users.conf
     }
   }
 

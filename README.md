@@ -20,11 +20,11 @@ Please ask questions either here or via LinkedIn. I am happy to help you! @green
   * [Basic Authentication](#basic-authentication)
   * [Form-Based Authentication](#form-based-authentication)
 * [Local Authentication Backend](#local-authentication-backend)
-  * [Configuration](#configuration)
+  * [Configuration Primer](#configuration-primer)
   * [Identity Store](#identity-store)
   * [Password Management](#password-management)
 * [LDAP Authentication Backend](#ldap-authentication-backend)
-  * [Configuration Primer](#configuration-primer)
+  * [Configuration Primer](#configuration-primer-1)
   * [User Interface](#user-interface)
   * [LDAP Authentication Process](#ldap-authentication-process)
 
@@ -65,6 +65,17 @@ The following digram is visual representation of the configuration of
   </tr>
 </table>
 
+The following `Caddyfile` settings define the scope of the cookies issued by
+the plugin. Specifically, what URLs the cookies should be sent to.
+See [MDN - Using HTTP cookies - Define where cookies are sent](https://developer.mozilla.org/en-US/docs/Web/HTTP/Cookies)
+for more information.
+
+* `cookie_domain`: adds the **Domain** attribute to a cookie. It determines
+  which hosts are allowed to receive the cookie.
+* `cookie_path`: adds the **Path** attribute to a cookie. It determines the
+  URL path that must exist in the requested URL in order to send
+  the Cookie header.
+
 ## Usage Examples
 
 ### Secure Prometheus
@@ -84,7 +95,7 @@ localhost:8443 {
       path /auth
       backends {
         local_backend {
-          type local
+          method local
           path /etc/gatekeeper/auth/local/users.json
           realm local
         }
@@ -95,10 +106,6 @@ localhost:8443 {
         token_issuer e1008f2d-ccfa-4e62-bbe6-c202ec2988cc
       }
       ui {
-        login_template "/etc/gatekeeper/ui/forms_login.template"
-        portal_template "/etc/gatekeeper/ui/forms_portal.template"
-        logo_url "https://caddyserver.com/resources/images/caddy-circle-lock.svg"
-        logo_description "Caddy"
         links {
           "Prometheus" /prometheus
           "Alertmanager" /alertmanager
@@ -146,6 +153,26 @@ localhost:8443 {
   }
 }
 ```
+
+If you would like to style the UI differently, then specify your
+templates and settings:
+
+```
+      ui {
+        login_template "/etc/gatekeeper/ui/forms_login.template"
+        portal_template "/etc/gatekeeper/ui/forms_portal.template"
+        logo_url "https://caddyserver.com/resources/images/caddy-circle-lock.svg"
+        logo_description "Caddy"
+        links {
+          "Prometheus" /prometheus
+          "Alertmanager" /alertmanager
+          "My App" /myapp
+        }
+      }
+```
+
+In fact, if you are not going to display any links, then
+remove the `ui` section and use an auto-redirect feature.
 
 ## Authentication Methods
 
@@ -201,7 +228,7 @@ TBD.
 
 ## Local Authentication Backend
 
-### Configuration
+### Configuration Primer
 
 Please refer to the `assets/conf/local/config.json` configuration file when
 configurin the plugin backend. In the example, the route refers to `local` backend in
@@ -359,6 +386,112 @@ The security of the `password` could be improved by the following techniques:
 
 ### Configuration Primer
 
+The following `Caddyfile` secures Prometheus/Alertmanager services. Users may access
+using local and LDAP credentials.
+
+```
+{
+  http_port     8080
+  https_port    8443
+  debug
+}
+
+127.0.0.1:8443 {
+  route /auth* {
+    auth_portal {
+      path /auth
+      backends {
+        local_backend {
+          method local
+          path assets/conf/local/auth/users.conf
+          realm local
+        }
+        ldap_backend {
+          method ldap
+          realm contoso.com
+          servers {
+            ldaps://ldaps.contoso.com ignore_cert_errors
+          }
+          attributes {
+            name givenName
+            surname sn
+            username sAMAccountName
+            member_of memberOf
+            email mail
+          }
+          username "CN=authzsvc,OU=Service Accounts,OU=Administrative Accounts,DC=CONTOSO,DC=COM"
+          password "P@ssW0rd123"
+          search_base_dn "DC=CONTOSO,DC=COM"
+          search_filter "(&(|(sAMAccountName=%s)(mail=%s))(objectclass=user))"
+          groups {
+            "CN=Admins,OU=Security,OU=Groups,DC=CONTOSO,DC=COM" admin
+            "CN=Editors,OU=Security,OU=Groups,DC=CONTOSO,DC=COM" editor
+            "CN=Viewers,OU=Security,OU=Groups,DC=CONTOSO,DC=COM" viewer
+          }
+        }
+      }
+      jwt {
+        token_name access_token
+        token_secret 0e2fdcf8-6868-41a7-884b-7308795fc286
+        token_issuer e1008f2d-ccfa-4e62-bbe6-c202ec2988cc
+      }
+      ui {
+        login_template "assets/ui/ldap/login.template"
+        portal_template "assets/conf/local/ui/portal.template"
+        logo_url "https://caddyserver.com/resources/images/caddy-circle-lock.svg"
+        logo_description "Caddy"
+        links {
+          "Prometheus" /prometheus
+          "Alertmanager" /alertmanager
+          "My App" /myapp
+        }
+      }
+    }
+  }
+
+  route /prometheus* {
+    jwt {
+      primary yes
+      trusted_tokens {
+        static_secret {
+          token_name access_token
+          token_secret 0e2fdcf8-6868-41a7-884b-7308795fc286
+          token_issuer e1008f2d-ccfa-4e62-bbe6-c202ec2988cc
+        }
+      }
+      auth_url /auth
+      allow roles anonymous guest admin
+      allow roles superadmin
+      allow roles admin editor viewer
+      allow roles AzureAD_Administrator AzureAD_Editor AzureAD_Viewer
+    }
+    uri strip_prefix /prometheus
+    reverse_proxy http://127.0.0.1:9080
+  }
+
+  route /alertmanager* {
+    jwt
+    uri strip_prefix /alertmanager
+    reverse_proxy http://127.0.0.1:9083
+  }
+
+  route /myapp* {
+    jwt
+    respond * "myapp" 200
+  }
+
+  route /version* {
+    respond * "1.0.0" 200
+  }
+
+  route {
+    redir https://{hostport}/auth 302
+  }
+}
+```
+
+The JSON representation is:
+
 ```json
 {
   "match": [
@@ -377,12 +510,12 @@ The security of the `password` could be improved by the following techniques:
           "auth_url_path": "/auth",
           "backends": [
             {
-              "type": "local",
+              "method": "local",
               "path": "assets/backends/local/users.json",
               "realm": "local"
             },
             {
-              "type": "ldap",
+              "method": "ldap",
               "realm": "contoso.com",
               "servers": [
                 {
