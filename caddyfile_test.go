@@ -12,12 +12,12 @@ import (
 )
 
 func TestLocalCaddyfile(t *testing.T) {
-	scheme := "http"
+	scheme := "https"
 	host := "localhost"
 	port := "8080"
 	securePort := "8443"
 	authPath := "auth"
-	hostPort := host + ":" + port
+	hostPort := host + ":" + securePort
 	baseURL := scheme + "://" + hostPort
 	tokenSecret := "0e2fdcf8-6868-41a7-884b-7308795fc286"
 	tokenIssuer := "e1008f2d-ccfa-4e62-bbe6-c202ec2988cc"
@@ -35,7 +35,7 @@ func TestLocalCaddyfile(t *testing.T) {
           path /`+authPath+`
           backends {
             local_backend {
-              type local
+              method local
               path assets/conf/local/auth/users.conf
               realm local
             }

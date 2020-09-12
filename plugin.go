@@ -12,6 +12,7 @@ import (
 	"github.com/caddyserver/caddy/v2/modules/caddyhttp"
 	"github.com/caddyserver/caddy/v2/modules/caddyhttp/caddyauth"
 	jwt "github.com/greenpau/caddy-auth-jwt"
+	"github.com/greenpau/caddy-auth-portal/pkg/cookies"
 	ui "github.com/greenpau/caddy-auth-ui"
 	uuid "github.com/satori/go.uuid"
 	"go.uber.org/zap"
@@ -40,6 +41,7 @@ type AuthPortal struct {
 	Context         string                   `json:"context,omitempty"`
 	AuthURLPath     string                   `json:"auth_url_path,omitempty"`
 	UserInterface   *UserInterfaceParameters `json:"ui,omitempty"`
+	Cookies         *cookies.Cookies         `json:"cookies,omitempty"`
 	Backends        []Backend                `json:"backends,omitempty"`
 	TokenProvider   *jwt.TokenProviderConfig `json:"jwt,omitempty"`
 	TokenValidator  *jwt.TokenValidator      `json:"-"`
@@ -301,7 +303,7 @@ func (m AuthPortal) ServeHTTP(w http.ResponseWriter, r *http.Request, _ caddyhtt
 	w.Header().Set("Cache-Control", "no-store")
 	w.Header().Set("Pragma", "no-cache")
 	w.Header().Set("Authorization", "Bearer "+userToken)
-	w.Header().Set("Set-Cookie", m.TokenProvider.TokenName+"="+userToken+" Secure; HttpOnly;")
+	w.Header().Set("Set-Cookie", m.TokenProvider.TokenName+"="+userToken+";"+m.Cookies.GetAttributes())
 
 	if cookie, err := r.Cookie(redirectToToken); err == nil {
 		if redirectURL, err := url.Parse(cookie.Value); err == nil {

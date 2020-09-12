@@ -20,6 +20,7 @@ import (
 	"strings"
 
 	jwt "github.com/greenpau/caddy-auth-jwt"
+	"github.com/greenpau/caddy-auth-portal/pkg/cookies"
 	"github.com/greenpau/caddy-auth-portal/pkg/utils"
 	ui "github.com/greenpau/caddy-auth-ui"
 
@@ -76,6 +77,9 @@ func initCaddyfileLogger() *zap.Logger {
 //	       logo_url <file_path|url_path>
 //	       logo_description <value>
 //	     }
+//
+//       cookie_domain <name>
+//       cookie_path <name>
 //     }
 //
 func parseCaddyfileAuthPortal(h httpcaddyfile.Helper) ([]httpcaddyfile.ConfigValue, error) {
@@ -86,6 +90,7 @@ func parseCaddyfileAuthPortal(h httpcaddyfile.Helper) ([]httpcaddyfile.ConfigVal
 		UserInterface: &UserInterfaceParameters{
 			Templates: make(map[string]string),
 		},
+		Cookies:  &cookies.Cookies{},
 		Backends: []Backend{},
 	}
 
@@ -99,6 +104,12 @@ func parseCaddyfileAuthPortal(h httpcaddyfile.Helper) ([]httpcaddyfile.ConfigVal
 		for nesting := h.Nesting(); h.NextBlock(nesting); {
 			rootDirective := h.Val()
 			switch rootDirective {
+			case "cookie_domain":
+				args := h.RemainingArgs()
+				portal.Cookies.Domain = args[0]
+			case "cookie_path":
+				args := h.RemainingArgs()
+				portal.Cookies.Path = args[0]
 			case "path":
 				args := h.RemainingArgs()
 				portal.AuthURLPath = args[0]

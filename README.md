@@ -65,6 +65,17 @@ The following digram is visual representation of the configuration of
   </tr>
 </table>
 
+The following `Caddyfile` settings define the scope of the cookies issued by
+the plugin. Specifically, what URLs the cookies should be sent to.
+See [MDN - Using HTTP cookies - Define where cookies are sent](https://developer.mozilla.org/en-US/docs/Web/HTTP/Cookies)
+for more information.
+
+* `cookie_domain`: adds the **Domain** attribute to a cookie. It determines
+  which hosts are allowed to receive the cookie.
+* `cookie_path`: adds the **Path** attribute to a cookie. It determines the
+  URL path that must exist in the requested URL in order to send
+  the Cookie header.
+
 ## Usage Examples
 
 ### Secure Prometheus
