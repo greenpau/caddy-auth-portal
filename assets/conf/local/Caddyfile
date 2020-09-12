@@ -4,13 +4,13 @@
   debug
 }
 
-localhost:8443 {
+127.0.0.1:8443 {
   route /auth* {
     auth_portal {
       path /auth
       backends {
         local_backend {
-          type local
+          method local
           path assets/conf/local/auth/users.conf
           realm local
         }

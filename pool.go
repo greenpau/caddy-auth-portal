@@ -153,7 +153,7 @@ func (p *AuthPortalPool) Register(m *AuthPortal) error {
 			m.logger.Debug(
 				"Provisioned authentication backend",
 				zap.String("instance_name", m.Name),
-				zap.String("backend_type", backend.bt),
+				zap.String("backend_type", backend.authMethod),
 			)
 		}
 
@@ -384,7 +384,7 @@ func (p *AuthPortalPool) Provision(name string) error {
 			m.logger.Debug(
 				"Provisioned authentication backend",
 				zap.String("instance_name", m.Name),
-				zap.String("backend_type", backend.bt),
+				zap.String("backend_type", backend.authMethod),
 			)
 		}
 	}

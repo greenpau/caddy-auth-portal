@@ -58,12 +58,12 @@
                   "auth_url_path": "/auth",
                   "backends": [
                     {
-                      "type": "local",
+                      "method": "local",
                       "path": "assets/backends/local/users.json",
                       "realm": "local"
                     },
                     {
-                      "type": "ldap",
+                      "method": "ldap",
                       "realm": "contoso.com",
                       "servers": [
                         {

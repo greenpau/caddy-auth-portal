@@ -14,8 +14,8 @@ import (
 
 // Backend is an authentication backend.
 type Backend struct {
-	bt     string
-	driver BackendDriver
+	authMethod string
+	driver     BackendDriver
 }
 
 // BackendDriver is an interface to an authentication provider.
@@ -68,8 +68,8 @@ func (b *Backend) UnmarshalJSON(data []byte) error {
 	if len(data) < 10 {
 		return fmt.Errorf("invalid configuration: %s", data)
 	}
-	if bytes.Contains(data, []byte("\"type\":\"boltdb\"")) {
-		b.bt = "boltdb"
+	if bytes.Contains(data, []byte("\"method\":\"boltdb\"")) {
+		b.authMethod = "boltdb"
 		driver := bolt.NewDatabaseBackend()
 		if err := json.Unmarshal(data, driver); err != nil {
 			return fmt.Errorf("invalid boltdb configuration, error: %s, config: %s", err, data)
@@ -81,27 +81,84 @@ func (b *Backend) UnmarshalJSON(data []byte) error {
 		return nil
 	}
 
-	if bytes.Contains(data, []byte("\"type\":\"ldap\"")) {
-		b.bt = "ldap"
-		driver := ldap.NewDatabaseBackend()
-		if err := json.Unmarshal(data, driver); err != nil {
-			return fmt.Errorf("invalid LDAP configuration, error: %s, config: %s", err, data)
-		}
-		if err := driver.ValidateConfig(); err != nil {
-			return fmt.Errorf("invalid LDAP configuration, error: %s, config: %s", err, data)
+	if bytes.Contains(data, []byte("\"method\":\"ldap\"")) {
+		b.authMethod = "ldap"
+		driver, err := newLdapDriver(data)
+		if err != nil {
+			return err
 		}
 		b.driver = driver
 		return nil
 	}
 
-	b.bt = "local"
-	driver := local.NewDatabaseBackend()
-	if err := json.Unmarshal(data, driver); err != nil {
-		return fmt.Errorf("invalid SQLite configuration, error: %s, config: %s", err, data)
+	if bytes.Contains(data, []byte("\"method\":\"local\"")) {
+		b.authMethod = "local"
+		driver, err := newLocalDriver(data)
+		if err != nil {
+			return err
+		}
+		b.driver = driver
+		return nil
 	}
-	if err := driver.ValidateConfig(); err != nil {
-		return fmt.Errorf("invalid SQLite configuration, error: %s, config: %s", err, data)
+
+	return fmt.Errorf("unsupported authentication method configuration: %s", data)
+}
+
+// NewBackendFromBytes returns backend instance based on authentication method
+// and JSON configuration data.
+func NewBackendFromBytes(method string, data []byte) (*Backend, error) {
+	switch method {
+	case "ldap":
+		return NewLdapBackendFromBytes(data)
+	case "local":
+		return NewLocalBackendFromBytes(data)
+	default:
+		return nil, fmt.Errorf("unsupported authentication method configuration: %s", data)
+	}
+}
+
+// NewLdapBackendFromBytes returns LDAP backend.
+func NewLdapBackendFromBytes(data []byte) (*Backend, error) {
+	b := &Backend{}
+	b.authMethod = "ldap"
+	driver, err := newLdapDriver(data)
+	if err != nil {
+		return nil, err
 	}
 	b.driver = driver
-	return nil
+	return b, nil
+}
+
+// NewLocalBackendFromBytes returns local backend.
+func NewLocalBackendFromBytes(data []byte) (*Backend, error) {
+	b := &Backend{}
+	b.authMethod = "local"
+	driver, err := newLocalDriver(data)
+	if err != nil {
+		return nil, err
+	}
+	b.driver = driver
+	return b, nil
+}
+
+func newLdapDriver(data []byte) (*ldap.Backend, error) {
+	driver := ldap.NewDatabaseBackend()
+	if err := json.Unmarshal(data, driver); err != nil {
+		return nil, fmt.Errorf("invalid LDAP configuration, error: %s, config: %s", err, data)
+	}
+	if err := driver.ValidateConfig(); err != nil {
+		return nil, fmt.Errorf("invalid LDAP configuration, error: %s, config: %s", err, data)
+	}
+	return driver, nil
+}
+
+func newLocalDriver(data []byte) (*local.Backend, error) {
+	driver := local.NewDatabaseBackend()
+	if err := json.Unmarshal(data, driver); err != nil {
+		return nil, fmt.Errorf("invalid local configuration, error: %s, config: %s", err, data)
+	}
+	if err := driver.ValidateConfig(); err != nil {
+		return nil, fmt.Errorf("invalid local configuration, error: %s, config: %s", err, data)
+	}
+	return driver, nil
 }

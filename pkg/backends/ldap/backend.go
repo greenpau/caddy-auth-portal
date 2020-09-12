@@ -54,8 +54,9 @@ type UserAttributes struct {
 	Email    string `json:"email,omitempty"`
 }
 
-// Backend represents authentication provider with SQLite backend.
+// Backend represents authentication provider with LDAP backend.
 type Backend struct {
+	Method        string                   `json:"method,omitempty"`
 	Realm         string                   `json:"realm,omitempty"`
 	Servers       []AuthServer             `json:"servers,omitempty"`
 	BindUsername  string                   `json:"username,omitempty"`
@@ -64,15 +65,16 @@ type Backend struct {
 	SearchBaseDN  string                   `json:"search_base_dn,omitempty"`
 	SearchFilter  string                   `json:"search_filter,omitempty"`
 	Groups        []UserGroup              `json:"groups,omitempty"`
-	TokenProvider *jwt.TokenProviderConfig `json:"jwt,omitempty"`
+	TokenProvider *jwt.TokenProviderConfig `json:"-"`
 	Authenticator *Authenticator           `json:"-"`
 	logger        *zap.Logger
 }
 
 // NewDatabaseBackend return an instance of authentication provider
-// with SQLite backend.
+// with LDAP backend.
 func NewDatabaseBackend() *Backend {
 	b := &Backend{
+		Method:        "ldap",
 		TokenProvider: jwt.NewTokenProviderConfig(),
 		Authenticator: globalAuthenticator,
 	}
@@ -517,7 +519,7 @@ func (sa *Authenticator) AuthenticateUser(userInput, passwordInput string) (*jwt
 		return claims, 200, nil
 	}
 
-	return nil, 400, fmt.Errorf("backend is still under development")
+	return nil, 400, fmt.Errorf("LDAP auth backends are unavailable")
 }
 
 // ConfigureAuthenticator configures backend for .

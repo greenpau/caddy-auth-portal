@@ -57,7 +57,7 @@ func initCaddyfileLogger() *zap.Logger {
 //       context <default|name>
 //       backends {
 //         local_backend {
-//		     type <local>
+//		     method <local>
 //		     file <file_path>
 //		     realm <name>
 //	       }
@@ -89,7 +89,7 @@ func parseCaddyfileAuthPortal(h httpcaddyfile.Helper) ([]httpcaddyfile.ConfigVal
 		Backends: []Backend{},
 	}
 
-	// logger := initLogger()
+	// logger := initCaddyfileLogger()
 
 	for h.Next() {
 		args := h.RemainingArgs()
@@ -111,7 +111,7 @@ func parseCaddyfileAuthPortal(h httpcaddyfile.Helper) ([]httpcaddyfile.ConfigVal
 					return nil, h.Errf("auth backend %s directive has no value", rootDirective)
 				}
 				backendProps := make(map[string]interface{})
-				backendProps["type"] = "local"
+				backendProps["method"] = "local"
 				backendProps["path"] = args[0]
 				if len(args) > 1 {
 					backendProps["realm"] = args[1]
@@ -131,14 +131,64 @@ func parseCaddyfileAuthPortal(h httpcaddyfile.Helper) ([]httpcaddyfile.ConfigVal
 				for nesting := h.Nesting(); h.NextBlock(nesting); {
 					backendName := h.Val()
 					backendProps := make(map[string]interface{})
+					var backendAuthMethod string
 					for subNesting := h.Nesting(); h.NextBlock(subNesting); {
 						backendArg := h.Val()
 						switch backendArg {
-						case "type", "path", "realm":
+						case "method", "type":
+							if !h.NextArg() {
+								return nil, h.Errf("auth backend %s subdirective %s has no value", backendName, backendArg)
+							}
+							backendAuthMethod = h.Val()
+							backendProps["method"] = backendAuthMethod
+						case "username", "password", "search_base_dn", "search_filter", "path", "realm":
 							if !h.NextArg() {
 								return nil, h.Errf("auth backend %s subdirective %s has no value", backendName, backendArg)
 							}
 							backendProps[backendArg] = h.Val()
+						case "attributes":
+							attrMap := make(map[string]interface{})
+							for attrNesting := h.Nesting(); h.NextBlock(attrNesting); {
+								attrName := h.Val()
+								if !h.NextArg() {
+									return nil, h.Errf("auth backend %s subdirective %s key %s has no value", backendName, backendArg, attrName)
+								}
+								attrMap[attrName] = h.Val()
+							}
+							backendProps[backendArg] = attrMap
+						case "servers":
+							serverMaps := []map[string]interface{}{}
+							for serverNesting := h.Nesting(); h.NextBlock(serverNesting); {
+								serverMap := make(map[string]interface{})
+								serverMap["addr"] = h.Val()
+								serverProps := h.RemainingArgs()
+								if len(serverProps) > 0 {
+									for _, serverProp := range serverProps {
+										switch serverProp {
+										case "ignore_cert_errors":
+											serverMap[serverProp] = true
+										default:
+											return nil, h.Errf("auth backend %s subdirective %s prop %s is unsupported", backendName, backendArg, serverProp)
+										}
+									}
+								}
+								serverMaps = append(serverMaps, serverMap)
+							}
+							backendProps[backendArg] = serverMaps
+						case "groups":
+							groupMaps := []map[string]interface{}{}
+							for groupNesting := h.Nesting(); h.NextBlock(groupNesting); {
+								groupMap := make(map[string]interface{})
+								groupDN := h.Val()
+								groupMap["dn"] = groupDN
+								groupRoles := h.RemainingArgs()
+								if len(groupRoles) == 0 {
+									return nil, h.Errf("auth backend %s subdirective %s dn %s has no roles", backendName, backendArg, groupDN)
+								}
+								groupMap["roles"] = groupRoles
+								groupMaps = append(groupMaps, groupMap)
+							}
+							backendProps[backendArg] = groupMaps
 						default:
 							return nil, h.Errf("unknown auth backend %s subdirective: %s", backendName, backendArg)
 						}
@@ -147,11 +197,11 @@ func parseCaddyfileAuthPortal(h httpcaddyfile.Helper) ([]httpcaddyfile.ConfigVal
 					if err != nil {
 						return nil, h.Errf("auth backend %s subdirective failed to compile to JSON: %s", backendName, err.Error())
 					}
-					backend := Backend{}
-					if err := backend.UnmarshalJSON(backendJSON); err != nil {
-						return nil, h.Errf("auth backend %s subdirective failed to compile to JSON: %s", backendName, err.Error())
+					backend, err := NewBackendFromBytes(backendAuthMethod, backendJSON)
+					if err != nil {
+						return nil, h.Errf("auth backend %s subdirective failed to compile backend from JSON: %s", backendName, err.Error())
 					}
-					portal.Backends = append(portal.Backends, backend)
+					portal.Backends = append(portal.Backends, *backend)
 				}
 			case "jwt":
 				if portal.TokenProvider == nil {

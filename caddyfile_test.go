@@ -75,8 +75,8 @@ func TestLocalCaddyfile(t *testing.T) {
 	}
 	cookies = append(cookies, cookie)
 	tester.Client.Jar.SetCookies(localhost, cookies)
-	// tester.AssertGetResponse(baseURL+"/auth/whoami?content_type=plaintext&field=username", 400, "greenpau")
-	//tester.AssertResponseCode(baseURL+"/auth/whoami?content_type=plaintext&field=username", 400)
+	// tester.AssertGetResponse(baseURL+"/auth/api/whoami?content_type=plaintext&field=username", 400, "greenpau")
+	//tester.AssertResponseCode(baseURL+"/auth/api/whoami?content_type=plaintext&field=username", 400)
 
 	req, _ := http.NewRequest("POST", baseURL+"/"+authPath, strings.NewReader("username=webadmin&password=password123"))
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
