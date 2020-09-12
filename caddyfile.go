@@ -92,6 +92,10 @@ func parseCaddyfileAuthPortal(h httpcaddyfile.Helper) ([]httpcaddyfile.ConfigVal
 	// logger := initLogger()
 
 	for h.Next() {
+		args := h.RemainingArgs()
+		if len(args) > 0 {
+			return nil, h.Errf("auth backend supports only nested args: %v", args)
+		}
 		for nesting := h.Nesting(); h.NextBlock(nesting); {
 			rootDirective := h.Val()
 			switch rootDirective {

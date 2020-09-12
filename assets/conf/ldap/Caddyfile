@@ -1,0 +1,98 @@
+{
+  http_port     8080
+  https_port    8443
+  debug
+}
+
+localhost:8443 {
+  route /auth* {
+    auth_portal {
+      path /auth
+      backends {
+        local_backend {
+          type local
+          path assets/conf/local/auth/users.conf
+          realm local
+        }
+        ldap_backend {
+          type ldap
+          realm contoso.com
+          servers {
+            ldaps://ldaps.contoso.com ignore_cert_errors
+          }
+          attributes {
+            name givenName
+            surname sn
+            username sAMAccountName
+            member_of memberOf
+            email mail
+          }
+          username "CN=authzsvc,OU=Service Accounts,OU=Administrative Accounts,DC=CONTOSO,DC=COM"
+          password "P@ssW0rd123"
+          search_base_dn "DC=CONTOSO,DC=COM"
+          search_filter "(&(|(sAMAccountName=%s)(mail=%s))(objectclass=user))"
+          groups {
+            "CN=Admins,OU=Security,OU=Groups,DC=CONTOSO,DC=COM" admin
+            "CN=Editors,OU=Security,OU=Groups,DC=CONTOSO,DC=COM" editor
+            "CN=Viewers,OU=Security,OU=Groups,DC=CONTOSO,DC=COM" viewer
+          }
+        }
+      }
+      jwt {
+        token_name access_token
+        token_secret 0e2fdcf8-6868-41a7-884b-7308795fc286
+        token_issuer e1008f2d-ccfa-4e62-bbe6-c202ec2988cc
+      }
+      ui {
+        login_template "assets/conf/local/ui/login.template"
+        portal_template "assets/conf/local/ui/portal.template"
+        logo_url "https://caddyserver.com/resources/images/caddy-circle-lock.svg"
+        logo_description "Caddy"
+        links {
+          "Prometheus" /prometheus
+          "Alertmanager" /alertmanager
+          "My App" /myapp
+        }
+      }
+    }
+  }
+
+  route /prometheus* {
+    jwt {
+      primary yes
+      trusted_tokens {
+        static_secret {
+          token_name access_token
+          token_secret 0e2fdcf8-6868-41a7-884b-7308795fc286
+          token_issuer e1008f2d-ccfa-4e62-bbe6-c202ec2988cc
+        }
+      }
+      auth_url /auth
+      allow roles anonymous guest admin
+      allow roles superadmin
+      allow roles admin editor viewer
+      allow roles AzureAD_Administrator AzureAD_Editor AzureAD_Viewer
+    }
+    uri strip_prefix /prometheus
+    reverse_proxy http://127.0.0.1:9080
+  }
+
+  route /alertmanager* {
+    jwt
+    uri strip_prefix /alertmanager
+    reverse_proxy http://127.0.0.1:9083
+  }
+
+  route /myapp* {
+    jwt
+    respond * "myapp" 200
+  }
+
+  route /version* {
+    respond * "1.0.0" 200
+  }
+
+  route {
+    redir https://{hostport}/auth 302
+  }
+}
