@@ -14,7 +14,6 @@ import (
 	jwt "github.com/greenpau/caddy-auth-jwt"
 	"github.com/greenpau/caddy-auth-portal/pkg/cookies"
 	ui "github.com/greenpau/caddy-auth-ui"
-	uuid "github.com/satori/go.uuid"
 	"go.uber.org/zap"
 )
 
@@ -93,83 +92,64 @@ func (m *AuthPortal) Validate() error {
 	return nil
 }
 
-// Authenticate authorizes access based on the presense and content of JWT token.
+// ServeHTTP authorizes access based on the presense and content of JWT token.
 func (m AuthPortal) ServeHTTP(w http.ResponseWriter, r *http.Request, _ caddyhttp.Handler) error {
-	var reqID string
 	var userClaims *jwt.UserClaims
-	var userAuthenticated bool
-	var authStatusCode int
-	var authBackendFound bool
-	var credentialsFound bool
 
+	opts := make(map[string]interface{})
 	uiArgs := m.uiFactory.GetArgs()
+	opts["request_id"] = GetRequestID(r)
+	opts["content_type"] = GetContentType(r)
+	opts["authenticated"] = false
+	opts["auth_backend_found"] = false
+	opts["auth_credentials_found"] = false
+	reqID := opts["request_id"].(string)
 
-	// Generate request UUID
-	reqID = uuid.NewV4().String()
-	acceptHeaderStr := r.Header.Get("Accept")
-	if acceptHeaderStr == "" {
-		acceptHeaderStr = "any"
-	}
-
-	m.logger.Debug(
-		"Request received",
-		zap.String("request_id", reqID),
-		zap.String("method", r.Method),
-		zap.String("http_proto", r.Proto),
-		zap.String("remote_ip", r.RemoteAddr),
-		zap.Int64("content_length", r.ContentLength),
-		zap.String("host", r.Host),
-		zap.String("requested_response_types", acceptHeaderStr),
-	)
-
-	// Handle query parameters
+	// Handle requests based on query parameters.
 	if r.Method == "GET" {
 		q := r.URL.Query()
 		if _, exists := q["logout"]; exists {
-			for _, k := range []string{redirectToToken, m.TokenProvider.TokenName} {
-				w.Header().Add("Set-Cookie", k+"=delete; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT")
-			}
-			w.Header().Set("Location", m.AuthURLPath)
-			w.WriteHeader(303)
-			return nil
+			return m.DoSessionLogoff(w, r, opts)
+		}
+		if _, exists := q["register"]; exists {
+			return m.DoRedirectUnsupported(w, r, opts)
+		}
+		if _, exists := q["forgot"]; exists {
+			return m.DoRedirectUnsupported(w, r, opts)
 		}
 		if redirectURL, exists := q["redirect_url"]; exists {
 			w.Header().Set("Set-Cookie", redirectToToken+"="+redirectURL[0])
 		}
 	}
 
-	// Try to authorize with JWT tokens
-	userClaims, userAuthenticated, err := m.TokenValidator.Authorize(r, nil)
-	if userAuthenticated {
+	// Find JWT tokens, if any, and validate them.
+	if claims, authOK, err := m.TokenValidator.Authorize(r, nil); authOK {
 		uiArgs.Authenticated = true
+		opts["authenticated"] = true
+		userClaims = claims
 	} else {
 		if err != nil {
-			m.logger.Debug(
-				"Authorization failed",
-				zap.String("request_id", reqID),
-				zap.Any("error", err.Error()),
-			)
-			if err.Error() == "[Token is expired]" {
-				for _, k := range []string{redirectToToken, m.TokenProvider.TokenName} {
-					w.Header().Add("Set-Cookie", k+"=delete; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT")
-				}
-				w.Header().Set("Location", m.AuthURLPath)
-				w.WriteHeader(303)
-				return nil
+			switch err.Error() {
+			case "[Token is expired]":
+				return m.DoSessionLoginRedirect(w, r, opts)
+			case "no token found":
+			default:
+				m.logger.Debug("Authorization failed", zap.String("request_id", reqID), zap.Any("error", err.Error()))
 			}
 		}
 	}
 
 	// Authentication Requests
-	if !userAuthenticated {
+	if !opts["authenticated"].(bool) {
 		if credentials, err := parseCredentials(r); err == nil {
 			if credentials != nil {
-				credentialsFound = true
+				opts["auth_credentials_found"] = true
 				for _, backend := range m.Backends {
 					if backend.GetRealm() != credentials["realm"] {
 						continue
 					}
-					authBackendFound = true
+					opts["auth_backend_found"] = true
+					var authStatusCode int
 					userClaims, authStatusCode, err = backend.Authenticate(reqID, credentials)
 					if err != nil {
 						uiArgs.Message = "Authentication failed"
@@ -180,8 +160,13 @@ func (m AuthPortal) ServeHTTP(w http.ResponseWriter, r *http.Request, _ caddyhtt
 							zap.String("error", err.Error()),
 						)
 					} else {
-						userAuthenticated = true
+						opts["authenticated"] = true
 						uiArgs.Authenticated = true
+						m.logger.Debug(
+							"Authentication succeeded",
+							zap.String("request_id", reqID),
+							zap.Any("user", userClaims),
+						)
 					}
 				}
 			}
@@ -194,7 +179,7 @@ func (m AuthPortal) ServeHTTP(w http.ResponseWriter, r *http.Request, _ caddyhtt
 			)
 		}
 
-		if credentialsFound && !authBackendFound {
+		if opts["auth_credentials_found"].(bool) && !opts["auth_backend_found"].(bool) {
 			m.logger.Warn(
 				"Authentication failed",
 				zap.String("request_id", reqID),
@@ -205,9 +190,10 @@ func (m AuthPortal) ServeHTTP(w http.ResponseWriter, r *http.Request, _ caddyhtt
 
 	// Render UI
 	contentType := "text/html"
-	if acceptHeaderStr == "application/json" {
-		contentType = acceptHeaderStr
+	if opts["content_type"].(string) == "application/json" {
+		contentType = opts["content_type"].(string)
 	}
+
 	if m.UserInterface.Title == "" {
 		uiArgs.Title = "Sign In"
 	} else {
@@ -215,11 +201,11 @@ func (m AuthPortal) ServeHTTP(w http.ResponseWriter, r *http.Request, _ caddyhtt
 	}
 
 	// Wrap up
-	if !userAuthenticated {
+	if !opts["authenticated"].(bool) {
 		for _, k := range []string{m.TokenProvider.TokenName} {
 			w.Header().Add("Set-Cookie", k+"=delete; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT")
 		}
-		if credentialsFound && uiArgs.Message == "" {
+		if opts["auth_credentials_found"].(bool) && uiArgs.Message == "" {
 			uiArgs.Message = "Authentication failed"
 		}
 		w.Header().Set("Content-Type", contentType)
@@ -227,7 +213,7 @@ func (m AuthPortal) ServeHTTP(w http.ResponseWriter, r *http.Request, _ caddyhtt
 		if contentType == "application/json" {
 			// respond with JSON
 			authResponse := AuthResponse{}
-			if credentialsFound {
+			if opts["auth_credentials_found"].(bool) {
 				authResponse.Error = true
 				authResponse.Message = uiArgs.Message
 			} else {
@@ -283,12 +269,6 @@ func (m AuthPortal) ServeHTTP(w http.ResponseWriter, r *http.Request, _ caddyhtt
 	if userClaims.Email != "" {
 		userIdentity.Metadata["email"] = userClaims.Email
 	}
-
-	m.logger.Debug(
-		"Authentication succeeded",
-		zap.String("request_id", reqID),
-		zap.String("user_id", userIdentity.ID),
-	)
 
 	userToken, err := userClaims.GetToken("HS512", []byte(m.TokenProvider.TokenSecret))
 	if err != nil {
