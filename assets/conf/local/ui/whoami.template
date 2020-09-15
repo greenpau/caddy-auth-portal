@@ -29,14 +29,14 @@
       .app-header {
         color: #EE6E73;
       }
-      .toast-error {
-        // restyle post
-      }
       .navbtn {
         font-family: 'Roboto', sans-serif;
       }
       .navbtn-last {
         margin-right: 0px !important;
+      }
+      .hljs {
+        font-size: 1rem;
       }
       input:-webkit-autofill,
       input:-webkit-autofill:hover, 
@@ -51,7 +51,7 @@
     <div class="container hide-on-small-only no-padding" style="height: 10vh !important;"></div>
     <div class="container app-container">
       <div class="row">
-        <div class="col s12 m6 offset-m3 l4 offset-l4 app-card-container">
+        <div class="col s12 m12 l6 offset-l3 app-card-container">
           <div class="card card-large app-card">
             <div class="card-content">
               <span class="card-title center-align">
@@ -62,16 +62,14 @@
                   <h4>{{ .Title }}</h4>
                 </div>
               </span>
-              <p>Access the following services.</p>
-              <ul class="collection">
-                {{range .PrivateLinks}}
-                <li class="collection-item">
-                  <a href="{{ .Link }}">{{ .Title }}</a>
-                </li>
-                {{ end }}
-              </ul>
+	      <pre><code class="json hljs">{{ .Data.token }}</code></pre>
             </div>
             <div class="card-action right-align">
+              <a href="{{ .ActionEndpoint }}/portal">
+	        <button type="button" class="btn waves-effect waves-light navbtn active">
+                  <span class="white-text"><i class="material-icons left">home</i>Portal</span>
+                </button>
+              </a>
               <a href="{{ .ActionEndpoint }}/logout" class="navbtn-last">
                 <button type="button" class="btn waves-effect waves-light navbtn active navbtn-last">
                   <span class="white-text"><i class="material-icons left">power_settings_new</i>Logout</span>
@@ -88,13 +86,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.1/highlight.min.js" integrity="sha256-eOgo0OtLL4cdq7RdwRUiGKLX9XsIJ7nGhWEKbohmVAQ=" crossorigin="anonymous"></script>
     {{ if .Message }}
     <script>
-    var toastHTML = '<span>{{ .Message }}</span><button class="btn-flat toast-action" onclick="M.Toast.dismissAll();">Close</button>';
-    toastElement = M.toast({
-      html: toastHTML,
-      classes: 'toast-error'
-    });
-    const appContainer = document.querySelector('.app-card-container')
-    appContainer.prepend(toastElement.el)
+    hljs.initHighlightingOnLoad();
     </script>
     {{ end }}
   </body>

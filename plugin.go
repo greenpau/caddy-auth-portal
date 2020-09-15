@@ -1,20 +1,16 @@
 package portal
 
 import (
-	"encoding/json"
 	"fmt"
 	"net/http"
-	"net/url"
 	"strings"
 	"time"
 
 	"github.com/caddyserver/caddy/v2"
 	"github.com/caddyserver/caddy/v2/modules/caddyhttp"
-	"github.com/caddyserver/caddy/v2/modules/caddyhttp/caddyauth"
 	jwt "github.com/greenpau/caddy-auth-jwt"
 	"github.com/greenpau/caddy-auth-portal/pkg/cookies"
 	ui "github.com/greenpau/caddy-auth-ui"
-	uuid "github.com/satori/go.uuid"
 	"go.uber.org/zap"
 )
 
@@ -93,273 +89,76 @@ func (m *AuthPortal) Validate() error {
 	return nil
 }
 
-// Authenticate authorizes access based on the presense and content of JWT token.
+// ServeHTTP authorizes access based on the presense and content of JWT token.
 func (m AuthPortal) ServeHTTP(w http.ResponseWriter, r *http.Request, _ caddyhttp.Handler) error {
-	var reqID string
-	var userClaims *jwt.UserClaims
-	var userAuthenticated bool
-	var authStatusCode int
-	var authBackendFound bool
-	var credentialsFound bool
+	opts := make(map[string]interface{})
+	opts["request_id"] = GetRequestID(r)
+	opts["content_type"] = GetContentType(r)
+	opts["authenticated"] = false
+	opts["auth_backend_found"] = false
+	opts["auth_credentials_found"] = false
 
-	uiArgs := m.uiFactory.GetArgs()
-
-	// Generate request UUID
-	reqID = uuid.NewV4().String()
-	acceptHeaderStr := r.Header.Get("Accept")
-	if acceptHeaderStr == "" {
-		acceptHeaderStr = "any"
+	// Find JWT tokens, if any, and validate them.
+	if claims, authOK, err := m.TokenValidator.Authorize(r, nil); authOK {
+		opts["authenticated"] = true
+		opts["user_claims"] = claims
+	} else {
+		if err != nil {
+			switch err.Error() {
+			case "[Token is expired]":
+				return m.HandleSessionLoginRedirect(w, r, opts)
+			case "no token found":
+			default:
+				m.logger.Debug("Authorization failed",
+					zap.String("request_id", opts["request_id"].(string)),
+					zap.Any("error", err.Error()),
+				)
+			}
+		}
 	}
 
-	m.logger.Debug(
-		"Request received",
-		zap.String("request_id", reqID),
-		zap.String("method", r.Method),
-		zap.String("http_proto", r.Proto),
-		zap.String("remote_ip", r.RemoteAddr),
-		zap.Int64("content_length", r.ContentLength),
-		zap.String("host", r.Host),
-		zap.String("requested_response_types", acceptHeaderStr),
-	)
-
-	// Handle query parameters
+	// Handle requests based on query parameters.
 	if r.Method == "GET" {
 		q := r.URL.Query()
-		if _, exists := q["logout"]; exists {
-			for _, k := range []string{redirectToToken, m.TokenProvider.TokenName} {
-				w.Header().Add("Set-Cookie", k+"=delete; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT")
-			}
-			w.Header().Set("Location", m.AuthURLPath)
-			w.WriteHeader(303)
-			return nil
-		}
 		if redirectURL, exists := q["redirect_url"]; exists {
 			w.Header().Set("Set-Cookie", redirectToToken+"="+redirectURL[0])
 		}
 	}
 
-	// Try to authorize with JWT tokens
-	userClaims, userAuthenticated, err := m.TokenValidator.Authorize(r, nil)
-	if userAuthenticated {
-		uiArgs.Authenticated = true
-	} else {
-		if err != nil {
-			m.logger.Debug(
-				"Authorization failed",
-				zap.String("request_id", reqID),
-				zap.Any("error", err.Error()),
-			)
-			if err.Error() == "[Token is expired]" {
-				for _, k := range []string{redirectToToken, m.TokenProvider.TokenName} {
-					w.Header().Add("Set-Cookie", k+"=delete; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT")
-				}
-				w.Header().Set("Location", m.AuthURLPath)
-				w.WriteHeader(303)
-				return nil
-			}
-		}
+	// Perform request routing
+	urlPath := strings.TrimPrefix(r.URL.Path, m.AuthURLPath)
+	urlPath = strings.TrimLeft(urlPath, "/")
+	switch {
+	case strings.HasPrefix(urlPath, "register"):
+		// TODO: registration should be unavailable for authenticated users
+		opts["flow"] = "register"
+		return m.HandleRedirectUnsupported(w, r, opts)
+	case strings.HasPrefix(urlPath, "recover"):
+		// TODO: password recovery should be unavailable for authenticated users
+		opts["flow"] = "recover"
+		return m.HandleRedirectUnsupported(w, r, opts)
+	case strings.HasPrefix(urlPath, "logout"),
+		strings.HasPrefix(urlPath, "logoff"):
+		opts["flow"] = "logout"
+		return m.HandleSessionLogoff(w, r, opts)
+	case strings.HasPrefix(urlPath, "assets"):
+		opts["flow"] = "assets"
+		return m.HandleServeStaticAssets(w, r, opts)
+	case strings.HasPrefix(urlPath, "whoami"):
+		opts["flow"] = "whoami"
+		return m.HandleWhoami(w, r, opts)
+	case strings.HasPrefix(urlPath, "profile"):
+		opts["flow"] = "profile"
+		return m.HandleProfile(w, r, opts)
+	case strings.HasPrefix(urlPath, "portal"):
+		opts["flow"] = "portal"
+		return m.HandlePortal(w, r, opts)
+	case strings.HasPrefix(urlPath, "login"), urlPath == "":
+		opts["flow"] = "login"
+		return m.HandleLogin(w, r, opts)
+	default:
+		return m.HandlePageNotFound(w, r, opts)
 	}
-
-	// Authentication Requests
-	if !userAuthenticated {
-		if credentials, err := parseCredentials(r); err == nil {
-			if credentials != nil {
-				credentialsFound = true
-				for _, backend := range m.Backends {
-					if backend.GetRealm() != credentials["realm"] {
-						continue
-					}
-					authBackendFound = true
-					userClaims, authStatusCode, err = backend.Authenticate(reqID, credentials)
-					if err != nil {
-						uiArgs.Message = "Authentication failed"
-						w.WriteHeader(authStatusCode)
-						m.logger.Warn(
-							"Authentication failed",
-							zap.String("request_id", reqID),
-							zap.String("error", err.Error()),
-						)
-					} else {
-						userAuthenticated = true
-						uiArgs.Authenticated = true
-					}
-				}
-			}
-		} else {
-			uiArgs.Message = "Authentication failed"
-			m.logger.Warn(
-				"Authentication failed",
-				zap.String("request_id", reqID),
-				zap.String("error", err.Error()),
-			)
-		}
-
-		if credentialsFound && !authBackendFound {
-			m.logger.Warn(
-				"Authentication failed",
-				zap.String("request_id", reqID),
-				zap.String("error", "no matching auth backend found"),
-			)
-		}
-	}
-
-	// Render UI
-	contentType := "text/html"
-	if acceptHeaderStr == "application/json" {
-		contentType = acceptHeaderStr
-	}
-	if m.UserInterface.Title == "" {
-		uiArgs.Title = "Sign In"
-	} else {
-		uiArgs.Title = m.UserInterface.Title
-	}
-
-	// Wrap up
-	if !userAuthenticated {
-		for _, k := range []string{m.TokenProvider.TokenName} {
-			w.Header().Add("Set-Cookie", k+"=delete; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT")
-		}
-		if credentialsFound && uiArgs.Message == "" {
-			uiArgs.Message = "Authentication failed"
-		}
-		w.Header().Set("Content-Type", contentType)
-		var contentBytes []byte
-		if contentType == "application/json" {
-			// respond with JSON
-			authResponse := AuthResponse{}
-			if credentialsFound {
-				authResponse.Error = true
-				authResponse.Message = uiArgs.Message
-			} else {
-				authResponse.Message = "authentication credentials required"
-			}
-			content, err := json.Marshal(authResponse)
-			if err != nil {
-				m.logger.Error(
-					"Failed JSON response rendering",
-					zap.String("request_id", reqID),
-					zap.String("error", err.Error()),
-				)
-				w.WriteHeader(500)
-				w.Write([]byte(`Internal Server Error`))
-				return err
-			}
-			contentBytes = content
-		} else {
-			// respond with HTML UI
-			content, err := m.uiFactory.Render("login", uiArgs)
-			if err != nil {
-				m.logger.Error(
-					"Failed UI response rendering",
-					zap.String("request_id", reqID),
-					zap.String("error", err.Error()),
-				)
-				w.WriteHeader(500)
-				w.Write([]byte(`Internal Server Error`))
-				return err
-			}
-			contentBytes = content.Bytes()
-		}
-
-		w.WriteHeader(401)
-		w.Write(contentBytes)
-		return nil
-	}
-
-	if m.UserInterface.Title == "" {
-		uiArgs.Title = "Welcome"
-	}
-
-	userIdentity := caddyauth.User{
-		ID: userClaims.Email,
-		Metadata: map[string]string{
-			"roles": strings.Join(userClaims.Roles, " "),
-		},
-	}
-
-	if userClaims.Name != "" {
-		userIdentity.Metadata["name"] = userClaims.Name
-	}
-	if userClaims.Email != "" {
-		userIdentity.Metadata["email"] = userClaims.Email
-	}
-
-	m.logger.Debug(
-		"Authentication succeeded",
-		zap.String("request_id", reqID),
-		zap.String("user_id", userIdentity.ID),
-	)
-
-	userToken, err := userClaims.GetToken("HS512", []byte(m.TokenProvider.TokenSecret))
-	if err != nil {
-		m.logger.Error(
-			"Failed to get JWT token",
-			zap.String("request_id", reqID),
-			zap.String("user_id", userIdentity.ID),
-			zap.String("error", err.Error()),
-		)
-	}
-
-	w.Header().Set("Cache-Control", "no-store")
-	w.Header().Set("Pragma", "no-cache")
-	w.Header().Set("Authorization", "Bearer "+userToken)
-	w.Header().Set("Set-Cookie", m.TokenProvider.TokenName+"="+userToken+";"+m.Cookies.GetAttributes())
-
-	if cookie, err := r.Cookie(redirectToToken); err == nil {
-		if redirectURL, err := url.Parse(cookie.Value); err == nil {
-			m.logger.Debug(
-				"Cookie-based redirect",
-				zap.String("request_id", reqID),
-				zap.String("user_id", userIdentity.ID),
-				zap.String("redirect_url", redirectURL.String()),
-			)
-			w.Header().Set("Location", redirectURL.String())
-			w.Header().Add("Set-Cookie", redirectToToken+"=delete; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT")
-			w.WriteHeader(303)
-			return nil
-		}
-	}
-
-	if r.Method == "POST" {
-		w.Header().Set("Location", m.AuthURLPath)
-		w.WriteHeader(303)
-		return nil
-	}
-
-	w.Header().Set("Content-Type", contentType)
-	if contentType == "application/json" {
-		// respond with JSON
-		authResponse := AuthResponse{
-			Token: userToken,
-		}
-		content, err := json.Marshal(authResponse)
-		if err != nil {
-			m.logger.Error(
-				"Failed JSON response rendering",
-				zap.String("request_id", reqID),
-				zap.String("error", err.Error()),
-			)
-			w.WriteHeader(500)
-			w.Write([]byte(`Internal Server Error`))
-			return err
-		}
-		w.Write(content)
-	} else {
-		// respond with HTML UI
-		content, err := m.uiFactory.Render("portal", uiArgs)
-		if err != nil {
-			m.logger.Error(
-				"Failed UI",
-				zap.String("request_id", reqID),
-				zap.String("error", err.Error()),
-			)
-			w.WriteHeader(500)
-			w.Write([]byte(`Internal Server Error`))
-			return err
-		}
-		w.Write(content.Bytes())
-	}
-	return nil
 }
 
 // Interface guards
