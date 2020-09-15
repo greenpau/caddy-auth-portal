@@ -1,14 +1,14 @@
 package portal
 
 import (
+	"encoding/json"
+	"github.com/caddyserver/caddy/v2/caddytest"
 	"io/ioutil"
 	"net/http"
 	"net/url"
 	"strings"
 	"testing"
 	"time"
-
-	"github.com/caddyserver/caddy/v2/caddytest"
 )
 
 func TestLocalCaddyfile(t *testing.T) {
@@ -19,6 +19,7 @@ func TestLocalCaddyfile(t *testing.T) {
 	authPath := "auth"
 	hostPort := host + ":" + securePort
 	baseURL := scheme + "://" + hostPort
+	accessTokenName := "access_token"
 	tokenSecret := "0e2fdcf8-6868-41a7-884b-7308795fc286"
 	tokenIssuer := "e1008f2d-ccfa-4e62-bbe6-c202ec2988cc"
 	localhost, _ := url.Parse(baseURL)
@@ -48,6 +49,7 @@ func TestLocalCaddyfile(t *testing.T) {
           ui {
             login_template "assets/conf/local/ui/login.template"
             portal_template "assets/conf/local/ui/portal.template"
+            whoami_template "assets/conf/local/ui/whoami.template"
             logo_url "https://caddyserver.com/resources/images/caddy-circle-lock.svg"
             logo_description "Caddy"
             links {
@@ -68,20 +70,43 @@ func TestLocalCaddyfile(t *testing.T) {
     }
     `, "caddyfile")
 
-	cookies := []*http.Cookie{}
-	cookie := &http.Cookie{
-		Name:  "access_token",
-		Value: "anonymous",
-	}
-	cookies = append(cookies, cookie)
-	tester.Client.Jar.SetCookies(localhost, cookies)
-	// tester.AssertGetResponse(baseURL+"/auth/api/whoami?content_type=plaintext&field=username", 400, "greenpau")
-	//tester.AssertResponseCode(baseURL+"/auth/api/whoami?content_type=plaintext&field=username", 400)
-
 	req, _ := http.NewRequest("POST", baseURL+"/"+authPath, strings.NewReader("username=webadmin&password=password123"))
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	resp := tester.AssertResponseCode(req, 200)
-	t.Logf("%v", resp)
+	var accessToken string
+	for _, cookie := range tester.Client.Jar.Cookies(localhost) {
+		t.Logf("Found a cookie named: %s", cookie.Name)
+		if cookie.Name == accessTokenName {
+			accessToken = cookie.Value
+			t.Logf("Found %s cookie: %s", accessTokenName, accessToken)
+			break
+		}
+	}
+
+	if accessToken == "" {
+		t.Fatalf("access token not found in response")
+	}
+
+	req, _ = http.NewRequest("GET", baseURL+"/"+authPath+"/whoami", nil)
+	req.Header.Set("Accept", "application/json")
+	resp = tester.AssertResponseCode(req, 200)
+	responseBody, err := ioutil.ReadAll(resp.Body)
+	resp.Body.Close()
+	if err != nil {
+		t.Fatalf("failed reading response body: %s", err)
+	}
+	whoami := make(map[string]interface{})
+	if err := json.Unmarshal(responseBody, &whoami); err != nil {
+		t.Fatalf("failed parsing response body %s\nerror: %s", responseBody, err)
+	}
+	expectedSub := "webadmin"
+	if whoami["sub"].(string) != expectedSub {
+		t.Fatalf(
+			"response subject mismatch: %s (expected) vs. %s (received), response %s",
+			expectedSub, whoami["sub"], whoami,
+		)
+	}
+	t.Logf("Valid Response: %v", whoami)
 	time.Sleep(1 * time.Second)
 }
 

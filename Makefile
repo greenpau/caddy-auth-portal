@@ -23,13 +23,14 @@ all:
 		xcaddy build $(CADDY_VERSION) --output ../$(PLUGIN_NAME)/bin/caddy \
 		--with github.com/greenpau/caddy-auth-portal@$(LATEST_GIT_COMMIT)=$(BUILD_DIR) \
 		--with github.com/greenpau/caddy-auth-jwt@latest=$(BUILD_DIR)/../caddy-auth-jwt \
-		--with github.com/greenpau/caddy-auth-ui@latest=$(BUILD_DIR)/../caddy-auth-ui
+		--with github.com/greenpau/caddy-auth-ui@latest=$(BUILD_DIR)/../caddy-auth-ui \
+		--with github.com/greenpau/caddy-request-debug@latest=$(BUILD_DIR)/../caddy-request-debug
 	@#bin/caddy run -environ -config assets/conf/local/config.json
 
 linter:
 	@echo "Running lint checks"
-	@golint *.go
-	@for f in `find ./pkg -type f -name '*.go'`; do echo $$f; go fmt $$f; golint $$f; done
+	@golint -set_exit_status *.go
+	@for f in `find ./pkg -type f -name '*.go'`; do echo $$f; go fmt $$f; golint -set_exit_status $$f; done
 	@echo "PASS: golint"
 
 test: covdir linter

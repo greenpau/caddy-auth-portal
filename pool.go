@@ -11,6 +11,12 @@ import (
 	"sync"
 )
 
+var defaultPages = map[string]string{
+	"login":  "forms_login",
+	"portal": "forms_portal",
+	"whoami": "forms_whoami",
+}
+
 // AuthPortalPool provides access to all instances of the plugin.
 type AuthPortalPool struct {
 	mu               sync.Mutex
@@ -163,13 +169,13 @@ func (p *AuthPortalPool) Register(m *AuthPortal) error {
 			m.Cookies = &cookies.Cookies{}
 		}
 
-		// UI Validation
-		uiPages := map[string]string{
-			"login":  "forms_login",
-			"portal": "forms_portal",
-		}
+		// Setup UI
 		if m.UserInterface == nil {
 			m.UserInterface = &UserInterfaceParameters{}
+		}
+
+		if m.UserInterface.Templates == nil {
+			m.UserInterface.Templates = make(map[string]string)
 		}
 
 		m.uiFactory = ui.NewUserInterfaceFactory()
@@ -205,42 +211,14 @@ func (p *AuthPortalPool) Register(m *AuthPortal) error {
 			zap.Any("realms", m.uiFactory.Realms),
 		)
 
-		for tmplName, tmplAlias := range uiPages {
-			m.logger.Debug(
-				"Provisioning authentication user interface templates",
-				zap.String("instance_name", m.Name),
-				zap.String("template_name", tmplName),
-				zap.String("template_alias", tmplAlias),
-			)
-			useDefaultTemplate := false
-			if m.UserInterface.Templates == nil {
+		// User Interface Templates
+		for tmplName, tmplAlias := range defaultPages {
+			if _, exists := m.UserInterface.Templates[tmplName]; !exists {
 				m.logger.Debug(
-					"UI templates were not defined, using default template",
+					"Provisioning default authentication user interface templates",
 					zap.String("instance_name", m.Name),
-				)
-				useDefaultTemplate = true
-			} else {
-				if v, exists := m.UserInterface.Templates[tmplName]; !exists {
-					m.logger.Debug(
-						"UI template was not defined, using default template",
-						zap.String("instance_name", m.Name),
-						zap.String("template_name", tmplName),
-					)
-					useDefaultTemplate = true
-				} else {
-					m.logger.Debug(
-						"UI template definition found",
-						zap.String("instance_name", m.Name),
-						zap.String("template_name", tmplName),
-						zap.String("template_path", v),
-					)
-				}
-			}
-
-			if useDefaultTemplate {
-				m.logger.Debug(
-					fmt.Sprintf("adding UI template %s to UI factory", tmplAlias),
-					zap.String("instance_name", m.Name),
+					zap.String("template_name", tmplName),
+					zap.String("template_alias", tmplAlias),
 				)
 				if err := m.uiFactory.AddBuiltinTemplate(tmplAlias); err != nil {
 					return fmt.Errorf(
@@ -249,22 +227,20 @@ func (p *AuthPortalPool) Register(m *AuthPortal) error {
 					)
 				}
 				m.uiFactory.Templates[tmplName] = m.uiFactory.Templates[tmplAlias]
-				continue
-			}
-
-			if err := m.uiFactory.AddTemplate(tmplName, m.UserInterface.Templates[tmplName]); err != nil {
-				return fmt.Errorf(
-					"%s: UI settings validation error, failed loading template from %s: %s",
-					m.Name, m.UserInterface.Templates[tmplName], err,
-				)
 			}
 		}
 
-		for tmplName := range m.UserInterface.Templates {
-			if _, exists := uiPages[tmplName]; !exists {
+		for tmplName, tmplPath := range m.UserInterface.Templates {
+			m.logger.Debug(
+				"Provisioning non-default authentication user interface templates",
+				zap.String("instance_name", m.Name),
+				zap.String("template_name", tmplName),
+				zap.String("template_path", tmplPath),
+			)
+			if err := m.uiFactory.AddTemplate(tmplName, tmplPath); err != nil {
 				return fmt.Errorf(
-					"%s: UI settings validation error, unsupported template type: %s",
-					m.Name, tmplName,
+					"%s: UI settings validation error, failed loading %s template from %s: %s",
+					m.Name, tmplName, tmplPath, err,
 				)
 			}
 		}
@@ -401,12 +377,16 @@ func (p *AuthPortalPool) Provision(name string) error {
 	}
 
 	// User Interface Settings
-	uiPages := map[string]string{
-		"login":  "forms_login",
-		"portal": "forms_portal",
-	}
 	if m.UserInterface == nil {
 		m.UserInterface = &UserInterfaceParameters{}
+	}
+
+	if m.UserInterface.Templates == nil {
+		m.UserInterface.Templates = primaryInstance.UserInterface.Templates
+	}
+
+	if m.UserInterface.Templates == nil {
+		m.UserInterface.Templates = make(map[string]string)
 	}
 
 	m.uiFactory = ui.NewUserInterfaceFactory()
@@ -442,10 +422,6 @@ func (p *AuthPortalPool) Provision(name string) error {
 		m.uiFactory.Realms = m.UserInterface.Realms
 	}
 
-	if m.UserInterface.Templates == nil {
-		m.UserInterface.Templates = primaryInstance.UserInterface.Templates
-	}
-
 	m.logger.Debug(
 		"Provisioned authentication user interface parameters for non-primaryInstance instance",
 		zap.String("instance_name", m.Name),
@@ -458,42 +434,13 @@ func (p *AuthPortalPool) Provision(name string) error {
 	)
 
 	// User Interface Templates
-	for tmplName, tmplAlias := range uiPages {
-		m.logger.Debug(
-			"Provisioning authentication user interface templates",
-			zap.String("instance_name", m.Name),
-			zap.String("template_name", tmplName),
-			zap.String("template_alias", tmplAlias),
-		)
-		useDefaultTemplate := false
-		if m.UserInterface.Templates == nil {
+	for tmplName, tmplAlias := range defaultPages {
+		if _, exists := m.UserInterface.Templates[tmplName]; !exists {
 			m.logger.Debug(
-				"UI templates were not defined, using default template",
+				"Provisioning default authentication user interface templates",
 				zap.String("instance_name", m.Name),
-			)
-			useDefaultTemplate = true
-		} else {
-			if v, exists := m.UserInterface.Templates[tmplName]; !exists {
-				m.logger.Debug(
-					"UI template was not defined, using default template",
-					zap.String("instance_name", m.Name),
-					zap.String("template_name", tmplName),
-				)
-				useDefaultTemplate = true
-			} else {
-				m.logger.Debug(
-					"UI template definition found",
-					zap.String("instance_name", m.Name),
-					zap.String("template_name", tmplName),
-					zap.String("template_path", v),
-				)
-			}
-		}
-
-		if useDefaultTemplate {
-			m.logger.Debug(
-				fmt.Sprintf("adding UI template %s to UI factory", tmplAlias),
-				zap.String("instance_name", m.Name),
+				zap.String("template_name", tmplName),
+				zap.String("template_alias", tmplAlias),
 			)
 			if err := m.uiFactory.AddBuiltinTemplate(tmplAlias); err != nil {
 				return fmt.Errorf(
@@ -502,22 +449,20 @@ func (p *AuthPortalPool) Provision(name string) error {
 				)
 			}
 			m.uiFactory.Templates[tmplName] = m.uiFactory.Templates[tmplAlias]
-			continue
-		}
-
-		if err := m.uiFactory.AddTemplate(tmplName, m.UserInterface.Templates[tmplName]); err != nil {
-			return fmt.Errorf(
-				"%s: UI settings validation error, failed loading template from %s: %s",
-				m.Name, m.UserInterface.Templates[tmplName], err,
-			)
 		}
 	}
 
-	for tmplName := range m.UserInterface.Templates {
-		if _, exists := uiPages[tmplName]; !exists {
+	for tmplName, tmplPath := range m.UserInterface.Templates {
+		m.logger.Debug(
+			"Provisioning non-default authentication user interface templates",
+			zap.String("instance_name", m.Name),
+			zap.String("template_name", tmplName),
+			zap.String("template_path", tmplPath),
+		)
+		if err := m.uiFactory.AddTemplate(tmplName, tmplPath); err != nil {
 			return fmt.Errorf(
-				"%s: UI settings validation error, unsupported template type: %s",
-				m.Name, tmplName,
+				"%s: UI settings validation error, failed loading %s template from %s: %s",
+				m.Name, tmplName, tmplPath, err,
 			)
 		}
 	}
