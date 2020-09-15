@@ -4,37 +4,29 @@ import (
 	"encoding/json"
 	"go.uber.org/zap"
 	"net/http"
-	"net/url"
 )
 
-// HandlePortal returns user identity information.
-func (m *AuthPortal) HandlePortal(w http.ResponseWriter, r *http.Request, opts map[string]interface{}) error {
+// HandleGeneric returns generic response page.
+func (m *AuthPortal) HandleGeneric(w http.ResponseWriter, r *http.Request, opts map[string]interface{}) error {
+	var title string
 	reqID := opts["request_id"].(string)
-
-	if !opts["authenticated"].(bool) {
-		w.Header().Set("Location", m.AuthURLPath)
-		w.WriteHeader(401)
-		return nil
+	flow := opts["flow"].(string)
+	switch flow {
+	case "not_found":
+		title = "Not Found"
+	case "unsupported_feature":
+		title = "Unsupported Feature"
+	default:
+		title = "Unsupported Flow"
 	}
 
-	if cookie, err := r.Cookie(redirectToToken); err == nil {
-		if redirectURL, err := url.Parse(cookie.Value); err == nil {
-			m.logger.Debug(
-				"Cookie-based redirect",
-				zap.String("request_id", reqID),
-				zap.String("redirect_url", redirectURL.String()),
-			)
-			w.Header().Set("Location", redirectURL.String())
-			w.Header().Add("Set-Cookie", redirectToToken+"=delete; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT")
-			w.WriteHeader(303)
-			return nil
-		}
-	}
-
-	// If the requested content type is JSON, then output authenticated message.
+	// If the requested content type is JSON, then output authenticated message
 	if opts["content_type"].(string) == "application/json" {
 		resp := make(map[string]interface{})
-		resp["authenticated"] = true
+		resp["message"] = title
+		if opts["authenticated"].(bool) {
+			resp["authenticated"] = true
+		}
 		payload, err := json.Marshal(resp)
 		if err != nil {
 			m.logger.Error("Failed JSON response rendering", zap.String("request_id", reqID), zap.String("error", err.Error()))
@@ -51,8 +43,19 @@ func (m *AuthPortal) HandlePortal(w http.ResponseWriter, r *http.Request, opts m
 
 	// Display main authentication portal page
 	resp := m.uiFactory.GetArgs()
-	resp.Title = "Welcome"
-	content, err := m.uiFactory.Render("portal", resp)
+	resp.Title = title
+	resp.Data = make(map[string]interface{})
+	resp.Data["go_back_url"] = m.AuthURLPath
+	if opts["authenticated"].(bool) {
+		resp.Data["authenticated"] = true
+		referer := r.Referer()
+		if referer != "" {
+			resp.Data["go_back_url"] = referer
+		}
+	} else {
+		resp.Data["authenticated"] = false
+	}
+	content, err := m.uiFactory.Render("generic", resp)
 	if err != nil {
 		m.logger.Error("Failed HTML response rendering", zap.String("request_id", reqID), zap.String("error", err.Error()))
 		w.Header().Set("Content-Type", "text/plain")

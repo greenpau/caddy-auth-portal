@@ -19,6 +19,8 @@ Please ask questions either here or via LinkedIn. I am happy to help you! @green
 * [Authentication Methods](#authentication-methods)
   * [Basic Authentication](#basic-authentication)
   * [Form-Based Authentication](#form-based-authentication)
+* [User Interface Features](#user-interface-features)
+  * [Auto-Redirect URL](#auto-redirect-url)
 * [Local Authentication Backend](#local-authentication-backend)
   * [Configuration Primer](#configuration-primer)
   * [Identity Store](#identity-store)
@@ -225,6 +227,25 @@ The expected output is as follows:
 ### Form-Based Authentication
 
 TBD.
+
+## User Interface Features
+
+### Auto-Redirect URL
+
+Consider the following configuration snippet. When the JWT plugin detects
+unauthenticated user, it forwards the user to `https://auth.example.com`.
+The `redirect_url` in URL query creates `AUTH_PORTAL_REDIRECT_URL` cookie
+in the users session. Upon successful authentication, the portal
+clears the cookie and redirects the user to the path specified in
+`AUTH_PORTAL_REDIRECT_URL` cookie.
+
+```
+https://chat.example.com {
+  jwt {
+    auth_url https://auth.example.com/auth?redirect_url=https://chat.example.com
+  }
+}
+```
 
 ## Local Authentication Backend
 

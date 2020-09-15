@@ -131,12 +131,14 @@ func (m AuthPortal) ServeHTTP(w http.ResponseWriter, r *http.Request, _ caddyhtt
 	switch {
 	case strings.HasPrefix(urlPath, "register"):
 		// TODO: registration should be unavailable for authenticated users
-		opts["flow"] = "register"
-		return m.HandleRedirectUnsupported(w, r, opts)
+		// opts["flow"] = "register"
+		opts["flow"] = "unsupported_feature"
+		return m.HandleGeneric(w, r, opts)
 	case strings.HasPrefix(urlPath, "recover"):
 		// TODO: password recovery should be unavailable for authenticated users
-		opts["flow"] = "recover"
-		return m.HandleRedirectUnsupported(w, r, opts)
+		// opts["flow"] = "recover"
+		opts["flow"] = "unsupported_feature"
+		return m.HandleGeneric(w, r, opts)
 	case strings.HasPrefix(urlPath, "logout"),
 		strings.HasPrefix(urlPath, "logoff"):
 		opts["flow"] = "logout"
@@ -157,7 +159,8 @@ func (m AuthPortal) ServeHTTP(w http.ResponseWriter, r *http.Request, _ caddyhtt
 		opts["flow"] = "login"
 		return m.HandleLogin(w, r, opts)
 	default:
-		return m.HandlePageNotFound(w, r, opts)
+		opts["flow"] = "not_found"
+		return m.HandleGeneric(w, r, opts)
 	}
 }
 
