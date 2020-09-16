@@ -11,13 +11,20 @@ func (m *AuthPortal) HandleGeneric(w http.ResponseWriter, r *http.Request, opts 
 	var title string
 	reqID := opts["request_id"].(string)
 	flow := opts["flow"].(string)
+	statusCode := 200
 	switch flow {
 	case "not_found":
 		title = "Not Found"
+		statusCode = 404
 	case "unsupported_feature":
 		title = "Unsupported Feature"
+		statusCode = 404
+	case "policy_violation":
+		title = "Policy Violation"
+		statusCode = 400
 	default:
 		title = "Unsupported Flow"
+		statusCode = 400
 	}
 
 	// If the requested content type is JSON, then output authenticated message
@@ -36,7 +43,7 @@ func (m *AuthPortal) HandleGeneric(w http.ResponseWriter, r *http.Request, opts 
 			return err
 		}
 		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(200)
+		w.WriteHeader(statusCode)
 		w.Write(payload)
 		return nil
 	}
@@ -64,7 +71,7 @@ func (m *AuthPortal) HandleGeneric(w http.ResponseWriter, r *http.Request, opts 
 		return err
 	}
 	w.Header().Set("Content-Type", "text/html")
-	w.WriteHeader(200)
+	w.WriteHeader(statusCode)
 	w.Write(content.Bytes())
 	return nil
 }

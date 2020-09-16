@@ -247,6 +247,38 @@ https://chat.example.com {
 }
 ```
 
+### User Registration
+
+The following Caddy configuration enables user registration.
+
+```
+registration {
+  path /etc/gatekeeper/auth/local/registrations.json
+  title "User Registration"
+  code "NY2020"
+  require accept_terms
+}
+```
+
+The parameters are:
+
+* `path`: the path to the file where the plugin stores registration requests
+* `code`: the registration code. A user must know what that code is to
+  successfully submit a registration request.
+* `require accept_terms`: A user must accept terms and conditions, as well
+  as privacy policy to proceed
+* `disabled on`: disables user registration
+* `title`: changes the title of the registration page
+
+This screenshot is the registration screen with default options:
+
+TODO: add caddy_auth_portal_registration_simple.png
+
+The following is the registration screen with mandatory registration
+code and the acceptable of terms and conditions:
+
+TODO: add caddy_auth_portal_registration_terms_code.png
+
 ## Local Authentication Backend
 
 ### Configuration Primer
@@ -424,7 +456,7 @@ using local and LDAP credentials.
       backends {
         local_backend {
           method local
-          path assets/conf/local/auth/users.conf
+          path assets/conf/local/auth/user_db.json
           realm local
         }
         ldap_backend {

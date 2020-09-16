@@ -13,7 +13,7 @@ func (m *AuthPortal) HandlePortal(w http.ResponseWriter, r *http.Request, opts m
 
 	if !opts["authenticated"].(bool) {
 		w.Header().Set("Location", m.AuthURLPath)
-		w.WriteHeader(401)
+		w.WriteHeader(302)
 		return nil
 	}
 

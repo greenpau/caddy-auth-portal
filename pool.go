@@ -169,7 +169,15 @@ func (p *AuthPortalPool) Register(m *AuthPortal) error {
 			m.Cookies = &cookies.Cookies{}
 		}
 
-		// Setup UI
+		// Setup User Registration
+		if m.UserRegistration == nil {
+			m.UserRegistration = &UserRegistrationParameters{}
+		}
+		if m.UserRegistration.Title == "" {
+			m.UserRegistration.Title = "Sign Up"
+		}
+
+		// Setup User Interface
 		if m.UserInterface == nil {
 			m.UserInterface = &UserInterfaceParameters{}
 		}
@@ -374,6 +382,17 @@ func (p *AuthPortalPool) Provision(name string) error {
 	// Cookies Validation
 	if m.Cookies == nil {
 		m.Cookies = &cookies.Cookies{}
+	}
+
+	// Setup User Registration
+	if m.UserRegistration == nil {
+		m.UserRegistration = &UserRegistrationParameters{}
+	}
+	if m.UserRegistration.Code == "" {
+		m.UserRegistration.Code = primaryInstance.UserRegistration.Code
+	}
+	if m.UserRegistration.Title == "" {
+		m.UserRegistration.Title = primaryInstance.UserRegistration.Title
 	}
 
 	// User Interface Settings

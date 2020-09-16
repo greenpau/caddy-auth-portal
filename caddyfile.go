@@ -80,6 +80,15 @@ func initCaddyfileLogger() *zap.Logger {
 //
 //       cookie_domain <name>
 //       cookie_path <name>
+//
+//       registration {
+//         disabled <on|off>
+//         title "User Registration"
+//         code "NY2020"
+//         path <file/path/to/registration/db>
+//         require accept_terms
+//       }
+//
 //     }
 //
 func parseCaddyfileAuthPortal(h httpcaddyfile.Helper) ([]httpcaddyfile.ConfigValue, error) {
@@ -90,8 +99,9 @@ func parseCaddyfileAuthPortal(h httpcaddyfile.Helper) ([]httpcaddyfile.ConfigVal
 		UserInterface: &UserInterfaceParameters{
 			Templates: make(map[string]string),
 		},
-		Cookies:  &cookies.Cookies{},
-		Backends: []Backend{},
+		UserRegistration: &UserRegistrationParameters{},
+		Cookies:          &cookies.Cookies{},
+		Backends:         []Backend{},
 	}
 
 	// logger := initCaddyfileLogger()
@@ -281,6 +291,47 @@ func parseCaddyfileAuthPortal(h httpcaddyfile.Helper) ([]httpcaddyfile.ConfigVal
 						default:
 							return nil, h.Errf("unsupported subdirective for %s: %s", rootDirective, subDirective)
 						}
+					}
+				}
+			case "registration":
+				for nesting := h.Nesting(); h.NextBlock(nesting); {
+					subDirective := h.Val()
+					switch subDirective {
+					case "title":
+						if !h.NextArg() {
+							return nil, h.Errf("%s %s subdirective has no value", rootDirective, subDirective)
+						}
+						portal.UserRegistration.Title = h.Val()
+					case "disabled":
+						if !h.NextArg() {
+							return nil, h.Errf("%s %s subdirective has no value", rootDirective, subDirective)
+						}
+						if h.Val() == "yes" || h.Val() == "on" {
+							portal.UserRegistration.Disabled = true
+						}
+					case "code":
+						if !h.NextArg() {
+							return nil, h.Errf("%s %s subdirective has no value", rootDirective, subDirective)
+						}
+						portal.UserRegistration.Code = h.Val()
+					case "path":
+						if !h.NextArg() {
+							return nil, h.Errf("%s %s subdirective has no value", rootDirective, subDirective)
+						}
+						portal.UserRegistration.Path = h.Val()
+					case "require":
+						if !h.NextArg() {
+							return nil, h.Errf("%s %s subdirective has no value", rootDirective, subDirective)
+						}
+						requirement := h.Val()
+						switch requirement {
+						case "accept_terms":
+							portal.UserRegistration.RequireAcceptTerms = true
+						default:
+							return nil, h.Errf("unsupported requirement %s in %s %s", requirement, rootDirective, subDirective)
+						}
+					default:
+						return nil, h.Errf("unsupported subdirective for %s: %s", rootDirective, subDirective)
 					}
 				}
 			default:
