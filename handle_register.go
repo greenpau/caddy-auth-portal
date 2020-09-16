@@ -28,6 +28,11 @@ func (m *AuthPortal) HandleRegister(w http.ResponseWriter, r *http.Request, opts
 		return m.HandleGeneric(w, r, opts)
 	}
 
+	if m.UserRegistration.Dropbox == "" {
+		opts["flow"] = "unsupported_feature"
+		return m.HandleGeneric(w, r, opts)
+	}
+
 	if msg, exists := opts["message"]; exists {
 		message = msg.(string)
 	}

@@ -253,7 +253,7 @@ The following Caddy configuration enables user registration.
 
 ```
 registration {
-  path /etc/gatekeeper/auth/local/registrations.json
+  dropbox /etc/gatekeeper/auth/local/registrations/
   title "User Registration"
   code "NY2020"
   require accept_terms
@@ -262,8 +262,8 @@ registration {
 
 The parameters are:
 
-* `path`: the path to the file where the plugin stores registration requests
-* `code`: the registration code. A user must know what that code is to
+* `dropbox`: The directory path to drop registration files
+* `code`: The registration code. A user must know what that code is to
   successfully submit a registration request.
 * `require accept_terms`: A user must accept terms and conditions, as well
   as privacy policy to proceed

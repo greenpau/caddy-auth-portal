@@ -32,6 +32,14 @@
         float: left;
         margin-left: 5%;
       }
+      p.app-body {
+	//color: #7a7978 !important;
+	color: #52504f;
+        padding-top: 1em;
+      }
+      ol.app-body {
+	color: #52504f;
+      }
       .navbtn {
         font-family: 'Roboto', sans-serif;
       }
@@ -99,6 +107,13 @@
                 </label>
               </p>
 	      {{ end }}
+              {{ else }}
+              <p class="app-body">Thank you for registering and we hope you enjoy the experience!</p>
+              <p class="app-body">Here are a few things to keep in mind:</p>
+	      <ol class="app-body">
+                <li>You should receive your confirmation email within the next 15 minutes.</li>
+                <li>If you still don't see it, please email support so we can resend it to you.</li>
+              </ol>
               {{ end }}
             </div>
             <div class="card-action right-align">

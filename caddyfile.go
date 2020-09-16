@@ -85,7 +85,7 @@ func initCaddyfileLogger() *zap.Logger {
 //         disabled <on|off>
 //         title "User Registration"
 //         code "NY2020"
-//         path <file/path/to/registration/db>
+//         dropbox <file/path/to/registration/dir/>
 //         require accept_terms
 //       }
 //
@@ -314,11 +314,11 @@ func parseCaddyfileAuthPortal(h httpcaddyfile.Helper) ([]httpcaddyfile.ConfigVal
 							return nil, h.Errf("%s %s subdirective has no value", rootDirective, subDirective)
 						}
 						portal.UserRegistration.Code = h.Val()
-					case "path":
+					case "dropbox":
 						if !h.NextArg() {
 							return nil, h.Errf("%s %s subdirective has no value", rootDirective, subDirective)
 						}
-						portal.UserRegistration.Path = h.Val()
+						portal.UserRegistration.Dropbox = h.Val()
 					case "require":
 						if !h.NextArg() {
 							return nil, h.Errf("%s %s subdirective has no value", rootDirective, subDirective)

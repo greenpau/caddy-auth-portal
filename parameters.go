@@ -27,8 +27,8 @@ type UserRegistrationParameters struct {
 	// The mandatory registration code. It is possible adding multiple
 	// codes, comma separated.
 	Code string `json:"code,omitempty"`
-	// The path to local registration file.
-	Path string `json:"path,omitempty"`
+	// The directory path to drop registration files.
+	Dropbox string `json:"dropbox,omitempty"`
 	// The switch determining whether a user must accept terms and conditions
 	RequireAcceptTerms bool `json:"require_accept_terms,omitempty"`
 }
