@@ -272,12 +272,12 @@ The parameters are:
 
 This screenshot is the registration screen with default options:
 
-TODO: add caddy_auth_portal_registration_simple.png
+<img src="https://raw.githubusercontent.com/greenpau/caddy-auth-portal/main/assets/docs/images/portal_registration_simple.png">
 
 The following is the registration screen with mandatory registration
 code and the acceptable of terms and conditions:
 
-TODO: add caddy_auth_portal_registration_terms_code.png
+<img src="https://raw.githubusercontent.com/greenpau/caddy-auth-portal/main/assets/docs/images/portal_registration_terms_code.png">
 
 ## Local Authentication Backend
 
