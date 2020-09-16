@@ -33,12 +33,12 @@
         margin-left: 5%;
       }
       p.app-body {
-	//color: #7a7978 !important;
-	color: #52504f;
+        color: #52504f;
         padding-top: 1em;
       }
       ol.app-body {
-	color: #52504f;
+        color: #52504f;
+        padding-right: 1em;
       }
       .navbtn {
         font-family: 'Roboto', sans-serif;
