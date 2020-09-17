@@ -327,6 +327,8 @@ func parseCaddyfileAuthPortal(h httpcaddyfile.Helper) ([]httpcaddyfile.ConfigVal
 						switch requirement {
 						case "accept_terms":
 							portal.UserRegistration.RequireAcceptTerms = true
+						case "domain_mx":
+							portal.UserRegistration.RequireDomainMailRecord = true
 						default:
 							return nil, h.Errf("unsupported requirement %s in %s %s", requirement, rootDirective, subDirective)
 						}

@@ -62,7 +62,7 @@
         <div class="col s12 m12 l6 offset-l3 app-card-container">
           {{ if not .Data.registered }}
           <form action="{{ .ActionEndpoint }}/register" method="POST">
-	  {{ end }}
+          {{ end }}
           <div class="card card-large app-card">
             <div class="card-content">
               <span class="card-title center-align">
@@ -75,42 +75,46 @@
               </span>
               {{ if not .Data.registered }}
               <div class="input-field">
-                <input id="username" name="username" type="text" class="validate">
+                <input id="username" name="username" type="text" class="validate"
+                  pattern="[a-z0-9]{3,25}"
+                  title="Username should contain maximum of 25 characters and consists of a-z and 0-9 characters."
+                  required />
                 <label for="username">Username</label>
               </div>
               <div class="input-field">
-                <input id="email" name="email" type="text" class="validate">
+                <input id="email" name="email" type="email" class="validate"
+                  required />
                 <label for="email">Email Address</label>
               </div>
               <div class="input-field">
-                <input id="password" name="password" type="password" class="validate">
+                <input id="password" name="password" type="password" class="validate" required />
                 <label for="password">Password</label>
               </div>
               <div class="input-field">
-                <input id="password_confirm" name="password_confirm" type="password" class="validate">
+                <input id="password_confirm" name="password_confirm" type="password" class="validate" required />
                 <label for="password_confirm">Confirm Password</label>
               </div>
-	      {{ if .Data.require_registration_code }}
+              {{ if .Data.require_registration_code }}
               <div class="input-field">
-                <input id="code" name="code" type="text" class="validate">
+                <input id="code" name="code" type="text" class="validate" required />
                 <label for="code">Registration Code</label>
               </div>
-	      {{ end }}
-	      {{ if .Data.require_accept_terms }}
-	      <p>
+              {{ end }}
+              {{ if .Data.require_accept_terms }}
+              <p>
                 <label>
-                  <input type="checkbox" id="accept_terms" name="accept_terms" />
-		  <span>I agree to
+                  <input type="checkbox" id="accept_terms" name="accept_terms" required />
+                  <span>I agree to
                     <a href="{{ .ActionEndpoint }}/termsandconditions">Terms and Conditions</a> and
-		    <a href="{{ .ActionEndpoint }}/privacypolicy">Privacy Policy</a>.
-		  </span>
+                    <a href="{{ .ActionEndpoint }}/privacypolicy">Privacy Policy</a>.
+                  </span>
                 </label>
               </p>
-	      {{ end }}
+              {{ end }}
               {{ else }}
               <p class="app-body">Thank you for registering and we hope you enjoy the experience!</p>
               <p class="app-body">Here are a few things to keep in mind:</p>
-	      <ol class="app-body">
+              <ol class="app-body">
                 <li>You should receive your confirmation email within the next 15 minutes.</li>
                 <li>If you still don't see it, please email support so we can resend it to you.</li>
               </ol>

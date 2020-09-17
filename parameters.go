@@ -31,4 +31,7 @@ type UserRegistrationParameters struct {
 	Dropbox string `json:"dropbox,omitempty"`
 	// The switch determining whether a user must accept terms and conditions
 	RequireAcceptTerms bool `json:"require_accept_terms,omitempty"`
+	// The switch determining whether the domain associated with an email has
+	// a valid MX DNS record.
+	RequireDomainMailRecord bool `json:"require_domain_mx,omitempty"`
 }

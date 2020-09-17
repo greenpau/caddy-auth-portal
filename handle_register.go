@@ -137,17 +137,23 @@ func (m *AuthPortal) HandleRegister(w http.ResponseWriter, r *http.Request, opts
 			}
 			switch k {
 			case "username":
-				if err := validateUserInput("handle", userHandle, nil); err != nil {
+				handleOpts := make(map[string]interface{})
+				if err := validateUserInput("handle", userHandle, handleOpts); err != nil {
 					validUserRegistration = false
 					message = "Failed processing the registration form due " + err.Error()
 				}
 			case "password":
-				if err := validateUserInput("secret", userSecret, nil); err != nil {
+				secretOpts := make(map[string]interface{})
+				if err := validateUserInput("secret", userSecret, secretOpts); err != nil {
 					validUserRegistration = false
 					message = "Failed processing the registration form due " + err.Error()
 				}
 			case "email":
-				if err := validateUserInput(k, userMail, nil); err != nil {
+				emailOpts := make(map[string]interface{})
+				if m.UserRegistration.RequireDomainMailRecord {
+					emailOpts["check_domain_mx"] = true
+				}
+				if err := validateUserInput(k, userMail, emailOpts); err != nil {
 					validUserRegistration = false
 					message = "Failed processing the registration form due " + err.Error()
 				}

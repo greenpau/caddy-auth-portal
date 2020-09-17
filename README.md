@@ -257,6 +257,7 @@ registration {
   title "User Registration"
   code "NY2020"
   require accept_terms
+  require domain_mx
 }
 ```
 
@@ -269,6 +270,7 @@ The parameters are:
   as privacy policy to proceed
 * `disabled on`: disables user registration
 * `title`: changes the title of the registration page
+* `require domain_mx`: forces the check of domain MX record
 
 This screenshot is the registration screen with default options:
 
