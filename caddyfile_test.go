@@ -37,7 +37,7 @@ func TestLocalCaddyfile(t *testing.T) {
           backends {
             local_backend {
               method local
-              path assets/conf/local/auth/users.conf
+              path assets/conf/local/auth/user_db.json
               realm local
             }
           }

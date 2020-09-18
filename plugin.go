@@ -30,20 +30,21 @@ func init() {
 // AuthPortal authorizes access to endpoints based on
 // the credentials provided in a request.
 type AuthPortal struct {
-	Name            string                   `json:"-"`
-	Provisioned     bool                     `json:"-"`
-	ProvisionFailed bool                     `json:"-"`
-	PrimaryInstance bool                     `json:"primary,omitempty"`
-	Context         string                   `json:"context,omitempty"`
-	AuthURLPath     string                   `json:"auth_url_path,omitempty"`
-	UserInterface   *UserInterfaceParameters `json:"ui,omitempty"`
-	Cookies         *cookies.Cookies         `json:"cookies,omitempty"`
-	Backends        []Backend                `json:"backends,omitempty"`
-	TokenProvider   *jwt.TokenProviderConfig `json:"jwt,omitempty"`
-	TokenValidator  *jwt.TokenValidator      `json:"-"`
-	logger          *zap.Logger
-	uiFactory       *ui.UserInterfaceFactory
-	startedAt       time.Time
+	Name             string                      `json:"-"`
+	Provisioned      bool                        `json:"-"`
+	ProvisionFailed  bool                        `json:"-"`
+	PrimaryInstance  bool                        `json:"primary,omitempty"`
+	Context          string                      `json:"context,omitempty"`
+	AuthURLPath      string                      `json:"auth_url_path,omitempty"`
+	UserInterface    *UserInterfaceParameters    `json:"ui,omitempty"`
+	UserRegistration *UserRegistrationParameters `json:"registration,omitempty"`
+	Cookies          *cookies.Cookies            `json:"cookies,omitempty"`
+	Backends         []Backend                   `json:"backends,omitempty"`
+	TokenProvider    *jwt.TokenProviderConfig    `json:"jwt,omitempty"`
+	TokenValidator   *jwt.TokenValidator         `json:"-"`
+	logger           *zap.Logger
+	uiFactory        *ui.UserInterfaceFactory
+	startedAt        time.Time
 }
 
 // CaddyModule returns the Caddy module information.
@@ -132,11 +133,13 @@ func (m AuthPortal) ServeHTTP(w http.ResponseWriter, r *http.Request, _ caddyhtt
 	case strings.HasPrefix(urlPath, "register"):
 		// TODO: registration should be unavailable for authenticated users
 		opts["flow"] = "register"
-		return m.HandleRedirectUnsupported(w, r, opts)
-	case strings.HasPrefix(urlPath, "recover"):
+		return m.HandleRegister(w, r, opts)
+	case strings.HasPrefix(urlPath, "recover"),
+		strings.HasPrefix(urlPath, "forgot"):
 		// TODO: password recovery should be unavailable for authenticated users
-		opts["flow"] = "recover"
-		return m.HandleRedirectUnsupported(w, r, opts)
+		// opts["flow"] = "recover"
+		opts["flow"] = "unsupported_feature"
+		return m.HandleGeneric(w, r, opts)
 	case strings.HasPrefix(urlPath, "logout"),
 		strings.HasPrefix(urlPath, "logoff"):
 		opts["flow"] = "logout"
@@ -157,7 +160,8 @@ func (m AuthPortal) ServeHTTP(w http.ResponseWriter, r *http.Request, _ caddyhtt
 		opts["flow"] = "login"
 		return m.HandleLogin(w, r, opts)
 	default:
-		return m.HandlePageNotFound(w, r, opts)
+		opts["flow"] = "not_found"
+		return m.HandleGeneric(w, r, opts)
 	}
 }
 

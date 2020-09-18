@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"go.uber.org/zap"
 	"net/http"
+	"net/url"
 )
 
 // HandlePortal returns user identity information.
@@ -12,8 +13,22 @@ func (m *AuthPortal) HandlePortal(w http.ResponseWriter, r *http.Request, opts m
 
 	if !opts["authenticated"].(bool) {
 		w.Header().Set("Location", m.AuthURLPath)
-		w.WriteHeader(401)
+		w.WriteHeader(302)
 		return nil
+	}
+
+	if cookie, err := r.Cookie(redirectToToken); err == nil {
+		if redirectURL, err := url.Parse(cookie.Value); err == nil {
+			m.logger.Debug(
+				"Cookie-based redirect",
+				zap.String("request_id", reqID),
+				zap.String("redirect_url", redirectURL.String()),
+			)
+			w.Header().Set("Location", redirectURL.String())
+			w.Header().Add("Set-Cookie", redirectToToken+"=delete; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT")
+			w.WriteHeader(303)
+			return nil
+		}
 	}
 
 	// If the requested content type is JSON, then output authenticated message.

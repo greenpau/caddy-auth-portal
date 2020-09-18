@@ -7,7 +7,7 @@
 localhost:8443 {
   route /auth* {
     auth_portal {
-      local_backend assets/conf/local/auth/users.conf
+      local_backend assets/conf/local/auth/user_db.json
     }
   }
 
