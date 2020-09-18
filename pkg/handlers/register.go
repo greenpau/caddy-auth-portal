@@ -1,4 +1,4 @@
-package portal
+package handlers
 
 import (
 	"github.com/greenpau/go-identity"
@@ -6,8 +6,8 @@ import (
 	"net/http"
 )
 
-// HandleRegister returns registration page.
-func (m *AuthPortal) HandleRegister(w http.ResponseWriter, r *http.Request, opts map[string]interface{}) error {
+// ServeRegister returns registration page.
+func ServeRegister(w http.ResponseWriter, r *http.Request, opts map[string]interface{}) error {
 	var message string
 	var maxBytesLimit int64 = 1000
 	var minBytesLimit int64 = 15
@@ -23,17 +23,17 @@ func (m *AuthPortal) HandleRegister(w http.ResponseWriter, r *http.Request, opts
 
 	if m.UserRegistration.Disabled {
 		opts["flow"] = "unsupported_feature"
-		return m.HandleGeneric(w, r, opts)
+		return handlers.ServeGeneric(w, r, opts)
 	}
 
 	if m.UserRegistration.Dropbox == "" {
 		opts["flow"] = "unsupported_feature"
-		return m.HandleGeneric(w, r, opts)
+		return handlers.ServeGeneric(w, r, opts)
 	}
 
 	if m.UserRegistration.db == nil {
 		opts["flow"] = "internal_server_error"
-		return m.HandleGeneric(w, r, opts)
+		return handlers.ServeGeneric(w, r, opts)
 	}
 
 	if msg, exists := opts["message"]; exists {
@@ -47,7 +47,7 @@ func (m *AuthPortal) HandleRegister(w http.ResponseWriter, r *http.Request, opts
 	// If the requested content type is JSON, then handle it separately.
 	if opts["content_type"].(string) == "application/json" {
 		opts["flow"] = "unsupported_feature"
-		return m.HandleGeneric(w, r, opts)
+		return handlers.ServeGeneric(w, r, opts)
 	}
 
 	// Handle registration submission
@@ -62,7 +62,7 @@ func (m *AuthPortal) HandleRegister(w http.ResponseWriter, r *http.Request, opts
 				zap.Int64("request_size", r.ContentLength),
 			)
 			opts["flow"] = "policy_violation"
-			return m.HandleGeneric(w, r, opts)
+			return handlers.ServeGeneric(w, r, opts)
 		}
 		if r.Header.Get("Content-Type") != "application/x-www-form-urlencoded" {
 			m.logger.Warn(
@@ -72,7 +72,7 @@ func (m *AuthPortal) HandleRegister(w http.ResponseWriter, r *http.Request, opts
 				zap.String("expected_content_type", "application/x-www-form-urlencoded"),
 			)
 			opts["flow"] = "policy_violation"
-			return m.HandleGeneric(w, r, opts)
+			return handlers.ServeGeneric(w, r, opts)
 		}
 
 		if err := r.ParseForm(); err != nil {

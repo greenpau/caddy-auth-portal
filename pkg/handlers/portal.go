@@ -1,25 +1,30 @@
-package portal
+package handlers
 
 import (
 	"encoding/json"
+	"github.com/greenpau/caddy-auth-ui"
 	"go.uber.org/zap"
 	"net/http"
 	"net/url"
 )
 
-// HandlePortal returns user identity information.
-func (m *AuthPortal) HandlePortal(w http.ResponseWriter, r *http.Request, opts map[string]interface{}) error {
+// ServePortal returns user identity information.
+func ServePortal(w http.ResponseWriter, r *http.Request, opts map[string]interface{}) error {
 	reqID := opts["request_id"].(string)
+	log := opts["logger"].(*zap.Logger)
+	ui := opts["ui"].(*ui.UserInterfaceFactory)
+	authURLPath := opts["auth_url_path"].(string)
+	redirectToToken := opts["redirect_token_name"].(string)
 
 	if !opts["authenticated"].(bool) {
-		w.Header().Set("Location", m.AuthURLPath)
+		w.Header().Set("Location", authURLPath)
 		w.WriteHeader(302)
 		return nil
 	}
 
 	if cookie, err := r.Cookie(redirectToToken); err == nil {
 		if redirectURL, err := url.Parse(cookie.Value); err == nil {
-			m.logger.Debug(
+			log.Debug(
 				"Cookie-based redirect",
 				zap.String("request_id", reqID),
 				zap.String("redirect_url", redirectURL.String()),
@@ -37,7 +42,7 @@ func (m *AuthPortal) HandlePortal(w http.ResponseWriter, r *http.Request, opts m
 		resp["authenticated"] = true
 		payload, err := json.Marshal(resp)
 		if err != nil {
-			m.logger.Error("Failed JSON response rendering", zap.String("request_id", reqID), zap.String("error", err.Error()))
+			log.Error("Failed JSON response rendering", zap.String("request_id", reqID), zap.String("error", err.Error()))
 			w.Header().Set("Content-Type", "text/plain")
 			w.WriteHeader(500)
 			w.Write([]byte(`Internal Server Error`))
@@ -50,11 +55,11 @@ func (m *AuthPortal) HandlePortal(w http.ResponseWriter, r *http.Request, opts m
 	}
 
 	// Display main authentication portal page
-	resp := m.uiFactory.GetArgs()
+	resp := ui.GetArgs()
 	resp.Title = "Welcome"
-	content, err := m.uiFactory.Render("portal", resp)
+	content, err := ui.Render("portal", resp)
 	if err != nil {
-		m.logger.Error("Failed HTML response rendering", zap.String("request_id", reqID), zap.String("error", err.Error()))
+		log.Error("Failed HTML response rendering", zap.String("request_id", reqID), zap.String("error", err.Error()))
 		w.Header().Set("Content-Type", "text/plain")
 		w.WriteHeader(500)
 		w.Write([]byte(`Internal Server Error`))

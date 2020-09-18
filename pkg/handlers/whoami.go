@@ -1,14 +1,14 @@
-package portal
+package handlers
 
 import (
 	"encoding/json"
-	jwt "github.com/greenpau/caddy-auth-jwt"
+	"github.com/greenpau/caddy-auth-jwt"
 	"go.uber.org/zap"
 	"net/http"
 )
 
-// HandleWhoami returns portal page for authenticated users.
-func (m *AuthPortal) HandleWhoami(w http.ResponseWriter, r *http.Request, opts map[string]interface{}) error {
+// ServeWhoami returns authenticated user information.
+func ServeWhoami(w http.ResponseWriter, r *http.Request, opts map[string]interface{}) error {
 	reqID := opts["request_id"].(string)
 
 	if !opts["authenticated"].(bool) {
