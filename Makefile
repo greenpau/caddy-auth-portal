@@ -24,7 +24,7 @@ all:
 		--with github.com/greenpau/caddy-auth-portal@$(LATEST_GIT_COMMIT)=$(BUILD_DIR) \
 		--with github.com/greenpau/caddy-auth-jwt@latest=$(BUILD_DIR)/../caddy-auth-jwt \
 		--with github.com/greenpau/caddy-auth-ui@latest=$(BUILD_DIR)/../caddy-auth-ui \
-		--with github.com/greenpau/caddy-request-debug@latest=$(BUILD_DIR)/../caddy-request-debug
+		--with github.com/greenpau/caddy-trace@latest=$(BUILD_DIR)/../caddy-trace
 	@#bin/caddy run -environ -config assets/conf/local/config.json
 
 linter:
