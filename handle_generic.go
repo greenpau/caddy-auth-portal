@@ -22,6 +22,9 @@ func (m *AuthPortal) HandleGeneric(w http.ResponseWriter, r *http.Request, opts 
 	case "policy_violation":
 		title = "Policy Violation"
 		statusCode = 400
+	case "internal_server_error":
+		title = "Internal Server Error"
+		statusCode = 500
 	default:
 		title = "Unsupported Flow"
 		statusCode = 400

@@ -2,6 +2,7 @@ package portal
 
 import (
 	"github.com/greenpau/caddy-auth-ui"
+	"github.com/greenpau/go-identity"
 )
 
 // UserInterfaceParameters represent a common set of configuration settings
@@ -27,11 +28,13 @@ type UserRegistrationParameters struct {
 	// The mandatory registration code. It is possible adding multiple
 	// codes, comma separated.
 	Code string `json:"code,omitempty"`
-	// The directory path to drop registration files.
+	// The file path to registration database.
 	Dropbox string `json:"dropbox,omitempty"`
 	// The switch determining whether a user must accept terms and conditions
 	RequireAcceptTerms bool `json:"require_accept_terms,omitempty"`
 	// The switch determining whether the domain associated with an email has
 	// a valid MX DNS record.
 	RequireDomainMailRecord bool `json:"require_domain_mx,omitempty"`
+	// User registration database
+	db *identity.Database
 }

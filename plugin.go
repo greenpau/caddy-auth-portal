@@ -134,7 +134,8 @@ func (m AuthPortal) ServeHTTP(w http.ResponseWriter, r *http.Request, _ caddyhtt
 		// TODO: registration should be unavailable for authenticated users
 		opts["flow"] = "register"
 		return m.HandleRegister(w, r, opts)
-	case strings.HasPrefix(urlPath, "recover"):
+	case strings.HasPrefix(urlPath, "recover"),
+		strings.HasPrefix(urlPath, "forgot"):
 		// TODO: password recovery should be unavailable for authenticated users
 		// opts["flow"] = "recover"
 		opts["flow"] = "unsupported_feature"

@@ -8,13 +8,16 @@ import (
 	"github.com/greenpau/caddy-auth-jwt"
 	"github.com/greenpau/caddy-auth-portal/pkg/cookies"
 	"github.com/greenpau/caddy-auth-ui"
+	"github.com/greenpau/go-identity"
 	"sync"
 )
 
 var defaultPages = map[string]string{
-	"login":  "forms_login",
-	"portal": "forms_portal",
-	"whoami": "forms_whoami",
+	"login":    "forms_login",
+	"portal":   "forms_portal",
+	"whoami":   "forms_whoami",
+	"register": "forms_register",
+	"generic":  "forms_generic",
 }
 
 // AuthPortalPool provides access to all instances of the plugin.
@@ -176,6 +179,37 @@ func (p *AuthPortalPool) Register(m *AuthPortal) error {
 		if m.UserRegistration.Title == "" {
 			m.UserRegistration.Title = "Sign Up"
 		}
+		if m.UserRegistration.Dropbox == "" {
+			m.UserRegistration.Disabled = true
+		}
+		if !m.UserRegistration.Disabled {
+			if m.UserRegistration.db == nil {
+				m.UserRegistration.db = identity.NewDatabase()
+				fileInfo, err := os.Stat(m.UserRegistration.Dropbox)
+				if err != nil {
+					if os.IsNotExist(err) {
+						if err := m.UserRegistration.db.SaveToFile(m.UserRegistration.Dropbox); err != nil {
+							return fmt.Errorf("%s: registration dropbox setup failed: %s", m.Name, err)
+						}
+					} else {
+						return fmt.Errorf("%s: registration dropbox metadata read failed: %s", m.Name, err)
+					}
+				} else {
+					if fileInfo.IsDir() {
+						return fmt.Errorf("%s: registration dropbox is a directory", m.Name)
+					}
+				}
+				if err := m.UserRegistration.db.LoadFromFile(m.UserRegistration.Dropbox); err != nil {
+					return fmt.Errorf("%s: registration dropbox load failed: %s", m.Name, err)
+				}
+			}
+		}
+
+		m.logger.Debug(
+			"Provisioned registration endpoint",
+			zap.String("instance_name", m.Name),
+			zap.String("dropbox", m.UserRegistration.Dropbox),
+		)
 
 		// Setup User Interface
 		if m.UserInterface == nil {

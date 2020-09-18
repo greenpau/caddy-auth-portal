@@ -1,11 +1,9 @@
 package portal
 
 import (
-	//"encoding/json"
-	//jwt "github.com/greenpau/caddy-auth-jwt"
+	"github.com/greenpau/go-identity"
 	"go.uber.org/zap"
 	"net/http"
-	//"net/url"
 )
 
 // HandleRegister returns registration page.
@@ -30,6 +28,11 @@ func (m *AuthPortal) HandleRegister(w http.ResponseWriter, r *http.Request, opts
 
 	if m.UserRegistration.Dropbox == "" {
 		opts["flow"] = "unsupported_feature"
+		return m.HandleGeneric(w, r, opts)
+	}
+
+	if m.UserRegistration.db == nil {
+		opts["flow"] = "internal_server_error"
 		return m.HandleGeneric(w, r, opts)
 	}
 
@@ -189,10 +192,64 @@ func (m *AuthPortal) HandleRegister(w http.ResponseWriter, r *http.Request, opts
 		resp.Message = message
 	}
 
+	if r.Method == "POST" && validUserRegistration {
+		// Perform registration tasks
+		user := identity.NewUser(userHandle)
+		if err := user.AddPassword(userSecret); err != nil {
+			validUserRegistration = false
+			message = "Internal Server Error"
+			m.logger.Warn("failed associating password during registration",
+				zap.String("request_id", reqID),
+				zap.String("error", err.Error()),
+			)
+		}
+		if err := user.AddEmailAddress(userMail); err != nil {
+			validUserRegistration = false
+			message = "Internal Server Error"
+			m.logger.Warn("failed associating email address during registration",
+				zap.String("request_id", reqID),
+				zap.String("error", err.Error()),
+			)
+		}
+		if err := user.AddRole("registration_pending"); err != nil {
+			validUserRegistration = false
+			message = "Internal Server Error"
+			m.logger.Warn("failed associating user role during registration",
+				zap.String("request_id", reqID),
+				zap.String("error", err.Error()),
+			)
+		}
+		if err := m.UserRegistration.db.AddUser(user); err != nil {
+			validUserRegistration = false
+			message = "Internal Server Error"
+			m.logger.Warn("failed adding user to registration database",
+				zap.String("request_id", reqID),
+				zap.String("error", err.Error()),
+			)
+		}
+		if err := m.UserRegistration.db.SaveToFile(m.UserRegistration.Dropbox); err != nil {
+			validUserRegistration = false
+			message = "Internal Server Error"
+			m.logger.Warn("failed saving registration database",
+				zap.String("request_id", reqID),
+				zap.String("error", err.Error()),
+			)
+		}
+		if validUserRegistration {
+			m.logger.Info("Processed registration",
+				zap.String("request_id", reqID),
+				zap.String("username", userHandle),
+				zap.String("email", userMail),
+			)
+		}
+	}
+
 	if r.Method == "POST" {
 		if !validUserRegistration {
 			if message == "" {
 				resp.Message = "Failed registration"
+			} else {
+				resp.Message = message
 			}
 		} else {
 			resp.Title = "Thank you!"

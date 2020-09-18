@@ -70,9 +70,6 @@ func (sa *Authenticator) CreateUser(userName, userPwd, userEmail string, userCla
 	if err := user.AddEmailAddress(userEmail); err != nil {
 		return fmt.Errorf("failed adding email address for username %s: %s", userName, err)
 	}
-	if err := user.AddEmailAddress(userEmail); err != nil {
-		return fmt.Errorf("failed adding email address for username %s: %s", userName, err)
-	}
 	if userClaims != nil {
 		for k, v := range userClaims {
 			if k != "roles" {
@@ -108,16 +105,20 @@ func (sa *Authenticator) Configure() error {
 	defer sa.mux.Unlock()
 	sa.logger.Info("local backend configuration", zap.String("db_path", sa.path))
 	fileInfo, err := os.Stat(sa.path)
-	if os.IsNotExist(err) {
-		sa.logger.Info("local database file does not exists, creating it", zap.String("db_path", sa.path))
-		if err := sa.db.SaveToFile(sa.path); err != nil {
-			return fmt.Errorf("failed to create local database file at %s: %s", sa.path, err)
+	if err != nil {
+		if os.IsNotExist(err) {
+			sa.logger.Info("local database file does not exists, creating it", zap.String("db_path", sa.path))
+			if err := sa.db.SaveToFile(sa.path); err != nil {
+				return fmt.Errorf("failed to create local database file at %s: %s", sa.path, err)
+			}
+		} else {
+			return fmt.Errorf("failed obtaining information about local database file at %s: %s", sa.path, err)
 		}
-	} else {
-		if fileInfo.IsDir() {
-			sa.logger.Error("local database file path points to a directory", zap.String("db_path", sa.path))
-			return fmt.Errorf("local database file path points to a directory")
-		}
+	}
+
+	if fileInfo.IsDir() {
+		sa.logger.Error("local database file path points to a directory", zap.String("db_path", sa.path))
+		return fmt.Errorf("local database file path points to a directory")
 	}
 	if err := sa.db.LoadFromFile(sa.path); err != nil {
 		return fmt.Errorf("failed loading local database at %s: %s", sa.path, err)
