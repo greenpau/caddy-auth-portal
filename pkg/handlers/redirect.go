@@ -19,7 +19,7 @@ func ServeSessionLoginRedirect(w http.ResponseWriter, r *http.Request, opts map[
 	for _, k := range cookieNames {
 		w.Header().Add("Set-Cookie", k+"=delete; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT")
 	}
-	w.Header().Set("Location", authURLPath)
-	w.WriteHeader(303)
+	w.Header().Set("Location", authURLPath+"?redirect_url="+r.RequestURI)
+	w.WriteHeader(302)
 	return nil
 }

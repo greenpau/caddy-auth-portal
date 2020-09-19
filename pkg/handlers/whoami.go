@@ -16,8 +16,8 @@ func ServeWhoami(w http.ResponseWriter, r *http.Request, opts map[string]interfa
 	authURLPath := opts["auth_url_path"].(string)
 
 	if !opts["authenticated"].(bool) {
-		w.Header().Set("Location", authURLPath)
-		w.WriteHeader(401)
+		w.Header().Set("Location", authURLPath+"?redirect_url="+r.RequestURI)
+		w.WriteHeader(302)
 		return nil
 	}
 

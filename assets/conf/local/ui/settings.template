@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <title>{{ .Title }}</title>
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <meta name="description" content="">
+    <meta name="author" content="">
+    <link rel="shortcut icon" href="/favicon.ico" type="image/x-icon">
+    <link rel="icon" href="/favicon.ico" type="image/x-icon">
+
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css" integrity="sha256-OweaP/Ic6rsV+lysfyS4h+LM6sRwuO3euTYfr6M124g=" crossorigin="anonymous" />
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.1/styles/atom-one-dark.min.css" integrity="sha256-GA29iW/iYj9FcuQQktvW45pRzHvZeFfgeFvA4tGVjpM=" crossorigin="anonymous" />
+    <style>
+      body {
+        font-family: 'Roboto', sans-serif;
+        font-size: 1.25rem;
+      }
+      input {
+        font-family: 'Roboto', sans-serif;
+      }
+      .app-container {
+        background-color: white;
+	box-shadow: 0 4px 8px 0 rgba(0,0,0,0.2);
+        transition: 0.3s;
+        margin-top: 2em;
+     }
+      .app-background {
+        background-color: #155D56;
+      }
+      .nav-wrapper img {
+        height: 100%;
+        object-fit: contain;
+        padding: 0.5rem 0.5rem 0.5rem 1rem;
+      }
+      .brand-logo {
+        padding-left: 1rem !important;
+      }
+      .navbtn {
+        font-family: 'Roboto', sans-serif;
+      }
+      .navbtn-last {
+        margin-right: 0px !important;
+      }
+      .material-icons.navbar {
+	font-size: 1.25rem;
+	margin-top: -0.75em !important;
+      }
+      .hljs {
+        font-size: 1rem;
+      }
+      input:-webkit-autofill,
+      input:-webkit-autofill:hover, 
+      input:-webkit-autofill:focus, 
+      input:-webkit-autofill:active  {
+          -webkit-box-shadow: 0 0 0 30px white inset !important;
+      }
+    </style>
+  </head>
+  <body class="app-background">
+    <div class="container app-container">
+      <div class="row">
+        <nav>
+          <div class="nav-wrapper">
+            {{ if .LogoURL }}
+	    <img src="{{ .LogoURL }}" alt="{{ .LogoDescription }}" />
+	    {{ end }}
+
+	    <a href="#" class="brand-logo">{{ .Title }}</a>
+            <ul id="nav-mobile" class="right hide-on-med-and-down">
+              <li>
+                <a href="{{ .ActionEndpoint }}/portal">
+                  <button type="button" class="btn waves-effect waves-light navbtn active">
+                    <span class="white-text"><i class="material-icons navbar left">home</i>Portal</span>
+                  </button>
+                </a>
+              </li>
+              <li>
+                <a href="{{ .ActionEndpoint }}/logout" class="navbtn-last">
+                  <button type="button" class="btn waves-effect waves-light navbtn active navbtn-last">
+                    <i class="material-icons navbar left">power_settings_new</i>Logout</button>
+                </a>
+              </li>
+            </ul>
+          </div>
+        </nav>
+      </div>
+      <div class="row">
+        <div class="col s12 l3">
+          <div class="collection">
+            <a href="#general" class="collection-item">General</a>
+            <a href="#sshkeys" class="collection-item">SSH Keys</a>
+            <a href="#gpgkeys" class="collection-item">GPG Keys</a>
+            <a href="#apikeys" class="collection-item">API Keys</a>
+            <a href="#mfa" class="collection-item">MFA</a>
+            <a href="#passwords" class="collection-item">Passwords</a>
+            <a href="#avatar" class="collection-item">Avatar</a>
+          </div>
+        </div>
+        <div class="col s12 l9">
+          <pre><code class="json hljs">{{ .Data.token }}</code></pre>
+        </div>
+      </div>
+    </div>
+
+    <!-- Optional JavaScript -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js" integrity="sha256-U/cHDMTIHCeMcvehBv1xQ052bPSbJtbuiw4QA9cTKz0=" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.1/highlight.min.js" integrity="sha256-eOgo0OtLL4cdq7RdwRUiGKLX9XsIJ7nGhWEKbohmVAQ=" crossorigin="anonymous"></script>
+    {{ if .Message }}
+    <script>
+    hljs.initHighlightingOnLoad();
+    </script>
+    {{ end }}
+  </body>
+</html>
