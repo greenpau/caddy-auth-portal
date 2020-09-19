@@ -20,12 +20,10 @@ func ServeLogin(w http.ResponseWriter, r *http.Request, opts map[string]interfac
 	tokenSecret := opts["token_secret"].(string)
 	cookies := opts["cookies"].(*cookies.Cookies)
 	redirectToToken := opts["redirect_token_name"].(string)
+	authorized := false
 
-	// If authenticated, redirect to portal
-	if opts["authenticated"].(bool) {
-		w.Header().Set("Location", authURLPath+"/portal")
-		w.WriteHeader(302)
-		return nil
+	if v, exists := opts["authorized"]; exists {
+		authorized = v.(bool)
 	}
 
 	if _, exists := opts["status_code"]; !exists {
@@ -44,7 +42,7 @@ func ServeLogin(w http.ResponseWriter, r *http.Request, opts map[string]interfac
 	w.Header().Set("Pragma", "no-cache")
 
 	// Create JWT token
-	if opts["authenticated"].(bool) {
+	if opts["authenticated"].(bool) && !authorized {
 		claims := opts["user_claims"].(*jwt.UserClaims)
 		userToken, err := claims.GetToken("HS512", []byte(tokenSecret))
 		if err != nil {

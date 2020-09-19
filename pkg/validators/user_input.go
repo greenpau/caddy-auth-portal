@@ -1,4 +1,4 @@
-package portal
+package validators
 
 import (
 	"fmt"
@@ -12,21 +12,22 @@ const usernameCharset = "0123456789abcdefghijklmnopqrstuvwxyz"
 
 var emailAddrRegex = regexp.MustCompile("^[a-zA-Z0-9.!#$%&'*+\\/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$")
 
-func validateUserInput(k, v string, opts map[string]interface{}) error {
+// ValidateUserInput provides generic interface to validate user input.
+func ValidateUserInput(k, v string, opts map[string]interface{}) error {
 	if v == "" {
 		return fmt.Errorf("empty %s value", k)
 	}
 	switch k {
 	case "handle":
-		if err := validateUserInputHandle(v, opts); err != nil {
+		if err := ValidateUserInputHandle(v, opts); err != nil {
 			return err
 		}
 	case "secret":
-		if err := validateUserInputSecret(v, opts); err != nil {
+		if err := ValidateUserInputSecret(v, opts); err != nil {
 			return err
 		}
 	case "email":
-		if err := validateUserInputEmail(v, opts); err != nil {
+		if err := ValidateUserInputEmail(v, opts); err != nil {
 			return err
 		}
 	default:
@@ -35,7 +36,8 @@ func validateUserInput(k, v string, opts map[string]interface{}) error {
 	return nil
 }
 
-func validateUserInputHandle(v string, opts map[string]interface{}) error {
+// ValidateUserInputHandle validates provided user handle.
+func ValidateUserInputHandle(v string, opts map[string]interface{}) error {
 	if len(v) > 25 {
 		return fmt.Errorf("the handle character length should not exceed 25 characters")
 	}
@@ -45,14 +47,16 @@ func validateUserInputHandle(v string, opts map[string]interface{}) error {
 	return nil
 }
 
-func validateUserInputSecret(v string, opts map[string]interface{}) error {
+// ValidateUserInputSecret validates provided user secret.
+func ValidateUserInputSecret(v string, opts map[string]interface{}) error {
 	if len(v) > 255 {
 		return fmt.Errorf("the handle character length should not exceed 255 characters")
 	}
 	return nil
 }
 
-func validateUserInputEmail(v string, opts map[string]interface{}) error {
+// ValidateUserInputEmail validates provided email address.
+func ValidateUserInputEmail(v string, opts map[string]interface{}) error {
 	if len(v) < 3 && len(v) > 254 {
 		return fmt.Errorf("the length of email address is invalid")
 	}
