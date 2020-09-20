@@ -18,9 +18,15 @@ func ServeSettings(w http.ResponseWriter, r *http.Request, opts map[string]inter
 	view := strings.TrimPrefix(r.URL.Path, authURLPath)
 	view = strings.TrimPrefix(view, "/settings")
 	view = strings.TrimPrefix(view, "/")
-	view = strings.Split(view, "/")[0]
+	viewParts := strings.Split(view, "/")
+	view = viewParts[0]
 	if view == "" {
 		view = "general"
+	}
+
+	switch view {
+	case "mfa":
+		view = strings.Join(viewParts, "-")
 	}
 
 	if !opts["authenticated"].(bool) {
