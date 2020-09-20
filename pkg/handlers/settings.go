@@ -11,10 +11,15 @@ import (
 
 // ServeSettings returns authenticated user information.
 func ServeSettings(w http.ResponseWriter, r *http.Request, opts map[string]interface{}) error {
+	authURLPath := opts["auth_url_path"].(string)
+	if !opts["authenticated"].(bool) {
+		w.Header().Set("Location", authURLPath+"?redirect_url="+r.RequestURI)
+		w.WriteHeader(302)
+		return nil
+	}
 	reqID := opts["request_id"].(string)
 	log := opts["logger"].(*zap.Logger)
 	uiFactory := opts["ui"].(*ui.UserInterfaceFactory)
-	authURLPath := opts["auth_url_path"].(string)
 	view := strings.TrimPrefix(r.URL.Path, authURLPath)
 	view = strings.TrimPrefix(view, "/settings")
 	view = strings.TrimPrefix(view, "/")
@@ -26,13 +31,16 @@ func ServeSettings(w http.ResponseWriter, r *http.Request, opts map[string]inter
 
 	switch view {
 	case "mfa":
-		view = strings.Join(viewParts, "-")
-	}
-
-	if !opts["authenticated"].(bool) {
-		w.Header().Set("Location", authURLPath+"?redirect_url="+r.RequestURI)
-		w.WriteHeader(302)
-		return nil
+		if len(viewParts) > 1 {
+			switch viewParts[1] {
+			case "barcode":
+				opts["barcode"] = "test"
+				return ServeBarcodeImage(w, r, opts)
+			case "add":
+				opts["barcode"] = "test"
+				view = strings.Join(viewParts, "-")
+			}
+		}
 	}
 
 	// claims := opts["user_claims"].(*jwt.UserClaims)
