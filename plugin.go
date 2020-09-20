@@ -8,9 +8,12 @@ import (
 
 	"github.com/caddyserver/caddy/v2"
 	"github.com/caddyserver/caddy/v2/modules/caddyhttp"
-	jwt "github.com/greenpau/caddy-auth-jwt"
+	"github.com/greenpau/caddy-auth-jwt"
 	"github.com/greenpau/caddy-auth-portal/pkg/cookies"
-	ui "github.com/greenpau/caddy-auth-ui"
+	"github.com/greenpau/caddy-auth-portal/pkg/handlers"
+	"github.com/greenpau/caddy-auth-portal/pkg/registration"
+	"github.com/greenpau/caddy-auth-portal/pkg/ui"
+	"github.com/greenpau/go-identity"
 	"go.uber.org/zap"
 )
 
@@ -30,21 +33,22 @@ func init() {
 // AuthPortal authorizes access to endpoints based on
 // the credentials provided in a request.
 type AuthPortal struct {
-	Name             string                      `json:"-"`
-	Provisioned      bool                        `json:"-"`
-	ProvisionFailed  bool                        `json:"-"`
-	PrimaryInstance  bool                        `json:"primary,omitempty"`
-	Context          string                      `json:"context,omitempty"`
-	AuthURLPath      string                      `json:"auth_url_path,omitempty"`
-	UserInterface    *UserInterfaceParameters    `json:"ui,omitempty"`
-	UserRegistration *UserRegistrationParameters `json:"registration,omitempty"`
-	Cookies          *cookies.Cookies            `json:"cookies,omitempty"`
-	Backends         []Backend                   `json:"backends,omitempty"`
-	TokenProvider    *jwt.TokenProviderConfig    `json:"jwt,omitempty"`
-	TokenValidator   *jwt.TokenValidator         `json:"-"`
-	logger           *zap.Logger
-	uiFactory        *ui.UserInterfaceFactory
-	startedAt        time.Time
+	Name                     string                     `json:"-"`
+	Provisioned              bool                       `json:"-"`
+	ProvisionFailed          bool                       `json:"-"`
+	PrimaryInstance          bool                       `json:"primary,omitempty"`
+	Context                  string                     `json:"context,omitempty"`
+	AuthURLPath              string                     `json:"auth_url_path,omitempty"`
+	UserInterface            *UserInterfaceParameters   `json:"ui,omitempty"`
+	UserRegistration         *registration.Registration `json:"registration,omitempty"`
+	UserRegistrationDatabase *identity.Database         `json:"-"`
+	Cookies                  *cookies.Cookies           `json:"cookies,omitempty"`
+	Backends                 []Backend                  `json:"backends,omitempty"`
+	TokenProvider            *jwt.TokenProviderConfig   `json:"jwt,omitempty"`
+	TokenValidator           *jwt.TokenValidator        `json:"-"`
+	logger                   *zap.Logger
+	uiFactory                *ui.UserInterfaceFactory
+	startedAt                time.Time
 }
 
 // CaddyModule returns the Caddy module information.
@@ -92,12 +96,28 @@ func (m *AuthPortal) Validate() error {
 
 // ServeHTTP authorizes access based on the presense and content of JWT token.
 func (m AuthPortal) ServeHTTP(w http.ResponseWriter, r *http.Request, _ caddyhttp.Handler) error {
+	reqID := GetRequestID(r)
+	log := m.logger
 	opts := make(map[string]interface{})
-	opts["request_id"] = GetRequestID(r)
+	opts["request_id"] = reqID
 	opts["content_type"] = GetContentType(r)
 	opts["authenticated"] = false
 	opts["auth_backend_found"] = false
 	opts["auth_credentials_found"] = false
+	opts["logger"] = log
+	opts["auth_url_path"] = m.AuthURLPath
+	opts["ui"] = m.uiFactory
+	opts["cookies"] = m.Cookies
+	opts["cookie_names"] = []string{redirectToToken, m.TokenProvider.TokenName}
+	opts["token_name"] = m.TokenProvider.TokenName
+	opts["token_secret"] = m.TokenProvider.TokenSecret
+	if m.UserInterface.Title != "" {
+		opts["ui_title"] = m.UserInterface.Title
+	}
+	opts["redirect_token_name"] = redirectToToken
+
+	urlPath := strings.TrimPrefix(r.URL.Path, m.AuthURLPath)
+	urlPath = strings.TrimPrefix(urlPath, "/")
 
 	// Find JWT tokens, if any, and validate them.
 	if claims, authOK, err := m.TokenValidator.Authorize(r, nil); authOK {
@@ -107,10 +127,10 @@ func (m AuthPortal) ServeHTTP(w http.ResponseWriter, r *http.Request, _ caddyhtt
 		if err != nil {
 			switch err.Error() {
 			case "[Token is expired]":
-				return m.HandleSessionLoginRedirect(w, r, opts)
+				return handlers.ServeSessionLoginRedirect(w, r, opts)
 			case "no token found":
 			default:
-				m.logger.Debug("Authorization failed",
+				log.Debug("Authorization failed",
 					zap.String("request_id", opts["request_id"].(string)),
 					zap.Any("error", err.Error()),
 				)
@@ -121,47 +141,106 @@ func (m AuthPortal) ServeHTTP(w http.ResponseWriter, r *http.Request, _ caddyhtt
 	// Handle requests based on query parameters.
 	if r.Method == "GET" {
 		q := r.URL.Query()
+		foundQueryOptions := false
 		if redirectURL, exists := q["redirect_url"]; exists {
 			w.Header().Set("Set-Cookie", redirectToToken+"="+redirectURL[0])
+			foundQueryOptions = true
+		}
+		if foundQueryOptions {
+			w.Header().Set("Location", m.AuthURLPath)
+			w.WriteHeader(302)
+			return nil
 		}
 	}
 
 	// Perform request routing
-	urlPath := strings.TrimPrefix(r.URL.Path, m.AuthURLPath)
-	urlPath = strings.TrimLeft(urlPath, "/")
 	switch {
 	case strings.HasPrefix(urlPath, "register"):
-		// TODO: registration should be unavailable for authenticated users
+		if m.UserRegistration.Disabled {
+			opts["flow"] = "unsupported_feature"
+			return handlers.ServeGeneric(w, r, opts)
+		}
+		if m.UserRegistration.Dropbox == "" {
+			opts["flow"] = "unsupported_feature"
+			return handlers.ServeGeneric(w, r, opts)
+		}
 		opts["flow"] = "register"
-		return m.HandleRegister(w, r, opts)
+		opts["registration"] = m.UserRegistration
+		opts["registration_db"] = m.UserRegistrationDatabase
+		return handlers.ServeRegister(w, r, opts)
 	case strings.HasPrefix(urlPath, "recover"),
 		strings.HasPrefix(urlPath, "forgot"):
-		// TODO: password recovery should be unavailable for authenticated users
 		// opts["flow"] = "recover"
 		opts["flow"] = "unsupported_feature"
-		return m.HandleGeneric(w, r, opts)
+		return handlers.ServeGeneric(w, r, opts)
 	case strings.HasPrefix(urlPath, "logout"),
 		strings.HasPrefix(urlPath, "logoff"):
 		opts["flow"] = "logout"
-		return m.HandleSessionLogoff(w, r, opts)
+		return handlers.ServeSessionLogoff(w, r, opts)
 	case strings.HasPrefix(urlPath, "assets"):
 		opts["flow"] = "assets"
-		return m.HandleServeStaticAssets(w, r, opts)
+		return handlers.ServeStaticAssets(w, r, opts)
 	case strings.HasPrefix(urlPath, "whoami"):
 		opts["flow"] = "whoami"
-		return m.HandleWhoami(w, r, opts)
-	case strings.HasPrefix(urlPath, "profile"):
-		opts["flow"] = "profile"
-		return m.HandleProfile(w, r, opts)
+		return handlers.ServeWhoami(w, r, opts)
+	case strings.HasPrefix(urlPath, "settings"):
+		opts["flow"] = "settings"
+		return handlers.ServeSettings(w, r, opts)
 	case strings.HasPrefix(urlPath, "portal"):
 		opts["flow"] = "portal"
-		return m.HandlePortal(w, r, opts)
+		return handlers.ServePortal(w, r, opts)
 	case strings.HasPrefix(urlPath, "login"), urlPath == "":
 		opts["flow"] = "login"
-		return m.HandleLogin(w, r, opts)
+		if opts["authenticated"].(bool) {
+			opts["authorized"] = true
+		} else {
+			// Authenticating the request
+			if credentials, err := parseCredentials(r); err == nil {
+				if credentials != nil {
+					opts["auth_credentials_found"] = true
+					for _, backend := range m.Backends {
+						if backend.GetRealm() != credentials["realm"] {
+							continue
+						}
+						opts["auth_backend_found"] = true
+						if claims, code, err := backend.Authenticate(reqID, credentials); err != nil {
+							opts["message"] = "Authentication failed"
+							opts["status_code"] = code
+							log.Warn("Authentication failed",
+								zap.String("request_id", reqID),
+								zap.String("error", err.Error()),
+							)
+						} else {
+							opts["user_claims"] = claims
+							opts["authenticated"] = true
+							opts["status_code"] = 200
+							log.Debug("Authentication succeeded",
+								zap.String("request_id", reqID),
+								zap.Any("user", claims),
+							)
+						}
+					}
+					if !opts["auth_backend_found"].(bool) {
+						opts["status_code"] = 500
+						log.Warn("Authentication failed",
+							zap.String("request_id", reqID),
+							zap.String("error", "no matching auth backend found"),
+						)
+					}
+				}
+			} else {
+				opts["message"] = "Authentication failed"
+				opts["status_code"] = 400
+				log.Warn("Authentication failed",
+					zap.String("request_id", reqID),
+					zap.String("error", err.Error()),
+				)
+			}
+		}
+		return handlers.ServeLogin(w, r, opts)
 	default:
 		opts["flow"] = "not_found"
-		return m.HandleGeneric(w, r, opts)
+		return handlers.ServeGeneric(w, r, opts)
 	}
 }
 

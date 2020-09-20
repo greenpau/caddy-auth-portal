@@ -1,19 +1,23 @@
-package portal
+package handlers
 
 import (
 	"encoding/json"
-	jwt "github.com/greenpau/caddy-auth-jwt"
+	"github.com/greenpau/caddy-auth-jwt"
+	"github.com/greenpau/caddy-auth-portal/pkg/ui"
 	"go.uber.org/zap"
 	"net/http"
 )
 
-// HandleWhoami returns portal page for authenticated users.
-func (m *AuthPortal) HandleWhoami(w http.ResponseWriter, r *http.Request, opts map[string]interface{}) error {
+// ServeWhoami returns authenticated user information.
+func ServeWhoami(w http.ResponseWriter, r *http.Request, opts map[string]interface{}) error {
 	reqID := opts["request_id"].(string)
+	log := opts["logger"].(*zap.Logger)
+	uiFactory := opts["ui"].(*ui.UserInterfaceFactory)
+	authURLPath := opts["auth_url_path"].(string)
 
 	if !opts["authenticated"].(bool) {
-		w.Header().Set("Location", m.AuthURLPath)
-		w.WriteHeader(401)
+		w.Header().Set("Location", authURLPath+"?redirect_url="+r.RequestURI)
+		w.WriteHeader(302)
 		return nil
 	}
 
@@ -22,7 +26,7 @@ func (m *AuthPortal) HandleWhoami(w http.ResponseWriter, r *http.Request, opts m
 	if opts["content_type"].(string) == "application/json" {
 		payload, err := json.Marshal(claims)
 		if err != nil {
-			m.logger.Error("Failed JSON response rendering", zap.String("request_id", reqID), zap.String("error", err.Error()))
+			log.Error("Failed JSON response rendering", zap.String("request_id", reqID), zap.String("error", err.Error()))
 			w.Header().Set("Content-Type", "text/plain")
 			w.WriteHeader(500)
 			w.Write([]byte(`Internal Server Error`))
@@ -35,13 +39,13 @@ func (m *AuthPortal) HandleWhoami(w http.ResponseWriter, r *http.Request, opts m
 	}
 
 	// Display main authentication portal page
-	resp := m.uiFactory.GetArgs()
+	resp := uiFactory.GetArgs()
 	resp.Title = "User Identity"
 	tokenMap := claims.AsMap()
 	tokenMap["authenticated"] = true
 	prettyTokenMap, err := json.MarshalIndent(tokenMap, "", "  ")
 	if err != nil {
-		m.logger.Error("Failed token map rendering", zap.String("request_id", reqID), zap.String("error", err.Error()))
+		log.Error("Failed token map rendering", zap.String("request_id", reqID), zap.String("error", err.Error()))
 		w.Header().Set("Content-Type", "text/plain")
 		w.WriteHeader(500)
 		w.Write([]byte(`Internal Server Error`))
@@ -49,9 +53,9 @@ func (m *AuthPortal) HandleWhoami(w http.ResponseWriter, r *http.Request, opts m
 	}
 	resp.Data["token"] = string(prettyTokenMap)
 
-	content, err := m.uiFactory.Render("whoami", resp)
+	content, err := uiFactory.Render("whoami", resp)
 	if err != nil {
-		m.logger.Error("Failed HTML response rendering", zap.String("request_id", reqID), zap.String("error", err.Error()))
+		log.Error("Failed HTML response rendering", zap.String("request_id", reqID), zap.String("error", err.Error()))
 		w.Header().Set("Content-Type", "text/plain")
 		w.WriteHeader(500)
 		w.Write([]byte(`Internal Server Error`))

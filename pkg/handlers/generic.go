@@ -1,16 +1,21 @@
-package portal
+package handlers
 
 import (
 	"encoding/json"
+	"github.com/greenpau/caddy-auth-portal/pkg/ui"
 	"go.uber.org/zap"
 	"net/http"
 )
 
-// HandleGeneric returns generic response page.
-func (m *AuthPortal) HandleGeneric(w http.ResponseWriter, r *http.Request, opts map[string]interface{}) error {
+// ServeGeneric returns generic response page.
+func ServeGeneric(w http.ResponseWriter, r *http.Request, opts map[string]interface{}) error {
 	var title string
 	reqID := opts["request_id"].(string)
 	flow := opts["flow"].(string)
+	log := opts["logger"].(*zap.Logger)
+	ui := opts["ui"].(*ui.UserInterfaceFactory)
+	authURLPath := opts["auth_url_path"].(string)
+
 	statusCode := 200
 	switch flow {
 	case "not_found":
@@ -30,6 +35,12 @@ func (m *AuthPortal) HandleGeneric(w http.ResponseWriter, r *http.Request, opts 
 		statusCode = 400
 	}
 
+	log.Debug("serve generic page",
+		zap.String("request_id", reqID),
+		zap.String("title", title),
+		zap.Int("status_code", statusCode),
+	)
+
 	// If the requested content type is JSON, then output authenticated message
 	if opts["content_type"].(string) == "application/json" {
 		resp := make(map[string]interface{})
@@ -39,7 +50,7 @@ func (m *AuthPortal) HandleGeneric(w http.ResponseWriter, r *http.Request, opts 
 		}
 		payload, err := json.Marshal(resp)
 		if err != nil {
-			m.logger.Error("Failed JSON response rendering", zap.String("request_id", reqID), zap.String("error", err.Error()))
+			log.Error("Failed JSON response rendering", zap.String("request_id", reqID), zap.String("error", err.Error()))
 			w.Header().Set("Content-Type", "text/plain")
 			w.WriteHeader(500)
 			w.Write([]byte(`Internal Server Error`))
@@ -52,10 +63,10 @@ func (m *AuthPortal) HandleGeneric(w http.ResponseWriter, r *http.Request, opts 
 	}
 
 	// Display main authentication portal page
-	resp := m.uiFactory.GetArgs()
+	resp := ui.GetArgs()
 	resp.Title = title
 	resp.Data = make(map[string]interface{})
-	resp.Data["go_back_url"] = m.AuthURLPath
+	resp.Data["go_back_url"] = authURLPath
 	if opts["authenticated"].(bool) {
 		resp.Data["authenticated"] = true
 		referer := r.Referer()
@@ -65,9 +76,9 @@ func (m *AuthPortal) HandleGeneric(w http.ResponseWriter, r *http.Request, opts 
 	} else {
 		resp.Data["authenticated"] = false
 	}
-	content, err := m.uiFactory.Render("generic", resp)
+	content, err := ui.Render("generic", resp)
 	if err != nil {
-		m.logger.Error("Failed HTML response rendering", zap.String("request_id", reqID), zap.String("error", err.Error()))
+		log.Error("Failed HTML response rendering", zap.String("request_id", reqID), zap.String("error", err.Error()))
 		w.Header().Set("Content-Type", "text/plain")
 		w.WriteHeader(500)
 		w.Write([]byte(`Internal Server Error`))

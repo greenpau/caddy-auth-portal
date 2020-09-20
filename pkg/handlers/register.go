@@ -1,39 +1,43 @@
-package portal
+package handlers
 
 import (
+	"github.com/greenpau/caddy-auth-portal/pkg/registration"
+	"github.com/greenpau/caddy-auth-portal/pkg/ui"
+	"github.com/greenpau/caddy-auth-portal/pkg/validators"
 	"github.com/greenpau/go-identity"
 	"go.uber.org/zap"
 	"net/http"
 )
 
-// HandleRegister returns registration page.
-func (m *AuthPortal) HandleRegister(w http.ResponseWriter, r *http.Request, opts map[string]interface{}) error {
+// ServeRegister returns registration page.
+func ServeRegister(w http.ResponseWriter, r *http.Request, opts map[string]interface{}) error {
+	reqID := opts["request_id"].(string)
+	log := opts["logger"].(*zap.Logger)
+	uiFactory := opts["ui"].(*ui.UserInterfaceFactory)
+	authURLPath := opts["auth_url_path"].(string)
+	registration := opts["registration"].(*registration.Registration)
+	registrationDatabase := opts["registration_db"].(*identity.Database)
+
 	var message string
 	var maxBytesLimit int64 = 1000
 	var minBytesLimit int64 = 15
 	var userHandle, userMail, userSecret, userSecretConfirm, userCode string
 	var userAccept, validUserRegistration bool
-	reqID := opts["request_id"].(string)
 
 	if opts["authenticated"].(bool) {
-		w.Header().Set("Location", m.AuthURLPath)
+		w.Header().Set("Location", authURLPath)
 		w.WriteHeader(302)
 		return nil
 	}
 
-	if m.UserRegistration.Disabled {
+	if registration.Dropbox == "" {
 		opts["flow"] = "unsupported_feature"
-		return m.HandleGeneric(w, r, opts)
+		return ServeGeneric(w, r, opts)
 	}
 
-	if m.UserRegistration.Dropbox == "" {
-		opts["flow"] = "unsupported_feature"
-		return m.HandleGeneric(w, r, opts)
-	}
-
-	if m.UserRegistration.db == nil {
+	if registrationDatabase == nil {
 		opts["flow"] = "internal_server_error"
-		return m.HandleGeneric(w, r, opts)
+		return ServeGeneric(w, r, opts)
 	}
 
 	if msg, exists := opts["message"]; exists {
@@ -47,14 +51,14 @@ func (m *AuthPortal) HandleRegister(w http.ResponseWriter, r *http.Request, opts
 	// If the requested content type is JSON, then handle it separately.
 	if opts["content_type"].(string) == "application/json" {
 		opts["flow"] = "unsupported_feature"
-		return m.HandleGeneric(w, r, opts)
+		return ServeGeneric(w, r, opts)
 	}
 
 	// Handle registration submission
 	if r.Method == "POST" {
 		validUserRegistration = true
 		if r.ContentLength > maxBytesLimit || r.ContentLength < minBytesLimit {
-			m.logger.Warn(
+			log.Warn(
 				"request payload violated limits",
 				zap.String("request_id", reqID),
 				zap.Int64("min_size_limit", minBytesLimit),
@@ -62,21 +66,21 @@ func (m *AuthPortal) HandleRegister(w http.ResponseWriter, r *http.Request, opts
 				zap.Int64("request_size", r.ContentLength),
 			)
 			opts["flow"] = "policy_violation"
-			return m.HandleGeneric(w, r, opts)
+			return ServeGeneric(w, r, opts)
 		}
 		if r.Header.Get("Content-Type") != "application/x-www-form-urlencoded" {
-			m.logger.Warn(
+			log.Warn(
 				"request payload violated content type",
 				zap.String("request_id", reqID),
 				zap.String("request_content_type", r.Header.Get("Content-Type")),
 				zap.String("expected_content_type", "application/x-www-form-urlencoded"),
 			)
 			opts["flow"] = "policy_violation"
-			return m.HandleGeneric(w, r, opts)
+			return ServeGeneric(w, r, opts)
 		}
 
 		if err := r.ParseForm(); err != nil {
-			m.logger.Warn(
+			log.Warn(
 				"failed parsing submitted form",
 				zap.String("request_id", reqID),
 				zap.String("error", err.Error()),
@@ -102,7 +106,7 @@ func (m *AuthPortal) HandleRegister(w http.ResponseWriter, r *http.Request, opts
 					}
 				case "submit":
 				default:
-					m.logger.Warn(
+					log.Warn(
 						"request payload contains unsupported field",
 						zap.String("request_id", reqID),
 						zap.String("field_name", k),
@@ -120,14 +124,14 @@ func (m *AuthPortal) HandleRegister(w http.ResponseWriter, r *http.Request, opts
 			message = "Failed processing the registration form due to mismatched passwords"
 		}
 
-		if m.UserRegistration.Code != "" {
-			if userCode != m.UserRegistration.Code {
+		if registration.Code != "" {
+			if userCode != registration.Code {
 				validUserRegistration = false
 				message = "Failed processing the registration form due to invalid verification code"
 			}
 		}
 
-		if m.UserRegistration.RequireAcceptTerms {
+		if registration.RequireAcceptTerms {
 			if !userAccept {
 				validUserRegistration = false
 				message = "Failed processing the registration form due to the failure to accept terms and conditions"
@@ -141,29 +145,29 @@ func (m *AuthPortal) HandleRegister(w http.ResponseWriter, r *http.Request, opts
 			switch k {
 			case "username":
 				handleOpts := make(map[string]interface{})
-				if err := validateUserInput("handle", userHandle, handleOpts); err != nil {
+				if err := validators.ValidateUserInput("handle", userHandle, handleOpts); err != nil {
 					validUserRegistration = false
 					message = "Failed processing the registration form due " + err.Error()
 				}
 			case "password":
 				secretOpts := make(map[string]interface{})
-				if err := validateUserInput("secret", userSecret, secretOpts); err != nil {
+				if err := validators.ValidateUserInput("secret", userSecret, secretOpts); err != nil {
 					validUserRegistration = false
 					message = "Failed processing the registration form due " + err.Error()
 				}
 			case "email":
 				emailOpts := make(map[string]interface{})
-				if m.UserRegistration.RequireDomainMailRecord {
+				if registration.RequireDomainMailRecord {
 					emailOpts["check_domain_mx"] = true
 				}
-				if err := validateUserInput(k, userMail, emailOpts); err != nil {
+				if err := validators.ValidateUserInput(k, userMail, emailOpts); err != nil {
 					validUserRegistration = false
 					message = "Failed processing the registration form due " + err.Error()
 				}
 			}
 		}
 		if !validUserRegistration {
-			m.logger.Warn(
+			log.Warn(
 				"failed registration",
 				zap.String("request_id", reqID),
 				zap.String("error", message),
@@ -172,19 +176,19 @@ func (m *AuthPortal) HandleRegister(w http.ResponseWriter, r *http.Request, opts
 	}
 
 	// Display registration page
-	resp := m.uiFactory.GetArgs()
+	resp := uiFactory.GetArgs()
 	resp.Data = make(map[string]interface{})
-	if m.UserRegistration.Title == "" {
+	if registration.Title == "" {
 		resp.Title = "Sign Up"
 	} else {
-		resp.Title = m.UserRegistration.Title
+		resp.Title = registration.Title
 	}
 
-	if m.UserRegistration.RequireAcceptTerms {
+	if registration.RequireAcceptTerms {
 		resp.Data["require_accept_terms"] = true
 	}
 
-	if m.UserRegistration.Code != "" {
+	if registration.Code != "" {
 		resp.Data["require_registration_code"] = true
 	}
 
@@ -198,7 +202,7 @@ func (m *AuthPortal) HandleRegister(w http.ResponseWriter, r *http.Request, opts
 		if err := user.AddPassword(userSecret); err != nil {
 			validUserRegistration = false
 			message = "Internal Server Error"
-			m.logger.Warn("failed associating password during registration",
+			log.Warn("failed associating password during registration",
 				zap.String("request_id", reqID),
 				zap.String("error", err.Error()),
 			)
@@ -206,7 +210,7 @@ func (m *AuthPortal) HandleRegister(w http.ResponseWriter, r *http.Request, opts
 		if err := user.AddEmailAddress(userMail); err != nil {
 			validUserRegistration = false
 			message = "Internal Server Error"
-			m.logger.Warn("failed associating email address during registration",
+			log.Warn("failed associating email address during registration",
 				zap.String("request_id", reqID),
 				zap.String("error", err.Error()),
 			)
@@ -214,29 +218,29 @@ func (m *AuthPortal) HandleRegister(w http.ResponseWriter, r *http.Request, opts
 		if err := user.AddRole("registration_pending"); err != nil {
 			validUserRegistration = false
 			message = "Internal Server Error"
-			m.logger.Warn("failed associating user role during registration",
+			log.Warn("failed associating user role during registration",
 				zap.String("request_id", reqID),
 				zap.String("error", err.Error()),
 			)
 		}
-		if err := m.UserRegistration.db.AddUser(user); err != nil {
+		if err := registrationDatabase.AddUser(user); err != nil {
 			validUserRegistration = false
-			message = "Internal Server Error"
-			m.logger.Warn("failed adding user to registration database",
+			message = "Failed Registration"
+			log.Warn("failed adding user to registration database",
 				zap.String("request_id", reqID),
 				zap.String("error", err.Error()),
 			)
 		}
-		if err := m.UserRegistration.db.SaveToFile(m.UserRegistration.Dropbox); err != nil {
+		if err := registrationDatabase.SaveToFile(registration.Dropbox); err != nil {
 			validUserRegistration = false
 			message = "Internal Server Error"
-			m.logger.Warn("failed saving registration database",
+			log.Warn("failed saving registration database",
 				zap.String("request_id", reqID),
 				zap.String("error", err.Error()),
 			)
 		}
 		if validUserRegistration {
-			m.logger.Info("Processed registration",
+			log.Info("Processed registration",
 				zap.String("request_id", reqID),
 				zap.String("username", userHandle),
 				zap.String("email", userMail),
@@ -257,9 +261,9 @@ func (m *AuthPortal) HandleRegister(w http.ResponseWriter, r *http.Request, opts
 		}
 	}
 
-	content, err := m.uiFactory.Render("register", resp)
+	content, err := uiFactory.Render("register", resp)
 	if err != nil {
-		m.logger.Error("Failed HTML response rendering", zap.String("request_id", reqID), zap.String("error", err.Error()))
+		log.Error("Failed HTML response rendering", zap.String("request_id", reqID), zap.String("error", err.Error()))
 		w.Header().Set("Content-Type", "text/plain")
 		w.WriteHeader(500)
 		w.Write([]byte(`Internal Server Error`))

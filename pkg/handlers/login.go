@@ -1,64 +1,29 @@
-package portal
+package handlers
 
 import (
 	"encoding/json"
-	jwt "github.com/greenpau/caddy-auth-jwt"
+	"github.com/greenpau/caddy-auth-jwt"
+	"github.com/greenpau/caddy-auth-portal/pkg/cookies"
+	"github.com/greenpau/caddy-auth-portal/pkg/ui"
 	"go.uber.org/zap"
 	"net/http"
 	"net/url"
 )
 
-// HandleLogin returns login page or performs authentication.
-func (m *AuthPortal) HandleLogin(w http.ResponseWriter, r *http.Request, opts map[string]interface{}) error {
+// ServeLogin returns login page or performs authentication.
+func ServeLogin(w http.ResponseWriter, r *http.Request, opts map[string]interface{}) error {
 	reqID := opts["request_id"].(string)
+	log := opts["logger"].(*zap.Logger)
+	uiFactory := opts["ui"].(*ui.UserInterfaceFactory)
+	authURLPath := opts["auth_url_path"].(string)
+	tokenName := opts["token_name"].(string)
+	tokenSecret := opts["token_secret"].(string)
+	cookies := opts["cookies"].(*cookies.Cookies)
+	redirectToToken := opts["redirect_token_name"].(string)
+	authorized := false
 
-	if opts["authenticated"].(bool) {
-		w.Header().Set("Location", m.AuthURLPath+"/portal")
-		w.WriteHeader(302)
-		return nil
-	}
-
-	// Authenticating the request
-	if credentials, err := parseCredentials(r); err == nil {
-		if credentials != nil {
-			opts["auth_credentials_found"] = true
-			for _, backend := range m.Backends {
-				if backend.GetRealm() != credentials["realm"] {
-					continue
-				}
-				opts["auth_backend_found"] = true
-				if claims, code, err := backend.Authenticate(reqID, credentials); err != nil {
-					opts["message"] = "Authentication failed"
-					opts["status_code"] = code
-					m.logger.Warn("Authentication failed",
-						zap.String("request_id", reqID),
-						zap.String("error", err.Error()),
-					)
-				} else {
-					opts["user_claims"] = claims
-					opts["authenticated"] = true
-					opts["status_code"] = 200
-					m.logger.Debug("Authentication succeeded",
-						zap.String("request_id", reqID),
-						zap.Any("user", claims),
-					)
-				}
-			}
-			if !opts["auth_backend_found"].(bool) {
-				opts["status_code"] = 500
-				m.logger.Warn("Authentication failed",
-					zap.String("request_id", reqID),
-					zap.String("error", "no matching auth backend found"),
-				)
-			}
-		}
-	} else {
-		opts["message"] = "Authentication failed"
-		opts["status_code"] = 400
-		m.logger.Warn("Authentication failed",
-			zap.String("request_id", reqID),
-			zap.String("error", err.Error()),
-		)
+	if v, exists := opts["authorized"]; exists {
+		authorized = v.(bool)
 	}
 
 	if _, exists := opts["status_code"]; !exists {
@@ -67,7 +32,7 @@ func (m *AuthPortal) HandleLogin(w http.ResponseWriter, r *http.Request, opts ma
 
 	// Remove tokens when authentication failed
 	if opts["auth_credentials_found"].(bool) && !opts["authenticated"].(bool) {
-		for _, k := range []string{m.TokenProvider.TokenName} {
+		for _, k := range []string{tokenName} {
 			w.Header().Add("Set-Cookie", k+"=delete; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT")
 		}
 	}
@@ -77,9 +42,9 @@ func (m *AuthPortal) HandleLogin(w http.ResponseWriter, r *http.Request, opts ma
 	w.Header().Set("Pragma", "no-cache")
 
 	// Create JWT token
-	if opts["authenticated"].(bool) {
+	if opts["authenticated"].(bool) && !authorized {
 		claims := opts["user_claims"].(*jwt.UserClaims)
-		userToken, err := claims.GetToken("HS512", []byte(m.TokenProvider.TokenSecret))
+		userToken, err := claims.GetToken("HS512", []byte(tokenSecret))
 		if err != nil {
 			opts["status_code"] = 500
 			opts["authenticated"] = false
@@ -87,20 +52,20 @@ func (m *AuthPortal) HandleLogin(w http.ResponseWriter, r *http.Request, opts ma
 		} else {
 			opts["user_token"] = userToken
 			w.Header().Set("Authorization", "Bearer "+userToken)
-			w.Header().Set("Set-Cookie", m.TokenProvider.TokenName+"="+userToken+";"+m.Cookies.GetAttributes())
+			w.Header().Set("Set-Cookie", tokenName+"="+userToken+";"+cookies.GetAttributes())
 		}
 	}
 
 	// If the requested content type is JSON, then handle it separately.
 	if opts["content_type"].(string) == "application/json" {
-		return m.HandleAPILogin(w, r, opts)
+		return ServeAPILogin(w, r, opts)
 	}
 
 	// Follow redirect URL when authenticated.
 	if opts["authenticated"].(bool) {
 		if cookie, err := r.Cookie(redirectToToken); err == nil {
 			if redirectURL, err := url.Parse(cookie.Value); err == nil {
-				m.logger.Debug(
+				log.Debug(
 					"detected cookie-based redirect",
 					zap.String("request_id", reqID),
 					zap.String("redirect_url", redirectURL.String()),
@@ -115,25 +80,26 @@ func (m *AuthPortal) HandleLogin(w http.ResponseWriter, r *http.Request, opts ma
 
 	// If authenticated, redirect to portal.
 	if opts["authenticated"].(bool) {
-		w.Header().Set("Location", m.AuthURLPath+"/portal")
+		w.Header().Set("Location", authURLPath+"/portal")
 		w.WriteHeader(302)
 		return nil
 	}
 
 	// Display login page
-	resp := m.uiFactory.GetArgs()
-	if m.UserInterface.Title == "" {
-		resp.Title = "Sign In"
+	resp := uiFactory.GetArgs()
+	if title, exists := opts["ui_title"]; exists {
+		resp.Title = title.(string)
 	} else {
-		resp.Title = m.UserInterface.Title
+		resp.Title = "Sign In"
 	}
+
 	if msg, exists := opts["message"]; exists {
 		resp.Message = msg.(string)
 	}
 
-	content, err := m.uiFactory.Render("login", resp)
+	content, err := uiFactory.Render("login", resp)
 	if err != nil {
-		m.logger.Error("Failed HTML response rendering", zap.String("request_id", reqID), zap.String("error", err.Error()))
+		log.Error("Failed HTML response rendering", zap.String("request_id", reqID), zap.String("error", err.Error()))
 		w.Header().Set("Content-Type", "text/plain")
 		w.WriteHeader(500)
 		w.Write([]byte(`Internal Server Error`))
@@ -146,13 +112,16 @@ func (m *AuthPortal) HandleLogin(w http.ResponseWriter, r *http.Request, opts ma
 	return nil
 }
 
-// HandleAPILogin returns authentication response in JSON format.
-func (m *AuthPortal) HandleAPILogin(w http.ResponseWriter, r *http.Request, opts map[string]interface{}) error {
+// ServeAPILogin returns authentication response in JSON format.
+func ServeAPILogin(w http.ResponseWriter, r *http.Request, opts map[string]interface{}) error {
 	reqID := opts["request_id"].(string)
+	log := opts["logger"].(*zap.Logger)
 	resp := make(map[string]interface{})
 	if opts["authenticated"].(bool) {
 		resp["authenticated"] = true
-		resp[m.TokenProvider.TokenName] = opts["user_token"].(string)
+		tokenName := opts["token_name"].(string)
+		tokenValue := opts["user_token"].(string)
+		resp[tokenName] = tokenValue
 	} else {
 		resp["authenticated"] = false
 		if opts["auth_credentials_found"].(bool) {
@@ -168,7 +137,7 @@ func (m *AuthPortal) HandleAPILogin(w http.ResponseWriter, r *http.Request, opts
 	}
 	payload, err := json.Marshal(resp)
 	if err != nil {
-		m.logger.Error("Failed JSON response rendering", zap.String("request_id", reqID), zap.String("error", err.Error()))
+		log.Error("Failed JSON response rendering", zap.String("request_id", reqID), zap.String("error", err.Error()))
 		w.Header().Set("Content-Type", "text/plain")
 		w.WriteHeader(500)
 		w.Write([]byte(`Internal Server Error`))

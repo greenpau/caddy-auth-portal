@@ -7,7 +7,8 @@ import (
 	//"strings"
 	"github.com/greenpau/caddy-auth-jwt"
 	"github.com/greenpau/caddy-auth-portal/pkg/cookies"
-	"github.com/greenpau/caddy-auth-ui"
+	"github.com/greenpau/caddy-auth-portal/pkg/registration"
+	"github.com/greenpau/caddy-auth-portal/pkg/ui"
 	"github.com/greenpau/go-identity"
 	"sync"
 )
@@ -18,6 +19,7 @@ var defaultPages = map[string]string{
 	"whoami":   "forms_whoami",
 	"register": "forms_register",
 	"generic":  "forms_generic",
+	"settings": "forms_settings",
 }
 
 // AuthPortalPool provides access to all instances of the plugin.
@@ -174,7 +176,7 @@ func (p *AuthPortalPool) Register(m *AuthPortal) error {
 
 		// Setup User Registration
 		if m.UserRegistration == nil {
-			m.UserRegistration = &UserRegistrationParameters{}
+			m.UserRegistration = &registration.Registration{}
 		}
 		if m.UserRegistration.Title == "" {
 			m.UserRegistration.Title = "Sign Up"
@@ -183,12 +185,12 @@ func (p *AuthPortalPool) Register(m *AuthPortal) error {
 			m.UserRegistration.Disabled = true
 		}
 		if !m.UserRegistration.Disabled {
-			if m.UserRegistration.db == nil {
-				m.UserRegistration.db = identity.NewDatabase()
+			if m.UserRegistrationDatabase == nil {
+				m.UserRegistrationDatabase = identity.NewDatabase()
 				fileInfo, err := os.Stat(m.UserRegistration.Dropbox)
 				if err != nil {
 					if os.IsNotExist(err) {
-						if err := m.UserRegistration.db.SaveToFile(m.UserRegistration.Dropbox); err != nil {
+						if err := m.UserRegistrationDatabase.SaveToFile(m.UserRegistration.Dropbox); err != nil {
 							return fmt.Errorf("%s: registration dropbox setup failed: %s", m.Name, err)
 						}
 					} else {
@@ -199,7 +201,7 @@ func (p *AuthPortalPool) Register(m *AuthPortal) error {
 						return fmt.Errorf("%s: registration dropbox is a directory", m.Name)
 					}
 				}
-				if err := m.UserRegistration.db.LoadFromFile(m.UserRegistration.Dropbox); err != nil {
+				if err := m.UserRegistrationDatabase.LoadFromFile(m.UserRegistration.Dropbox); err != nil {
 					return fmt.Errorf("%s: registration dropbox load failed: %s", m.Name, err)
 				}
 			}
@@ -419,15 +421,8 @@ func (p *AuthPortalPool) Provision(name string) error {
 	}
 
 	// Setup User Registration
-	if m.UserRegistration == nil {
-		m.UserRegistration = &UserRegistrationParameters{}
-	}
-	if m.UserRegistration.Code == "" {
-		m.UserRegistration.Code = primaryInstance.UserRegistration.Code
-	}
-	if m.UserRegistration.Title == "" {
-		m.UserRegistration.Title = primaryInstance.UserRegistration.Title
-	}
+	m.UserRegistration = primaryInstance.UserRegistration
+	m.UserRegistrationDatabase = primaryInstance.UserRegistrationDatabase
 
 	// User Interface Settings
 	if m.UserInterface == nil {

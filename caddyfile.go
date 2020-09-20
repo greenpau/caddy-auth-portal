@@ -16,39 +16,22 @@ package portal
 
 import (
 	"encoding/json"
-	"os"
 	"strings"
 
-	jwt "github.com/greenpau/caddy-auth-jwt"
+	"github.com/greenpau/caddy-auth-jwt"
 	"github.com/greenpau/caddy-auth-portal/pkg/cookies"
+	"github.com/greenpau/caddy-auth-portal/pkg/registration"
 	"github.com/greenpau/caddy-auth-portal/pkg/utils"
-	ui "github.com/greenpau/caddy-auth-ui"
+	"github.com/greenpau/caddy-auth-portal/pkg/ui"
 
 	"github.com/caddyserver/caddy/v2"
 	"github.com/caddyserver/caddy/v2/caddyconfig"
 	"github.com/caddyserver/caddy/v2/caddyconfig/httpcaddyfile"
 	"github.com/caddyserver/caddy/v2/modules/caddyhttp"
-	"go.uber.org/zap"
-	"go.uber.org/zap/zapcore"
 )
 
 func init() {
 	httpcaddyfile.RegisterDirective("auth_portal", parseCaddyfileAuthPortal)
-}
-
-func initCaddyfileLogger() *zap.Logger {
-	logAtom := zap.NewAtomicLevel()
-	logAtom.SetLevel(zapcore.DebugLevel)
-	logEncoderConfig := zap.NewProductionEncoderConfig()
-	logEncoderConfig.EncodeTime = zapcore.ISO8601TimeEncoder
-	logEncoderConfig.TimeKey = "time"
-	logger := zap.New(zapcore.NewCore(
-		zapcore.NewJSONEncoder(logEncoderConfig),
-		zapcore.Lock(os.Stdout),
-		logAtom,
-	))
-	return logger
-
 }
 
 // parseCaddyfileAuthPortal sets up an authentication portal. Syntax:
@@ -99,12 +82,12 @@ func parseCaddyfileAuthPortal(h httpcaddyfile.Helper) ([]httpcaddyfile.ConfigVal
 		UserInterface: &UserInterfaceParameters{
 			Templates: make(map[string]string),
 		},
-		UserRegistration: &UserRegistrationParameters{},
+		UserRegistration: &registration.Registration{},
 		Cookies:          &cookies.Cookies{},
 		Backends:         []Backend{},
 	}
 
-	// logger := initCaddyfileLogger()
+	// logger := utils.NewLogger()
 
 	for h.Next() {
 		args := h.RemainingArgs()

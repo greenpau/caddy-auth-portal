@@ -14,6 +14,9 @@ Please ask questions either here or via LinkedIn. I am happy to help you! @green
 
 * [Overview](#overview)
 * [Authentication Portal](#authentication-portal)
+  * [User Identity](#user-identity)
+  * [User Settings](#user-settings)
+* [Authorization Cookie](#authorization-cookie)
 * [Usage Examples](#usage-examples)
   * [Secure Prometheus](#secure-prometheus)
 * [Authentication Methods](#authentication-methods)
@@ -21,6 +24,7 @@ Please ask questions either here or via LinkedIn. I am happy to help you! @green
   * [Form-Based Authentication](#form-based-authentication)
 * [User Interface Features](#user-interface-features)
   * [Auto-Redirect URL](#auto-redirect-url)
+  * [User Registration](#user-registration)
 * [Local Authentication Backend](#local-authentication-backend)
   * [Configuration Primer](#configuration-primer)
   * [Identity Store](#identity-store)
@@ -59,13 +63,27 @@ The following digram is visual representation of the configuration of
 <table cellspacing="0" cellpadding="0" style="border-collapse: collapse; border: none; vertical-align: top;">
   <tr style="border: none;">
     <td style="border: none; vertical-align: top;">
-      <img src="https://raw.githubusercontent.com/greenpau/caddy-auth-ui/main/assets/docs/_static/images/forms_login.png">
+      <img src="https://raw.githubusercontent.com/greenpau/caddy-auth-portal/main/assets/docs/images/forms_login.png">
     </td>
     <td style="border: none; vertical-align: top;">
-      <img src="https://raw.githubusercontent.com/greenpau/caddy-auth-ui/main/assets/docs/_static/images/forms_portal.png">
+      <img src="https://raw.githubusercontent.com/greenpau/caddy-auth-portal/main/assets/docs/images/forms_portal.png">
     </td>
   </tr>
 </table>
+
+### User Identity
+
+The following screenshot is from `/auth/whoami` endpoint:
+
+<img src="https://raw.githubusercontent.com/greenpau/caddy-auth-portal/main/assets/docs/images/whoami.png">
+
+### User Settings
+
+The following screenshot is from `/auth/settings/` endpoint:
+
+<img src="https://raw.githubusercontent.com/greenpau/caddy-auth-portal/main/assets/docs/images/settings.png">
+
+## Authorization Cookie
 
 The following `Caddyfile` settings define the scope of the cookies issued by
 the plugin. Specifically, what URLs the cookies should be sent to.
@@ -349,7 +367,7 @@ The plugin creates the following a file having the following structure.
 
 Finally, browse to `/auth` and login with the username and password:
 
-<img src="https://raw.githubusercontent.com/greenpau/caddy-auth-ui/main/assets/docs/_static/images/forms_login.png">
+<img src="https://raw.githubusercontent.com/greenpau/caddy-auth-portal/main/assets/docs/images/forms_login.png">
 
 ### Password Management
 
