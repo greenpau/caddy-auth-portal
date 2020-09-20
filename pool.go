@@ -8,7 +8,7 @@ import (
 	"github.com/greenpau/caddy-auth-jwt"
 	"github.com/greenpau/caddy-auth-portal/pkg/cookies"
 	"github.com/greenpau/caddy-auth-portal/pkg/registration"
-	"github.com/greenpau/caddy-auth-ui"
+	"github.com/greenpau/caddy-auth-portal/pkg/ui"
 	"github.com/greenpau/go-identity"
 	"sync"
 )
@@ -19,6 +19,7 @@ var defaultPages = map[string]string{
 	"whoami":   "forms_whoami",
 	"register": "forms_register",
 	"generic":  "forms_generic",
+	"settings": "forms_settings",
 }
 
 // AuthPortalPool provides access to all instances of the plugin.

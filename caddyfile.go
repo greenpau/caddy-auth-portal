@@ -22,7 +22,7 @@ import (
 	"github.com/greenpau/caddy-auth-portal/pkg/cookies"
 	"github.com/greenpau/caddy-auth-portal/pkg/registration"
 	"github.com/greenpau/caddy-auth-portal/pkg/utils"
-	"github.com/greenpau/caddy-auth-ui"
+	"github.com/greenpau/caddy-auth-portal/pkg/ui"
 
 	"github.com/caddyserver/caddy/v2"
 	"github.com/caddyserver/caddy/v2/caddyconfig"

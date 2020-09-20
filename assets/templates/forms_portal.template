@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <title>{{ .Title }}</title>
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <meta name="description" content="">
+    <meta name="author" content="">
+    <link rel="shortcut icon" href="/favicon.ico" type="image/x-icon">
+    <link rel="icon" href="/favicon.ico" type="image/x-icon">
+
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css" integrity="sha256-OweaP/Ic6rsV+lysfyS4h+LM6sRwuO3euTYfr6M124g=" crossorigin="anonymous" />
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.1/styles/atom-one-dark.min.css" integrity="sha256-GA29iW/iYj9FcuQQktvW45pRzHvZeFfgeFvA4tGVjpM=" crossorigin="anonymous" />
+    <style>
+      body {
+        font-family: 'Roboto', sans-serif;
+        font-size: 1.25rem;
+      }
+      input {
+        font-family: 'Roboto', sans-serif;
+      }
+      .app-background {
+        background-color: #155D56;
+      }
+      .app-header {
+        color: #EE6E73;
+      }
+      .toast-error {
+        // restyle post
+      }
+      .navbtn {
+        font-family: 'Roboto', sans-serif;
+      }
+      .navbtn-last {
+        margin-right: 0px !important;
+      }
+      input:-webkit-autofill,
+      input:-webkit-autofill:hover, 
+      input:-webkit-autofill:focus, 
+      input:-webkit-autofill:active  {
+          -webkit-box-shadow: 0 0 0 30px white inset !important;
+      }
+    </style>
+  </head>
+  <body class="app-background">
+    <div class="container hide-on-med-and-up no-padding" style="height: 5vh !important;"></div>
+    <div class="container hide-on-small-only no-padding" style="height: 10vh !important;"></div>
+    <div class="container app-container">
+      <div class="row">
+        <div class="col s12 m6 offset-m3 l4 offset-l4 app-card-container">
+          <div class="card card-large app-card">
+            <div class="card-content">
+              <span class="card-title center-align">
+                <div class="section app-header">
+                  {{ if .LogoURL }}
+                  <img class="d-block mx-auto mb-2" src="{{ .LogoURL }}" alt="{{ .LogoDescription }}" width="72" height="72">
+                  {{ end }}
+                  <h4>{{ .Title }}</h4>
+                </div>
+              </span>
+              <p>Access the following services.</p>
+              <ul class="collection">
+                {{range .PrivateLinks}}
+                <li class="collection-item">
+                  <a href="{{ .Link }}">{{ .Title }}</a>
+                </li>
+                {{ end }}
+              </ul>
+            </div>
+            <div class="card-action right-align">
+              <a href="{{ .ActionEndpoint }}/logout" class="navbtn-last">
+                <button type="button" class="btn waves-effect waves-light navbtn active navbtn-last">
+                  <span class="white-text"><i class="material-icons left">power_settings_new</i>Logout</span>
+                </button>
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Optional JavaScript -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js" integrity="sha256-U/cHDMTIHCeMcvehBv1xQ052bPSbJtbuiw4QA9cTKz0=" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.1/highlight.min.js" integrity="sha256-eOgo0OtLL4cdq7RdwRUiGKLX9XsIJ7nGhWEKbohmVAQ=" crossorigin="anonymous"></script>
+    {{ if .Message }}
+    <script>
+    var toastHTML = '<span>{{ .Message }}</span><button class="btn-flat toast-action" onclick="M.Toast.dismissAll();">Close</button>';
+    toastElement = M.toast({
+      html: toastHTML,
+      classes: 'toast-error'
+    });
+    const appContainer = document.querySelector('.app-card-container')
+    appContainer.prepend(toastElement.el)
+    </script>
+    {{ end }}
+  </body>
+</html>

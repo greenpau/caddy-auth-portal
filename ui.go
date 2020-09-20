@@ -1,7 +1,7 @@
 package portal
 
 import (
-	"github.com/greenpau/caddy-auth-ui"
+	"github.com/greenpau/caddy-auth-portal/pkg/ui"
 )
 
 // UserInterfaceParameters represent a common set of configuration settings

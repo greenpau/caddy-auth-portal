@@ -59,10 +59,10 @@ The following digram is visual representation of the configuration of
 <table cellspacing="0" cellpadding="0" style="border-collapse: collapse; border: none; vertical-align: top;">
   <tr style="border: none;">
     <td style="border: none; vertical-align: top;">
-      <img src="https://raw.githubusercontent.com/greenpau/caddy-auth-ui/main/assets/docs/_static/images/forms_login.png">
+      <img src="https://raw.githubusercontent.com/greenpau/caddy-auth-portal/main/assets/docs/images/forms_login.png">
     </td>
     <td style="border: none; vertical-align: top;">
-      <img src="https://raw.githubusercontent.com/greenpau/caddy-auth-ui/main/assets/docs/_static/images/forms_portal.png">
+      <img src="https://raw.githubusercontent.com/greenpau/caddy-auth-portal/main/assets/docs/images/forms_portal.png">
     </td>
   </tr>
 </table>
@@ -349,7 +349,7 @@ The plugin creates the following a file having the following structure.
 
 Finally, browse to `/auth` and login with the username and password:
 
-<img src="https://raw.githubusercontent.com/greenpau/caddy-auth-ui/main/assets/docs/_static/images/forms_login.png">
+<img src="https://raw.githubusercontent.com/greenpau/caddy-auth-portal/main/assets/docs/images/forms_login.png">
 
 ### Password Management
 

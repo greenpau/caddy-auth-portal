@@ -12,7 +12,7 @@ import (
 	"github.com/greenpau/caddy-auth-portal/pkg/cookies"
 	"github.com/greenpau/caddy-auth-portal/pkg/handlers"
 	"github.com/greenpau/caddy-auth-portal/pkg/registration"
-	"github.com/greenpau/caddy-auth-ui"
+	"github.com/greenpau/caddy-auth-portal/pkg/ui"
 	"github.com/greenpau/go-identity"
 	"go.uber.org/zap"
 )
@@ -117,7 +117,7 @@ func (m AuthPortal) ServeHTTP(w http.ResponseWriter, r *http.Request, _ caddyhtt
 	opts["redirect_token_name"] = redirectToToken
 
 	urlPath := strings.TrimPrefix(r.URL.Path, m.AuthURLPath)
-	urlPath = strings.TrimLeft(urlPath, "/")
+	urlPath = strings.TrimPrefix(urlPath, "/")
 
 	// Find JWT tokens, if any, and validate them.
 	if claims, authOK, err := m.TokenValidator.Authorize(r, nil); authOK {
@@ -148,7 +148,7 @@ func (m AuthPortal) ServeHTTP(w http.ResponseWriter, r *http.Request, _ caddyhtt
 		}
 		if foundQueryOptions {
 			w.Header().Set("Location", m.AuthURLPath)
-			w.WriteHeader(303)
+			w.WriteHeader(302)
 			return nil
 		}
 	}

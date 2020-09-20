@@ -16,6 +16,7 @@ CADDY_VERSION="v2.1.1"
 all:
 	@echo "Version: $(PLUGIN_VERSION), Branch: $(GIT_BRANCH), Revision: $(GIT_COMMIT)"
 	@echo "Build on $(BUILD_DATE) by $(BUILD_USER)"
+	@./assets/scripts/generate_ui.sh
 	@mkdir -p bin/
 	@rm -rf ./bin/caddy
 	@rm -rf ../xcaddy-$(PLUGIN_NAME)/*
@@ -23,7 +24,6 @@ all:
 		xcaddy build $(CADDY_VERSION) --output ../$(PLUGIN_NAME)/bin/caddy \
 		--with github.com/greenpau/caddy-auth-portal@$(LATEST_GIT_COMMIT)=$(BUILD_DIR) \
 		--with github.com/greenpau/caddy-auth-jwt@latest=$(BUILD_DIR)/../caddy-auth-jwt \
-		--with github.com/greenpau/caddy-auth-ui@latest=$(BUILD_DIR)/../caddy-auth-ui \
 		--with github.com/greenpau/caddy-trace@latest=$(BUILD_DIR)/../caddy-trace
 	@#bin/caddy run -environ -config assets/conf/local/config.json
 

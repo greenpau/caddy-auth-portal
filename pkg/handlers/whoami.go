@@ -3,7 +3,7 @@ package handlers
 import (
 	"encoding/json"
 	"github.com/greenpau/caddy-auth-jwt"
-	"github.com/greenpau/caddy-auth-ui"
+	"github.com/greenpau/caddy-auth-portal/pkg/ui"
 	"go.uber.org/zap"
 	"net/http"
 )

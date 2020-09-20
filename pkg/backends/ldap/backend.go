@@ -184,7 +184,7 @@ func (sa *Authenticator) ConfigureBindCredentials(username, password string) err
 	}
 
 	if strings.HasPrefix(password, "file:") {
-		secretFile := strings.TrimLeft(password, "file:")
+		secretFile := strings.TrimPrefix(password, "file:")
 		sa.logger.Info(
 			"LDAP plugin configuration",
 			zap.String("phase", "bind_credentials"),

@@ -1,11 +1,12 @@
 package handlers
 
 import (
-	"encoding/json"
-	"github.com/greenpau/caddy-auth-jwt"
-	"github.com/greenpau/caddy-auth-ui"
+	// "encoding/json"
+	// "github.com/greenpau/caddy-auth-jwt"
+	"github.com/greenpau/caddy-auth-portal/pkg/ui"
 	"go.uber.org/zap"
 	"net/http"
+	"strings"
 )
 
 // ServeSettings returns authenticated user information.
@@ -14,6 +15,13 @@ func ServeSettings(w http.ResponseWriter, r *http.Request, opts map[string]inter
 	log := opts["logger"].(*zap.Logger)
 	uiFactory := opts["ui"].(*ui.UserInterfaceFactory)
 	authURLPath := opts["auth_url_path"].(string)
+	view := strings.TrimPrefix(r.URL.Path, authURLPath)
+	view = strings.TrimPrefix(view, "/settings")
+	view = strings.TrimPrefix(view, "/")
+	view = strings.Split(view, "/")[0]
+	if view == "" {
+		view = "general"
+	}
 
 	if !opts["authenticated"].(bool) {
 		w.Header().Set("Location", authURLPath+"?redirect_url="+r.RequestURI)
@@ -21,22 +29,12 @@ func ServeSettings(w http.ResponseWriter, r *http.Request, opts map[string]inter
 		return nil
 	}
 
-	claims := opts["user_claims"].(*jwt.UserClaims)
+	// claims := opts["user_claims"].(*jwt.UserClaims)
 
 	// Display main authentication portal page
 	resp := uiFactory.GetArgs()
 	resp.Title = "Settings"
-	tokenMap := claims.AsMap()
-	tokenMap["authenticated"] = true
-	prettyTokenMap, err := json.MarshalIndent(tokenMap, "", "  ")
-	if err != nil {
-		log.Error("Failed token map rendering", zap.String("request_id", reqID), zap.String("error", err.Error()))
-		w.Header().Set("Content-Type", "text/plain")
-		w.WriteHeader(500)
-		w.Write([]byte(`Internal Server Error`))
-		return err
-	}
-	resp.Data["token"] = string(prettyTokenMap)
+	resp.Data["view"] = view
 
 	content, err := uiFactory.Render("settings", resp)
 	if err != nil {
