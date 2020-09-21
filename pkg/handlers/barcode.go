@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"encoding/base64"
 	"github.com/skip2/go-qrcode"
 	"go.uber.org/zap"
 	"net/http"
@@ -16,10 +17,18 @@ func ServeBarcodeImage(w http.ResponseWriter, r *http.Request, opts map[string]i
 	}
 	reqID := opts["request_id"].(string)
 	log := opts["logger"].(*zap.Logger)
-	code := opts["barcode"].(string)
+	code := opts["code_uri_encoded"].(string)
+	codeURI, err := base64.StdEncoding.DecodeString(code)
+	if err != nil {
+		log.Error("Failed decoding QR URI", zap.String("request_id", reqID), zap.String("error", err.Error()))
+		w.Header().Set("Content-Type", "text/plain")
+		w.WriteHeader(500)
+		w.Write([]byte(`Internal Server Error`))
+		return err
+	}
 
 	var png []byte
-	png, err := qrcode.Encode(code, qrcode.Medium, 256)
+	png, err = qrcode.Encode(string(codeURI), qrcode.Medium, 256)
 	if err != nil {
 		log.Error("Failed encoding QR code", zap.String("request_id", reqID), zap.String("error", err.Error()))
 		w.Header().Set("Content-Type", "text/plain")

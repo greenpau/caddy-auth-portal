@@ -917,7 +917,8 @@ var defaultPageTemplates = map[string]string{
                     </div>
                   </div>
                   <div class="col s12 m6 l6">
-                    <div class="center-align"><img src="{{ .ActionEndpoint }}/settings/mfa/barcode/{{ .Data.barcode }}.png" alt="QR Code" /></div>
+                    <div class="center-align"><img src="{{ .ActionEndpoint }}/settings/mfa/barcode/{{ .Data.code_uri_encoded }}.png" alt="QR Code" /></div>
+		    <div class="center-align"><a href="{{ .Data.code_uri }}">Link</a></div>
                   </div>
                 </div>
               </div>
@@ -949,9 +950,6 @@ var defaultPageTemplates = map[string]string{
                         required />
                       <label for="mfacode2">Authentication Code 2</label>
                     </div>
-                  </div>
-                  <div class="col s12 m6 l6">
-                    <img src="{{ .ActionEndpoint }}/settings/mfa/barcode/{{ .Data.barcode }}.png" alt="QR Code" />
                   </div>
                 </div>
               </div>
