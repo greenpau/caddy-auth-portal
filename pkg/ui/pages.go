@@ -882,7 +882,8 @@ var defaultPageTemplates = map[string]string{
           {{ if eq .Data.view "mfa" }}
 	    <div class="row">
 	      <div class="col right">
-                <a class="waves-effect waves-light btn modal-trigger" href="{{ .ActionEndpoint }}/settings/mfa/add/virtual">Add Virtual MFA</a>
+                <a class="waves-effect waves-light btn modal-trigger" href="{{ .ActionEndpoint }}/settings/mfa/add/app">Add MFA App</a>
+                <a class="waves-effect waves-light btn modal-trigger" href="{{ .ActionEndpoint }}/settings/mfa/add/u2f">Add U2F Key</a>
                 <a class="waves-effect waves-light btn modal-trigger" href="{{ .ActionEndpoint }}/settings/mfa/add/hardware">Add Hardware MFA</a>
 	      </div>
             </div>
@@ -894,13 +895,13 @@ var defaultPageTemplates = map[string]string{
             {{ end }}
             </div>
           {{ end }}
-	  {{ if eq .Data.view "mfa-add-virtual" }}
-            <form action="{{ .ActionEndpoint }}/settings/mfa/add/virtual" method="POST">
+	  {{ if eq .Data.view "mfa-add-app" }}
+            <form action="{{ .ActionEndpoint }}/settings/mfa/add/app" method="POST">
               <div class="row">
-                <h1>Add virtual MFA Authenticator</h1>
+                <h1>Add MFA Authenticator Application</h1>
 		<div class="row">
 		  <div class="col s12 m6 l6">
-                    <p>Please add your software-based MFA token, e.g. Microsoft/Google Authenticator, Authy, etc.</p>
+                    <p>Please add your MFA authenticator application, e.g. Microsoft/Google Authenticator, Authy, etc.</p>
                     <p>If your MFA application supports scanning QR codes, scan the following image with its camera.</p>
                     <p>Next, enter two consecutive authentication codes in the boxes below and click "Add" below.</p>
                     <div class="input-field">
@@ -928,6 +929,40 @@ var defaultPageTemplates = map[string]string{
               </div>
             </form>
 	  {{ end }}
+          {{ if eq .Data.view "mfa-add-u2f" }}
+            <form action="{{ .ActionEndpoint }}/settings/mfa/add/u2f" method="POST">
+              <div class="row">
+                <h1>Add U2F Security Key</h1>
+                <div class="row">
+                  <div class="col s12 m6 l6">
+                    <p>Please add your U2F Security Key, e.g. Yubikey.</p>
+                    <p>If your MFA application supports scanning QR codes, scan the following image with its camera.</p>
+                    <p>Next, enter two consecutive authentication codes in the boxes below and click "Add" below.</p>
+                    <div class="input-field">
+                      <input id="mfacode1" name="mfacode1" type="text" class="validate" pattern="[A-Za-z0-9]{4,8}"
+                        title="Authentication code should contain maximum of 25 characters and consists of A-Z, a-z, and 0-9 characters."
+                        required />
+                      <label for="mfacode1">Authentication Code 1</label>
+                    </div>
+                    <div class="input-field">
+                      <input id="mfacode2" name="mfacode2" type="text" class="validate" pattern="[A-Za-z0-9]{4,8}"
+                        title="Authentication code should contain maximum of 25 characters and consists of A-Z, a-z, and 0-9 characters."
+                        required />
+                      <label for="mfacode2">Authentication Code 2</label>
+                    </div>
+                  </div>
+                  <div class="col s12 m6 l6">
+                    <img src="{{ .ActionEndpoint }}/settings/mfa/barcode/{{ .Data.barcode }}.png" alt="QR Code" />
+                  </div>
+                </div>
+              </div>
+              <div class="row right">
+                <button type="submit" name="submit" class="btn waves-effect waves-light">Add
+                  <i class="material-icons left">send</i>
+                </button>
+              </div>
+            </form>
+          {{ end }}
           {{ if eq .Data.view "mfa-add-hardware" }}
             <form action="{{ .ActionEndpoint }}/settings/mfa/add/hardware" method="POST">
               <div class="row">
