@@ -11,22 +11,36 @@ import (
 
 // ServeSettings returns authenticated user information.
 func ServeSettings(w http.ResponseWriter, r *http.Request, opts map[string]interface{}) error {
-	reqID := opts["request_id"].(string)
-	log := opts["logger"].(*zap.Logger)
-	uiFactory := opts["ui"].(*ui.UserInterfaceFactory)
 	authURLPath := opts["auth_url_path"].(string)
-	view := strings.TrimPrefix(r.URL.Path, authURLPath)
-	view = strings.TrimPrefix(view, "/settings")
-	view = strings.TrimPrefix(view, "/")
-	view = strings.Split(view, "/")[0]
-	if view == "" {
-		view = "general"
-	}
-
 	if !opts["authenticated"].(bool) {
 		w.Header().Set("Location", authURLPath+"?redirect_url="+r.RequestURI)
 		w.WriteHeader(302)
 		return nil
+	}
+	reqID := opts["request_id"].(string)
+	log := opts["logger"].(*zap.Logger)
+	uiFactory := opts["ui"].(*ui.UserInterfaceFactory)
+	view := strings.TrimPrefix(r.URL.Path, authURLPath)
+	view = strings.TrimPrefix(view, "/settings")
+	view = strings.TrimPrefix(view, "/")
+	viewParts := strings.Split(view, "/")
+	view = viewParts[0]
+	if view == "" {
+		view = "general"
+	}
+
+	switch view {
+	case "mfa":
+		if len(viewParts) > 1 {
+			switch viewParts[1] {
+			case "barcode":
+				opts["barcode"] = "test"
+				return ServeBarcodeImage(w, r, opts)
+			case "add":
+				opts["barcode"] = "test"
+				view = strings.Join(viewParts, "-")
+			}
+		}
 	}
 
 	// claims := opts["user_claims"].(*jwt.UserClaims)

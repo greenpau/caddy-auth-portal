@@ -19,7 +19,23 @@ func (c *Cookies) GetAttributes() string {
 	}
 	if c.Path != "" {
 		sb.WriteString(" Path=" + c.Path + ";")
+	} else {
+		sb.WriteString(" Path=/;")
 	}
 	sb.WriteString(" Secure; HttpOnly;")
+	return sb.String()
+}
+
+// GetDeleteAttributes returns cookie attributes for delete action.
+func (c *Cookies) GetDeleteAttributes() string {
+	var sb strings.Builder
+	if c.Domain != "" {
+		sb.WriteString(" Domain=" + c.Domain + ";")
+	}
+	if c.Path != "" {
+		sb.WriteString(" Path=" + c.Path + ";")
+	} else {
+		sb.WriteString(" Path=/;")
+	}
 	return sb.String()
 }

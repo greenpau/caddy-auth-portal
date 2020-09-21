@@ -780,7 +780,20 @@ var defaultPageTemplates = map[string]string{
 	box-shadow: 0 4px 8px 0 rgba(0,0,0,0.2);
         transition: 0.3s;
         margin-top: 2em;
-     }
+      }
+      .app-content {
+        padding-left: 1.5em !important;
+        padding-right: 1.5em !important;
+      }
+      .app-content h1 {
+        font-size: 2rem;
+        color: #52504f;
+        margin-top: 0.2em !important;
+        margin-bottom: 0.2em !important;
+      }
+      .app-content p {
+        color: #52504f;
+      }
       .app-background {
         background-color: #155D56;
       }
@@ -853,7 +866,7 @@ var defaultPageTemplates = map[string]string{
             <a href="{{ .ActionEndpoint }}/settings/misc" class="collection-item{{ if eq .Data.view "misc" }} active{{ end }}">Miscellaneous</a>
           </div>
         </div>
-        <div class="col s12 l9">
+        <div class="col s12 l9 app-content">
           {{ if eq .Data.view "general" }}
             <p>The {{ .Data.view }} view is under construction.</p>
           {{ end }}
@@ -867,7 +880,122 @@ var defaultPageTemplates = map[string]string{
             <p>The {{ .Data.view }} view is under construction.</p>
           {{ end }}
           {{ if eq .Data.view "mfa" }}
-            <p>The {{ .Data.view }} view is under construction.</p>
+	    <div class="row">
+	      <div class="col right">
+                <a class="waves-effect waves-light btn modal-trigger" href="{{ .ActionEndpoint }}/settings/mfa/add/app">Add MFA App</a>
+                <a class="waves-effect waves-light btn modal-trigger" href="{{ .ActionEndpoint }}/settings/mfa/add/u2f">Add U2F Key</a>
+                <a class="waves-effect waves-light btn modal-trigger" href="{{ .ActionEndpoint }}/settings/mfa/add/hardware">Add Hardware MFA</a>
+	      </div>
+            </div>
+	    <div class="row">
+            {{ if .Data.mfa_devices }}
+            <p>List of registered MFA devices</p>
+            {{ else }}
+            <p>No registered MFA devices found</p>
+            {{ end }}
+            </div>
+          {{ end }}
+	  {{ if eq .Data.view "mfa-add-app" }}
+            <form action="{{ .ActionEndpoint }}/settings/mfa/add/app" method="POST">
+              <div class="row">
+                <h1>Add MFA Authenticator Application</h1>
+		<div class="row">
+		  <div class="col s12 m6 l6">
+                    <p>Please add your MFA authenticator application, e.g. Microsoft/Google Authenticator, Authy, etc.</p>
+                    <p>If your MFA application supports scanning QR codes, scan the following image with its camera.</p>
+                    <p>Next, enter two consecutive authentication codes in the boxes below and click "Add" below.</p>
+                    <div class="input-field">
+                      <input id="mfacode1" name="mfacode1" type="text" class="validate" pattern="[A-Za-z0-9]{4,8}"
+                        title="Authentication code should contain maximum of 25 characters and consists of A-Z, a-z, and 0-9 characters."
+                        required />
+                      <label for="mfacode1">Authentication Code 1</label>
+                    </div>
+                    <div class="input-field">
+                      <input id="mfacode2" name="mfacode2" type="text" class="validate" pattern="[A-Za-z0-9]{4,8}"
+                        title="Authentication code should contain maximum of 25 characters and consists of A-Z, a-z, and 0-9 characters."
+                        required />
+                      <label for="mfacode2">Authentication Code 2</label>
+                    </div>
+		  </div>
+                  <div class="col s12 m6 l6">
+                    <img src="{{ .ActionEndpoint }}/settings/mfa/barcode/{{ .Data.barcode }}.png" alt="QR Code" />
+                  </div>
+		</div>
+              </div>
+              <div class="row right">
+                <button type="submit" name="submit" class="btn waves-effect waves-light">Add
+                  <i class="material-icons left">send</i>
+                </button>
+              </div>
+            </form>
+	  {{ end }}
+          {{ if eq .Data.view "mfa-add-u2f" }}
+            <form action="{{ .ActionEndpoint }}/settings/mfa/add/u2f" method="POST">
+              <div class="row">
+                <h1>Add U2F Security Key</h1>
+                <div class="row">
+                  <div class="col s12 m6 l6">
+                    <p>Please add your U2F Security Key, e.g. Yubikey.</p>
+                    <p>If your MFA application supports scanning QR codes, scan the following image with its camera.</p>
+                    <p>Next, enter two consecutive authentication codes in the boxes below and click "Add" below.</p>
+                    <div class="input-field">
+                      <input id="mfacode1" name="mfacode1" type="text" class="validate" pattern="[A-Za-z0-9]{4,8}"
+                        title="Authentication code should contain maximum of 25 characters and consists of A-Z, a-z, and 0-9 characters."
+                        required />
+                      <label for="mfacode1">Authentication Code 1</label>
+                    </div>
+                    <div class="input-field">
+                      <input id="mfacode2" name="mfacode2" type="text" class="validate" pattern="[A-Za-z0-9]{4,8}"
+                        title="Authentication code should contain maximum of 25 characters and consists of A-Z, a-z, and 0-9 characters."
+                        required />
+                      <label for="mfacode2">Authentication Code 2</label>
+                    </div>
+                  </div>
+                  <div class="col s12 m6 l6">
+                    <img src="{{ .ActionEndpoint }}/settings/mfa/barcode/{{ .Data.barcode }}.png" alt="QR Code" />
+                  </div>
+                </div>
+              </div>
+              <div class="row right">
+                <button type="submit" name="submit" class="btn waves-effect waves-light">Add
+                  <i class="material-icons left">send</i>
+                </button>
+              </div>
+            </form>
+          {{ end }}
+          {{ if eq .Data.view "mfa-add-hardware" }}
+            <form action="{{ .ActionEndpoint }}/settings/mfa/add/hardware" method="POST">
+              <div class="row">
+                <h1>Add hardware MFA Authenticator</h1>
+                <div class="row">
+                  <div class="col s12 m6 l6">
+                    <p>Please add your software-based MFA token, e.g. Microsoft/Google Authenticator, Authy, etc.</p>
+                    <p>If your MFA application supports scanning QR codes, scan the following image with its camera.</p>
+                    <p>Next, enter two consecutive authentication codes in the boxes below and click "Add" below.</p>
+                    <div class="input-field">
+                      <input id="mfacode1" name="mfacode1" type="text" class="validate" pattern="[A-Za-z0-9]{4,8}"
+                        title="Authentication code should contain maximum of 25 characters and consists of A-Z, a-z, and 0-9 characters."
+                        required />
+                      <label for="mfacode1">Authentication Code 1</label>
+                    </div>
+                    <div class="input-field">
+                      <input id="mfacode2" name="mfacode2" type="text" class="validate" pattern="[A-Za-z0-9]{4,8}"
+                        title="Authentication code should contain maximum of 25 characters and consists of A-Z, a-z, and 0-9 characters."
+                        required />
+                      <label for="mfacode2">Authentication Code 2</label>
+                    </div>
+                  </div>
+                  <div class="col s12 m6 l6">
+                    <img src="{{ .ActionEndpoint }}/settings/mfa/barcode/{{ .Data.barcode }}.png" alt="QR Code" />
+                  </div>
+                </div>
+              </div>
+              <div class="row right">
+                <button type="submit" name="submit" class="btn waves-effect waves-light">Add
+                  <i class="material-icons left">send</i>
+                </button>
+              </div>
+            </form>
           {{ end }}
           {{ if eq .Data.view "passwords" }}
             <p>The {{ .Data.view }} view is under construction.</p>
@@ -882,11 +1010,8 @@ var defaultPageTemplates = map[string]string{
     <!-- Optional JavaScript -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js" integrity="sha256-U/cHDMTIHCeMcvehBv1xQ052bPSbJtbuiw4QA9cTKz0=" crossorigin="anonymous"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.1/highlight.min.js" integrity="sha256-eOgo0OtLL4cdq7RdwRUiGKLX9XsIJ7nGhWEKbohmVAQ=" crossorigin="anonymous"></script>
-    {{ if .Message }}
     <script>
-    hljs.initHighlightingOnLoad();
     </script>
-    {{ end }}
   </body>
 </html>`,
 }
