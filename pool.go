@@ -155,7 +155,17 @@ func (p *AuthPortalPool) Register(m *AuthPortal) error {
 			return fmt.Errorf("%s: no valid backend found", m.Name)
 		}
 
+		backendNameRef := make(map[string]interface{})
+
 		for _, backend := range m.Backends {
+			backendName := backend.GetName()
+			if backendName == "" {
+				return fmt.Errorf("%s: backend name is required but missing", m.Name)
+			}
+			if _, exists := backendNameRef[backendName]; exists {
+				return fmt.Errorf("%s: backend name %s is duplicate", m.Name, backendName)
+			}
+			backendNameRef[backendName] = true
 			if err := backend.Configure(m); err != nil {
 				return fmt.Errorf("%s: backend configuration error: %s", m.Name, err)
 			}
@@ -165,6 +175,7 @@ func (p *AuthPortalPool) Register(m *AuthPortal) error {
 			m.logger.Debug(
 				"Provisioned authentication backend",
 				zap.String("instance_name", m.Name),
+				zap.String("backend_name", backendName),
 				zap.String("backend_type", backend.authMethod),
 			)
 		}
@@ -400,7 +411,16 @@ func (p *AuthPortalPool) Provision(name string) error {
 	if len(m.Backends) == 0 {
 		m.Backends = primaryInstance.Backends
 	} else {
+		backendNameRef := make(map[string]interface{})
 		for _, backend := range m.Backends {
+			backendName := backend.GetName()
+			if backendName == "" {
+				return fmt.Errorf("%s: backend name is required but missing", m.Name)
+			}
+			if _, exists := backendNameRef[backendName]; exists {
+				return fmt.Errorf("%s: backend name %s is duplicate", m.Name, backendName)
+			}
+			backendNameRef[backendName] = true
 			if err := backend.Configure(m); err != nil {
 				return fmt.Errorf("%s: backend configuration error: %s", m.Name, err)
 			}
@@ -410,6 +430,7 @@ func (p *AuthPortalPool) Provision(name string) error {
 			m.logger.Debug(
 				"Provisioned authentication backend",
 				zap.String("instance_name", m.Name),
+				zap.String("backend_name", backendName),
 				zap.String("backend_type", backend.authMethod),
 			)
 		}

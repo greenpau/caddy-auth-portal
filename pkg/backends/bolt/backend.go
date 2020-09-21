@@ -13,6 +13,7 @@ import (
 
 // Backend represents authentication provider with BoltDB backend.
 type Backend struct {
+	Name          string                   `json:"name,omitempty"`
 	Realm         string                   `json:"realm,omitempty"`
 	Path          string                   `json:"path,omitempty"`
 	TokenProvider *jwt.TokenProviderConfig `json:"jwt,omitempty"`
@@ -193,6 +194,11 @@ func (b *Backend) Validate() error {
 // GetRealm return authentication realm.
 func (b *Backend) GetRealm() string {
 	return b.Realm
+}
+
+// GetName return the name associated with this backend.
+func (b *Backend) GetName() string {
+	return b.Name
 }
 
 // ConfigureTokenProvider configures TokenProvider.

@@ -95,6 +95,28 @@ The following screenshot is from `/auth/settings/mfa/add/app` endpoint:
 
 The QR Code displayed on the page complies [Key Uri Format](https://github.com/google/google-authenticator/wiki/Key-Uri-Format).
 
+In your MFA application, e.g. Microsoft Authenticator, follow these steps to
+onboard your web account.
+
+<table cellspacing="0" cellpadding="0" style="border-collapse: collapse; border: none; vertical-align: top;">
+  <tr style="border: none;">
+    <td style="border: none; vertical-align: top;">
+      <img src="https://raw.githubusercontent.com/greenpau/caddy-auth-portal/main/assets/docs/images/ms_mfa_app_add_account.png">
+    </td>
+    <td style="border: none; vertical-align: top;">
+      <img src="https://raw.githubusercontent.com/greenpau/caddy-auth-portal/main/assets/docs/images/ms_mfa_app_scan_qrcode.png">
+    </td>
+    <td style="border: none; vertical-align: top;">
+      <img src="https://raw.githubusercontent.com/greenpau/caddy-auth-portal/main/assets/docs/images/ms_mfa_app_new_account.png">
+    </td>
+  </tr>
+</table>
+
+### Theming
+
+TODO: Review [Refactoring UI Feed](https://twitter.com/i/events/994601867987619840)
+and [Refactoring UI Website](https://refactoringui.com/).
+
 ## Authorization Cookie
 
 The following `Caddyfile` settings define the scope of the cookies issued by

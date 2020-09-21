@@ -1,7 +1,6 @@
 package portal
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
 
@@ -21,6 +20,7 @@ type Backend struct {
 // BackendDriver is an interface to an authentication provider.
 type BackendDriver interface {
 	GetRealm() string
+	GetName() string
 	Authenticate(string, map[string]string) (*jwt.UserClaims, int, error)
 	ConfigureLogger(*zap.Logger) error
 	ConfigureTokenProvider(*jwt.TokenProviderConfig) error
@@ -31,6 +31,11 @@ type BackendDriver interface {
 // GetRealm returns realm associated with an authentication provider.
 func (b *Backend) GetRealm() string {
 	return b.driver.GetRealm()
+}
+
+// GetName returns the name associated with an authentication provider.
+func (b *Backend) GetName() string {
+	return b.driver.GetName()
 }
 
 // Configure configures backend with the authentication provider settings.
@@ -65,10 +70,28 @@ func (b Backend) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON unpacks configuration into appropriate structures.
 func (b *Backend) UnmarshalJSON(data []byte) error {
+	var confData map[string]interface{}
 	if len(data) < 10 {
 		return fmt.Errorf("invalid configuration: %s", data)
 	}
-	if bytes.Contains(data, []byte("\"method\":\"boltdb\"")) {
+
+	if err := json.Unmarshal(data, &confData); err != nil {
+		return fmt.Errorf("failed to unpack configuration data: %s", data)
+	}
+
+	if v, exists := confData["method"]; exists {
+		switch vt := v.(type) {
+		case string:
+			b.authMethod = v.(string)
+		default:
+			return fmt.Errorf("failed to unpack configuration data, method key is not string but %v: %s", vt, data)
+		}
+	} else {
+		return fmt.Errorf("failed to unpack configuration data, method key is missing: %s", data)
+	}
+
+	switch b.authMethod {
+	case "boltdb":
 		b.authMethod = "boltdb"
 		driver := bolt.NewDatabaseBackend()
 		if err := json.Unmarshal(data, driver); err != nil {
@@ -78,47 +101,40 @@ func (b *Backend) UnmarshalJSON(data []byte) error {
 			return fmt.Errorf("invalid boltdb configuration, error: %s, config: %s", err, data)
 		}
 		b.driver = driver
-		return nil
-	}
-
-	if bytes.Contains(data, []byte("\"method\":\"ldap\"")) {
-		b.authMethod = "ldap"
+	case "ldap":
 		driver, err := newLdapDriver(data)
 		if err != nil {
 			return err
 		}
 		b.driver = driver
-		return nil
-	}
-
-	if bytes.Contains(data, []byte("\"method\":\"local\"")) {
+	case "local":
 		b.authMethod = "local"
 		driver, err := newLocalDriver(data)
 		if err != nil {
 			return err
 		}
 		b.driver = driver
-		return nil
+	default:
+		return fmt.Errorf("unsupported authentication method configuration: %s", data)
 	}
-
-	return fmt.Errorf("unsupported authentication method configuration: %s", data)
+	return nil
 }
 
 // NewBackendFromBytes returns backend instance based on authentication method
 // and JSON configuration data.
-func NewBackendFromBytes(method string, data []byte) (*Backend, error) {
+func NewBackendFromBytes(name, method string, data []byte) (*Backend, error) {
 	switch method {
 	case "ldap":
-		return NewLdapBackendFromBytes(data)
+		return NewLdapBackendFromBytes(name, data)
 	case "local":
-		return NewLocalBackendFromBytes(data)
+		return NewLocalBackendFromBytes(name, data)
 	default:
-		return nil, fmt.Errorf("unsupported authentication method configuration: %s", data)
+		return nil, fmt.Errorf("unsupported authentication method %s for %s configuration: %s", method, name, data)
 	}
 }
 
 // NewLdapBackendFromBytes returns LDAP backend.
-func NewLdapBackendFromBytes(data []byte) (*Backend, error) {
+func NewLdapBackendFromBytes(name string, data []byte) (*Backend, error) {
 	b := &Backend{}
 	b.authMethod = "ldap"
 	driver, err := newLdapDriver(data)
@@ -130,7 +146,7 @@ func NewLdapBackendFromBytes(data []byte) (*Backend, error) {
 }
 
 // NewLocalBackendFromBytes returns local backend.
-func NewLocalBackendFromBytes(data []byte) (*Backend, error) {
+func NewLocalBackendFromBytes(name string, data []byte) (*Backend, error) {
 	b := &Backend{}
 	b.authMethod = "local"
 	driver, err := newLocalDriver(data)

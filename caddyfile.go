@@ -137,6 +137,7 @@ func parseCaddyfileAuthPortal(h httpcaddyfile.Helper) ([]httpcaddyfile.ConfigVal
 				for nesting := h.Nesting(); h.NextBlock(nesting); {
 					backendName := h.Val()
 					backendProps := make(map[string]interface{})
+					backendProps["name"] = backendName
 					var backendAuthMethod string
 					for subNesting := h.Nesting(); h.NextBlock(subNesting); {
 						backendArg := h.Val()
@@ -203,8 +204,15 @@ func parseCaddyfileAuthPortal(h httpcaddyfile.Helper) ([]httpcaddyfile.ConfigVal
 					if err != nil {
 						return nil, h.Errf("auth backend %s subdirective failed to compile to JSON: %s", backendName, err.Error())
 					}
-					backend, err := NewBackendFromBytes(backendAuthMethod, backendJSON)
-					if err != nil {
+					/*
+						backend, err := NewBackendFromBytes(backendName, backendAuthMethod, backendJSON)
+						if err != nil {
+							return nil, h.Errf("auth backend %s subdirective failed to compile backend from JSON: %s", backendName, err.Error())
+						}
+					*/
+
+					backend := &Backend{}
+					if err := backend.UnmarshalJSON(backendJSON); err != nil {
 						return nil, h.Errf("auth backend %s subdirective failed to compile backend from JSON: %s", backendName, err.Error())
 					}
 					portal.Backends = append(portal.Backends, *backend)

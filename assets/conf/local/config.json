@@ -51,6 +51,7 @@
                   "auth_url_path": "/auth",
                   "backends": [
                     {
+                      "name": "local_backend",
                       "method": "local",
                       "path": "assets/backends/local/users.json",
                       "realm": "local"

@@ -56,6 +56,7 @@ type UserAttributes struct {
 
 // Backend represents authentication provider with LDAP backend.
 type Backend struct {
+	Name          string                   `json:"name,omitempty"`
 	Method        string                   `json:"method,omitempty"`
 	Realm         string                   `json:"realm,omitempty"`
 	Servers       []AuthServer             `json:"servers,omitempty"`
@@ -625,6 +626,11 @@ func (b *Backend) Validate() error {
 // GetRealm return authentication realm.
 func (b *Backend) GetRealm() string {
 	return b.Realm
+}
+
+// GetName return the name associated with this backend.
+func (b *Backend) GetName() string {
+	return b.Name
 }
 
 // ConfigureTokenProvider configures TokenProvider.

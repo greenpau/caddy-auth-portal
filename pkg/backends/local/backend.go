@@ -21,6 +21,7 @@ func init() {
 
 // Backend represents authentication provider with local backend.
 type Backend struct {
+	Name          string                   `json:"name,omitempty"`
 	Method        string                   `json:"method,omitempty"`
 	Realm         string                   `json:"realm,omitempty"`
 	Path          string                   `json:"path,omitempty"`
@@ -271,6 +272,11 @@ func (b *Backend) Validate() error {
 // GetRealm return authentication realm.
 func (b *Backend) GetRealm() string {
 	return b.Realm
+}
+
+// GetName return the name associated with this backend.
+func (b *Backend) GetName() string {
+	return b.Name
 }
 
 // ConfigureTokenProvider configures TokenProvider.
