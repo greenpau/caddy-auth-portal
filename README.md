@@ -16,6 +16,8 @@ Please ask questions either here or via LinkedIn. I am happy to help you! @green
 * [Authentication Portal](#authentication-portal)
   * [User Identity](#user-identity)
   * [User Settings](#user-settings)
+  * [Multi-Factor Authentication MFA](#multi-factor-authentication-mfa)
+    * [Add MFA Authenticator Application](#add-mfa-authenticator-application)
 * [Authorization Cookie](#authorization-cookie)
 * [Usage Examples](#usage-examples)
   * [Secure Prometheus](#secure-prometheus)
@@ -82,6 +84,16 @@ The following screenshot is from `/auth/whoami` endpoint:
 The following screenshot is from `/auth/settings/` endpoint:
 
 <img src="https://raw.githubusercontent.com/greenpau/caddy-auth-portal/main/assets/docs/images/settings.png">
+
+### Multi-Factor Authentication MFA
+
+#### Add MFA Authenticator Application
+
+The following screenshot is from `/auth/settings/mfa/add/app` endpoint:
+
+<img src="https://raw.githubusercontent.com/greenpau/caddy-auth-portal/main/assets/docs/images/settings_mfa_app.png">
+
+The QR Code displayed on the page complies [Key Uri Format](https://github.com/google/google-authenticator/wiki/Key-Uri-Format).
 
 ## Authorization Cookie
 
