@@ -16,13 +16,14 @@ package portal
 
 import (
 	"encoding/json"
+	"strconv"
 	"strings"
 
 	"github.com/greenpau/caddy-auth-jwt"
 	"github.com/greenpau/caddy-auth-portal/pkg/cookies"
 	"github.com/greenpau/caddy-auth-portal/pkg/registration"
-	"github.com/greenpau/caddy-auth-portal/pkg/utils"
 	"github.com/greenpau/caddy-auth-portal/pkg/ui"
+	"github.com/greenpau/caddy-auth-portal/pkg/utils"
 
 	"github.com/caddyserver/caddy/v2"
 	"github.com/caddyserver/caddy/v2/caddyconfig"
@@ -53,6 +54,7 @@ func init() {
 //	       token_name <value>
 //	       token_secret <value>
 //	       token_issuer <value>
+//         token_lifetime <seconds>
 //	     }
 //	     ui {
 //	       login_template <file_path>
@@ -229,6 +231,15 @@ func parseCaddyfileAuthPortal(h httpcaddyfile.Helper) ([]httpcaddyfile.ConfigVal
 							return nil, h.Errf("%s %s subdirective has no value", rootDirective, subDirective)
 						}
 						portal.TokenProvider.TokenIssuer = h.Val()
+					case "token_lifetime":
+						if !h.NextArg() {
+							return nil, h.Errf("%s %s subdirective has no value", rootDirective, subDirective)
+						}
+						lifetime, err := strconv.Atoi(h.Val())
+						if err != nil {
+							return nil, h.Errf("%s %s subdirective value conversion failed: %s", rootDirective, subDirective, err)
+						}
+						portal.TokenProvider.TokenLifetime = lifetime
 					default:
 						return nil, h.Errf("unknown subdirective for %s: %s", rootDirective, subDirective)
 					}
