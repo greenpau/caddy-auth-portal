@@ -143,7 +143,7 @@ func (m AuthPortal) ServeHTTP(w http.ResponseWriter, r *http.Request, _ caddyhtt
 		q := r.URL.Query()
 		foundQueryOptions := false
 		if redirectURL, exists := q["redirect_url"]; exists {
-			w.Header().Set("Set-Cookie", redirectToToken+"="+redirectURL[0])
+			w.Header().Set("Set-Cookie", redirectToToken+"="+redirectURL[0]+";"+m.Cookies.GetAttributes())
 			foundQueryOptions = true
 		}
 		if foundQueryOptions {

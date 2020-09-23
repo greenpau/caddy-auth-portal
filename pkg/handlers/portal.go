@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"github.com/greenpau/caddy-auth-portal/pkg/cookies"
 	"github.com/greenpau/caddy-auth-portal/pkg/ui"
 	"go.uber.org/zap"
 	"net/http"
@@ -13,6 +14,7 @@ func ServePortal(w http.ResponseWriter, r *http.Request, opts map[string]interfa
 	reqID := opts["request_id"].(string)
 	log := opts["logger"].(*zap.Logger)
 	ui := opts["ui"].(*ui.UserInterfaceFactory)
+	cookies := opts["cookies"].(*cookies.Cookies)
 	authURLPath := opts["auth_url_path"].(string)
 	redirectToToken := opts["redirect_token_name"].(string)
 
@@ -30,7 +32,7 @@ func ServePortal(w http.ResponseWriter, r *http.Request, opts map[string]interfa
 				zap.String("redirect_url", redirectURL.String()),
 			)
 			w.Header().Set("Location", redirectURL.String())
-			w.Header().Add("Set-Cookie", redirectToToken+"=delete; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT")
+			w.Header().Add("Set-Cookie", redirectToToken+"=delete;"+cookies.GetDeleteAttributes()+" expires=Thu, 01 Jan 1970 00:00:00 GMT")
 			w.WriteHeader(303)
 			return nil
 		}
