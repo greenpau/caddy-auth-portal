@@ -190,19 +190,19 @@ ID `1b9e886b-8ff2-4378-b6c8-6771259a5f51`. Please note the `xmllint` utility
 is a part of `libxml2` library.
 
 ```bash
-
+mkdir -p /etc/gatekeeper/auth/saml/idp/
 curl -s -L -o /tmp/federationmetadata.xml https://login.microsoftonline.com/1b9e886b-8ff2-4378-b6c8-6771259a5f51/federationmetadata/2007-06/federationmetadata.xml
-sudo mkdir -p /etc/caddy/auth/saml/idp/
-cat /tmp/federationmetadata.xml | xmllint --format - | sudo tee /etc/caddy/auth/saml/idp/azure_ad_app_metadata.xml
+sudo mkdir -p /etc/gatekeeper/auth/saml/idp/
+cat /tmp/federationmetadata.xml | xmllint --format - | sudo tee /etc/gatekeeper/auth/saml/idp/azure_ad_app_metadata.xml
 ```
 
-The `/etc/caddy/auth/saml/idp/azure_ad_app_metadata.xml` contains IdP metadata.
+The `/etc/gatekeeper/auth/saml/idp/azure_ad_app_metadata.xml` contains IdP metadata.
 This file contains the data necessary to verify the SAML claims received by this
 service and signed by Azure AD. The `idp_metadata` argument is being used to
 pass the location of IdP metadata.
 
 Next, download the "Certificate (Base64)" and store it in
-`/etc/caddy/auth/saml/idp/azure_ad_app_signing_cert.pem`.
+`/etc/gatekeeper/auth/saml/idp/azure_ad_app_signing_cert.pem`.
 
 [:arrow_up: Back to Top](#table-of-contents)
 
