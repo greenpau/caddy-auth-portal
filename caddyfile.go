@@ -196,6 +196,26 @@ func parseCaddyfileAuthPortal(h httpcaddyfile.Helper) ([]httpcaddyfile.ConfigVal
 								groupMaps = append(groupMaps, groupMap)
 							}
 							backendProps[backendArg] = groupMaps
+						case "provider", "auth_endpoint":
+							if !h.NextArg() {
+								return nil, h.Errf("auth backend %s subdirective %s has no value", backendName, backendArg)
+							}
+							backendProps[backendArg] = h.Val()
+						case "idp_metadata_location", "idp_sign_cert_location", "tenant_id", "application_id", "application_name", "entity_id":
+							if !h.NextArg() {
+								return nil, h.Errf("auth backend %s subdirective %s has no value", backendName, backendArg)
+							}
+							backendProps[backendArg] = h.Val()
+						case "acs_url":
+							if !h.NextArg() {
+								return nil, h.Errf("auth backend %s subdirective %s has no value", backendName, backendArg)
+							}
+							var acsURLs []string
+							if v, exists := backendProps[backendArg]; exists {
+								acsURLs = v.([]string)
+							}
+							acsURLs = append(acsURLs, h.Val())
+							backendProps[backendArg] = acsURLs
 						default:
 							return nil, h.Errf("unknown auth backend %s subdirective: %s", backendName, backendArg)
 						}
@@ -204,13 +224,6 @@ func parseCaddyfileAuthPortal(h httpcaddyfile.Helper) ([]httpcaddyfile.ConfigVal
 					if err != nil {
 						return nil, h.Errf("auth backend %s subdirective failed to compile to JSON: %s", backendName, err.Error())
 					}
-					/*
-						backend, err := NewBackendFromBytes(backendName, backendAuthMethod, backendJSON)
-						if err != nil {
-							return nil, h.Errf("auth backend %s subdirective failed to compile backend from JSON: %s", backendName, err.Error())
-						}
-					*/
-
 					backend := &Backend{}
 					if err := backend.UnmarshalJSON(backendJSON); err != nil {
 						return nil, h.Errf("auth backend %s subdirective failed to compile backend from JSON: %s", backendName, err.Error())

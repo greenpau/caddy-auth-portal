@@ -948,8 +948,9 @@ The Azure SAML backend configuration:
 
 ```
       backends {
-        saml_backend {
+        azure_saml_backend {
           method saml
+          auth_provider azure
           idp_metadata_location /etc/gatekeeper/auth/idp/azure_ad_app_metadata.xml
           idp_sign_cert_location /etc/gatekeeper/auth/idp/azure_ad_app_signing_cert.pem
           tenant_id "1b9e886b-8ff2-4378-b6c8-6771259a5f51"
@@ -1173,6 +1174,7 @@ The above redirect contains `login.microsoftonline.com` in the request's
 [:arrow_up: Back to Top](#table-of-contents)
 
 <!--- end of section -->
+
 ## OpenID Connect Authentication Backend
 
 TBD.

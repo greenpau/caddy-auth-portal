@@ -63,9 +63,10 @@ clean:
 qtest:
 	@echo "Perform quick tests ..."
 	@#go test $(VERBOSE) -coverprofile=.coverage/coverage.out -run TestLocalConfig ./*.go
-	@go test $(VERBOSE) -coverprofile=.coverage/coverage.out -run TestLocalCaddyfile ./*.go
+	@#go test $(VERBOSE) -coverprofile=.coverage/coverage.out -run TestLocalCaddyfile ./*.go
 	@#go test $(VERBOSE) -coverprofile=.coverage/coverage.out -run TestLdapConfig ./*.go
 	@#go test $(VERBOSE) -coverprofile=.coverage/coverage.out -run TestLdapCaddyfile ./*.go
+	@go test $(VERBOSE) -coverprofile=.coverage/coverage.out -run TestSamlCaddyfile ./*.go
 
 dep:
 	@echo "Making dependencies check ..."

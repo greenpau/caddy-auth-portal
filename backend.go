@@ -8,6 +8,9 @@ import (
 	"github.com/greenpau/caddy-auth-portal/pkg/backends/bolt"
 	"github.com/greenpau/caddy-auth-portal/pkg/backends/ldap"
 	"github.com/greenpau/caddy-auth-portal/pkg/backends/local"
+	"github.com/greenpau/caddy-auth-portal/pkg/backends/oauth2"
+	"github.com/greenpau/caddy-auth-portal/pkg/backends/openid"
+	"github.com/greenpau/caddy-auth-portal/pkg/backends/saml"
 	"go.uber.org/zap"
 )
 
@@ -49,7 +52,6 @@ func (b *Backend) Configure(p *AuthPortal) error {
 	if err := b.driver.ConfigureAuthenticator(); err != nil {
 		return err
 	}
-
 	return nil
 }
 
@@ -110,6 +112,29 @@ func (b *Backend) UnmarshalJSON(data []byte) error {
 	case "local":
 		b.authMethod = "local"
 		driver, err := newLocalDriver(data)
+		if err != nil {
+			return err
+		}
+		b.driver = driver
+	case "saml":
+		b.authMethod = "saml"
+		driver, err := newSamlDriver(data)
+		if err != nil {
+			return err
+		}
+		b.driver = driver
+
+	case "openid":
+		b.authMethod = "openid"
+		driver, err := newOpenIDDriver(data)
+		if err != nil {
+			return err
+		}
+		b.driver = driver
+
+	case "oauth2":
+		b.authMethod = "oauth2"
+		driver, err := newOauth2Driver(data)
 		if err != nil {
 			return err
 		}
@@ -175,6 +200,39 @@ func newLocalDriver(data []byte) (*local.Backend, error) {
 	}
 	if err := driver.ValidateConfig(); err != nil {
 		return nil, fmt.Errorf("invalid local configuration, error: %s, config: %s", err, data)
+	}
+	return driver, nil
+}
+
+func newSamlDriver(data []byte) (*saml.Backend, error) {
+	driver := saml.NewDatabaseBackend()
+	if err := json.Unmarshal(data, driver); err != nil {
+		return nil, fmt.Errorf("invalid SAML configuration, error: %s, config: %s", err, data)
+	}
+	if err := driver.ValidateConfig(); err != nil {
+		return nil, fmt.Errorf("invalid SAML configuration, error: %s, config: %s", err, data)
+	}
+	return driver, nil
+}
+
+func newOpenIDDriver(data []byte) (*openid.Backend, error) {
+	driver := openid.NewDatabaseBackend()
+	if err := json.Unmarshal(data, driver); err != nil {
+		return nil, fmt.Errorf("invalid OpenID Connect configuration, error: %s, config: %s", err, data)
+	}
+	if err := driver.ValidateConfig(); err != nil {
+		return nil, fmt.Errorf("invalid OpenID Connect configuration, error: %s, config: %s", err, data)
+	}
+	return driver, nil
+}
+
+func newOauth2Driver(data []byte) (*oauth2.Backend, error) {
+	driver := oauth2.NewDatabaseBackend()
+	if err := json.Unmarshal(data, driver); err != nil {
+		return nil, fmt.Errorf("invalid OAuth2 configuration, error: %s, config: %s", err, data)
+	}
+	if err := driver.ValidateConfig(); err != nil {
+		return nil, fmt.Errorf("invalid OAuth2 configuration, error: %s, config: %s", err, data)
 	}
 	return driver, nil
 }
