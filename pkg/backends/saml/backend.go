@@ -67,7 +67,7 @@ func (sa *Authenticator) ConfigureRealm(realm string) error {
 	return nil
 }
 
-// ConfigureAuthenticator configures backend for
+// ConfigureAuthenticator configures backend authenticator.
 func (b *Backend) ConfigureAuthenticator() error {
 	if b.Authenticator == nil {
 		b.Authenticator = NewAuthenticator()
