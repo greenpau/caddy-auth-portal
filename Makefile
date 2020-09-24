@@ -33,7 +33,7 @@ linter:
 	@for f in `find ./pkg -type f -name '*.go'`; do echo $$f; go fmt $$f; golint -set_exit_status $$f; done
 	@echo "PASS: golint"
 
-test: covdir linter
+test: covdir linter docs
 	@go test $(VERBOSE) -coverprofile=.coverage/coverage.out ./*.go
 
 ctest: covdir linter
@@ -50,7 +50,9 @@ coverage:
 
 docs:
 	@mkdir -p .doc
-	@go doc -all > .doc/index.txt
+	@cat ./assets/docs/pages/*.md > README.md
+	@versioned -toc
+	@#go doc -all > .doc/index.txt
 	@#python3 assets/scripts/toc.py > .doc/toc.md
 
 clean:
@@ -73,7 +75,7 @@ dep:
 	@go get -u github.com/caddyserver/xcaddy/cmd/xcaddy
 	@go get -u github.com/greenpau/versioned/cmd/versioned
 
-release:
+release: docs
 	@echo "Making release"
 	@go mod tidy
 	@go mod verify
