@@ -47,7 +47,7 @@ jobs:
         sudo apt-get update
     - name: Install Go modules
       run: |
-        go get -u golang.org/x/lint/golint
+        make dep
     - name: Validate prerequisites
       run: |
         echo "*** Local binaries ***"
@@ -61,3 +61,5 @@ jobs:
       with:
         name: Test Coverage Report
         path: .coverage/coverage.html
+    - name: Validate clean git repo
+      run: 'git diff-index --quiet HEAD -- || ( echo "git directory is dirty, commit changes first" && git status && false )'
