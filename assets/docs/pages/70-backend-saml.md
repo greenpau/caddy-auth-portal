@@ -21,7 +21,34 @@ critical that the application validating the assertions maintains
 accurate clock. The out of sync time WILL result in failed
 authentications.
 
+### Configuration
+
+The following configuration is common across variations of SAML backend:
+
+```
+      backends {
+        azure_saml_backend {
+          method saml
+          realm azure
+          auth_endpoint azure/saml
+          auth_provider azure
+        }
+      }
+```
+
+| **Parameter Name** | **Description** |
+| --- | --- |
+| `method` | Must be set to `saml` |
+| `realm` | The realm is used internally |
+| `auth_endpoint` | The unique authentication endpoint for the backend |
+| `auth_provider` | It is either `generic` or specific, e.g. `azure` |
+
+If you specify endpoint as `azure/saml` and the portal is being served at
+`/auth`, then you could access the endpoint via `/auth/azure/saml`.
+
 ### Azure Active Directory (Office 365) Applications
+
+#### Azure AD SAML Configuration
 
 The Azure SAML backend configuration:
 
@@ -29,6 +56,8 @@ The Azure SAML backend configuration:
       backends {
         azure_saml_backend {
           method saml
+          realm azure
+          auth_endpoint azure/saml
           auth_provider azure
           idp_metadata_location /etc/gatekeeper/auth/idp/azure_ad_app_metadata.xml
           idp_sign_cert_location /etc/gatekeeper/auth/idp/azure_ad_app_signing_cert.pem
@@ -55,10 +84,17 @@ Directory (Office 365) applications:
 | `application_id` | Azure Application ID |
 | `application_name` | Azure Application Name |
 | `entity_id` | Azure Application Identifier (Entity ID) |
-| `acs_urls` | One of more Assertion Consumer Service URLs |
+| `acs_url` | Assertion Consumer Service URLs |
 
-The `acs_urls` must list all URLs the users of the application
-can reach it at.
+Use the `acs_url` directive to list all URLs the users of the application
+can reach it at. One URL per line:
+
+```
+  acs_url https://mygatekeeper/saml
+  acs_url https://mygatekeeper.local/saml
+  acs_url https://192.168.10.10:3443/saml
+  acs_url https://localhost:3443/saml
+```
 
 [:arrow_up: Back to Top](#table-of-contents)
 
