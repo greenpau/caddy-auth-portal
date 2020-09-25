@@ -81,7 +81,7 @@ release: docs
 	@go mod tidy
 	@go mod verify
 	@if [ $(GIT_BRANCH) != "main" ]; then echo "cannot release to non-main branch $(GIT_BRANCH)" && false; fi
-	@git diff-index --quiet HEAD -- || ( echo "git directory is dirty, commit changes first" && false )
+	@git diff-index -p --quiet HEAD -- || ( echo "git directory is dirty, commit changes first" && git status && false )
 	@versioned -patch
 	@echo "Patched version"
 	@git add VERSION
