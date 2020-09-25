@@ -98,9 +98,46 @@ Review default Sign On Policy.
 
 [:arrow_up: Back to Top](#table-of-contents)
 
-#### Google
+#### Google Identity Platform
 
-TBD.
+References:
+* [Google Identity Platform - Identity Platform - OpenID Connect](https://developers.google.com/identity/protocols/oauth2/openid-connect)
+
+First, create new application, e.g. "My Gatekeeper".
+
+![Google Identity Platform - Identity Platform - New Application](./assets/docs/images/oauth2_google_new_app.png)
+
+After the creation of the app, you will land on Credentials page.
+
+![Google Identity Platform - Identity Platform - Credentials](./assets/docs/images/oauth2_google_credentials.png)
+
+Click "Configure Consent Screen" and select an appropriate option, e.g. "External".
+
+![Google Identity Platform - Identity Platform - Consent Screen](./assets/docs/images/oauth2_google_consent_screen.png)
+
+Next, provide the name for the application, e.g. "My Gatekeeper" and select appropriate support email.
+
+![Google Identity Platform - Identity Platform - Consent Screen Configuration](./assets/docs/images/oauth2_google_consent_screen_config.png)
+
+After configuring the consent screen you will see the following.
+
+![Google Identity Platform - Identity Platform - Consent Screen Verification](./assets/docs/images/oauth2_google_consent_screen_verification.png)
+
+Next, browse to "Credentials" and click "Create Credentials". Then, choose "OAuth client ID":
+
+![Google Identity Platform - Identity Platform - New Credentials](./assets/docs/images/oauth2_google_new_credentials.png)
+
+First, choose the type of credentials:
+
+![Google Identity Platform - Identity Platform - Consent Screen](./assets/docs/images/oauth2_google_new_credentials_type_choice.png)
+
+Next, provide Redirect URL:
+
+![Google Identity Platform - Identity Platform - Consent Screen](./assets/docs/images/oauth2_google_new_credentials_uri_choice.png)
+
+Finally, you will get a confirmation. Store the Client ID and Client Secret securely.
+
+![Google Identity Platform - Identity Platform - Consent Screen](./assets/docs/images/oauth2_google_new_credentials_confirm.png)
 
 [:arrow_up: Back to Top](#table-of-contents)
 
