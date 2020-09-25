@@ -76,12 +76,12 @@ dep:
 	@go get -u github.com/caddyserver/xcaddy/cmd/xcaddy
 	@go get -u github.com/greenpau/versioned/cmd/versioned
 
-release: docs
+release:
 	@echo "Making release"
 	@go mod tidy
 	@go mod verify
 	@if [ $(GIT_BRANCH) != "main" ]; then echo "cannot release to non-main branch $(GIT_BRANCH)" && false; fi
-	@git diff-index -p --quiet HEAD -- || ( echo "git directory is dirty, commit changes first" && git status && false )
+	@git diff-index --quiet HEAD -- || ( echo "git directory is dirty, commit changes first" && git status && false )
 	@versioned -patch
 	@echo "Patched version"
 	@git add VERSION
