@@ -54,7 +54,9 @@ jobs:
         echo "*** Local binaries ***"
         find /home/runner/.local/bin
     - name: Run tests
-      run: make test
+      run: |
+        make test || true
+        make test
     - name: Generate coverage report
       run: make coverage
     - name: Upload coverage report
