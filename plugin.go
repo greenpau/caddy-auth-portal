@@ -30,8 +30,8 @@ func init() {
 	caddy.RegisterModule(AuthPortal{})
 }
 
-// AuthPortal authorizes access to endpoints based on
-// the credentials provided in a request.
+// AuthPortal implements Form-Based, Basic, Local, LDAP,
+// OpenID Connect, OAuth 2.0, SAML Authentication.
 type AuthPortal struct {
 	Name                     string                     `json:"-"`
 	Provisioned              bool                       `json:"-"`
