@@ -196,7 +196,7 @@ func parseCaddyfileAuthPortal(h httpcaddyfile.Helper) ([]httpcaddyfile.ConfigVal
 								groupMaps = append(groupMaps, groupMap)
 							}
 							backendProps[backendArg] = groupMaps
-						case "provider", "auth_endpoint":
+						case "provider":
 							if !h.NextArg() {
 								return nil, h.Errf("auth backend %s subdirective %s has no value", backendName, backendArg)
 							}
@@ -211,11 +211,11 @@ func parseCaddyfileAuthPortal(h httpcaddyfile.Helper) ([]httpcaddyfile.ConfigVal
 								return nil, h.Errf("auth backend %s subdirective %s has no value", backendName, backendArg)
 							}
 							var acsURLs []string
-							if v, exists := backendProps[backendArg]; exists {
+							if v, exists := backendProps["acs_urls"]; exists {
 								acsURLs = v.([]string)
 							}
 							acsURLs = append(acsURLs, h.Val())
-							backendProps[backendArg] = acsURLs
+							backendProps["acs_urls"] = acsURLs
 						default:
 							return nil, h.Errf("unknown auth backend %s subdirective: %s", backendName, backendArg)
 						}

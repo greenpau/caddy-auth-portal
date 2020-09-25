@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"github.com/greenpau/caddy-auth-jwt"
-	"github.com/greenpau/caddy-auth-portal/pkg/backends/bolt"
+	"github.com/greenpau/caddy-auth-portal/pkg/backends/boltdb"
 	"github.com/greenpau/caddy-auth-portal/pkg/backends/ldap"
 	"github.com/greenpau/caddy-auth-portal/pkg/backends/local"
 	"github.com/greenpau/caddy-auth-portal/pkg/backends/oauth2"
@@ -24,7 +24,8 @@ type Backend struct {
 type BackendDriver interface {
 	GetRealm() string
 	GetName() string
-	Authenticate(string, map[string]string) (*jwt.UserClaims, int, error)
+	GetMethod() string
+	Authenticate(map[string]interface{}) (map[string]interface{}, error)
 	ConfigureLogger(*zap.Logger) error
 	ConfigureTokenProvider(*jwt.TokenProviderConfig) error
 	ConfigureAuthenticator() error
@@ -39,6 +40,11 @@ func (b *Backend) GetRealm() string {
 // GetName returns the name associated with an authentication provider.
 func (b *Backend) GetName() string {
 	return b.driver.GetName()
+}
+
+// GetMethod returns the authentication method associated with an authentication provider.
+func (b *Backend) GetMethod() string {
+	return b.driver.GetMethod()
 }
 
 // Configure configures backend with the authentication provider settings.
@@ -56,8 +62,8 @@ func (b *Backend) Configure(p *AuthPortal) error {
 }
 
 // Authenticate performs authentication with an authentication provider.
-func (b *Backend) Authenticate(reqID string, data map[string]string) (*jwt.UserClaims, int, error) {
-	return b.driver.Authenticate(reqID, data)
+func (b *Backend) Authenticate(opts map[string]interface{}) (map[string]interface{}, error) {
+	return b.driver.Authenticate(opts)
 }
 
 // Validate checks whether an authentication provider is functional.
@@ -95,7 +101,7 @@ func (b *Backend) UnmarshalJSON(data []byte) error {
 	switch b.authMethod {
 	case "boltdb":
 		b.authMethod = "boltdb"
-		driver := bolt.NewDatabaseBackend()
+		driver := boltdb.NewDatabaseBackend()
 		if err := json.Unmarshal(data, driver); err != nil {
 			return fmt.Errorf("invalid boltdb configuration, error: %s, config: %s", err, data)
 		}

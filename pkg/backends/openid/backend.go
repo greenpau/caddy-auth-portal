@@ -90,8 +90,10 @@ func (b *Backend) ValidateConfig() error {
 }
 
 // Authenticate performs authentication.
-func (b *Backend) Authenticate(reqID string, kv map[string]string) (*jwt.UserClaims, int, error) {
-	return nil, 400, fmt.Errorf("unsupported backend %s", b.Name)
+func (b *Backend) Authenticate(opts map[string]interface{}) (map[string]interface{}, error) {
+	resp := make(map[string]interface{})
+	resp["code"] = 400
+	return resp, fmt.Errorf("unsupported backend %s", b.Name)
 }
 
 // Validate checks whether Backend is functional.
@@ -156,4 +158,9 @@ func (b *Backend) ConfigureLogger(logger *zap.Logger) error {
 	}
 	b.logger = logger
 	return nil
+}
+
+// GetMethod returns the authentication method associated with this backend.
+func (b *Backend) GetMethod() string {
+	return b.Method
 }

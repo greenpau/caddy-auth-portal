@@ -146,10 +146,12 @@ func (m AuthPortal) ServeHTTP(w http.ResponseWriter, r *http.Request, _ caddyhtt
 			w.Header().Set("Set-Cookie", redirectToToken+"="+redirectURL[0]+";"+m.Cookies.GetAttributes())
 			foundQueryOptions = true
 		}
-		if foundQueryOptions {
-			w.Header().Set("Location", m.AuthURLPath)
-			w.WriteHeader(302)
-			return nil
+		if !strings.HasPrefix(urlPath, "saml") && !strings.HasPrefix(urlPath, "openid") && !strings.HasPrefix(urlPath, "oauth2") {
+			if foundQueryOptions {
+				w.Header().Set("Location", m.AuthURLPath)
+				w.WriteHeader(302)
+				return nil
+			}
 		}
 	}
 
@@ -189,6 +191,74 @@ func (m AuthPortal) ServeHTTP(w http.ResponseWriter, r *http.Request, _ caddyhtt
 	case strings.HasPrefix(urlPath, "portal"):
 		opts["flow"] = "portal"
 		return handlers.ServePortal(w, r, opts)
+	case strings.HasPrefix(urlPath, "saml"), strings.HasPrefix(urlPath, "openid"), strings.HasPrefix(urlPath, "oauth2"):
+		urlPathParts := strings.Split(urlPath, "/")
+		if len(urlPathParts) < 2 {
+			opts["status_code"] = 400
+			opts["flow"] = "malformed_backend"
+			opts["authenticated"] = false
+			return handlers.ServeGeneric(w, r, opts)
+		}
+		reqBackendMethod := urlPathParts[0]
+		reqBackendRealm := urlPathParts[1]
+		opts["flow"] = reqBackendMethod
+		for _, backend := range m.Backends {
+			if backend.GetRealm() != reqBackendRealm {
+				continue
+			}
+			if backend.GetMethod() != reqBackendMethod {
+				continue
+			}
+			opts["request"] = r
+			resp, err := backend.Authenticate(opts)
+			if err != nil {
+				opts["flow"] = "auth_failed"
+				opts["authenticated"] = false
+				opts["message"] = "Authentication failed"
+				opts["status_code"] = resp["code"].(int)
+				log.Warn("Authentication failed",
+					zap.String("request_id", reqID),
+					zap.String("auth_method", reqBackendMethod),
+					zap.String("auth_realm", reqBackendRealm),
+					zap.String("error", err.Error()),
+				)
+				return handlers.ServeGeneric(w, r, opts)
+			}
+			if v, exists := resp["redirect_url"]; exists {
+				// Redirect to external provider
+				http.Redirect(w, r, v.(string), http.StatusPermanentRedirect)
+				return nil
+			}
+			if _, exists := resp["claims"]; !exists {
+				opts["flow"] = "auth_failed"
+				opts["authenticated"] = false
+				opts["message"] = "Authentication failed"
+				opts["status_code"] = resp["code"].(int)
+				log.Warn("Authentication failed",
+					zap.String("request_id", reqID),
+					zap.String("auth_method", reqBackendMethod),
+					zap.String("auth_realm", reqBackendRealm),
+					zap.String("error", err.Error()),
+				)
+				return handlers.ServeGeneric(w, r, opts)
+			}
+
+			claims := resp["claims"].(*jwt.UserClaims)
+			opts["authenticated"] = true
+			opts["user_claims"] = claims
+			opts["status_code"] = 200
+			log.Debug("Authentication succeeded",
+				zap.String("request_id", reqID),
+				zap.String("auth_method", reqBackendMethod),
+				zap.String("auth_realm", reqBackendRealm),
+				zap.Any("user", claims),
+			)
+			return handlers.ServeLogin(w, r, opts)
+		}
+		opts["status_code"] = 400
+		opts["flow"] = "backend_not_found"
+		opts["authenticated"] = false
+		return handlers.ServeGeneric(w, r, opts)
 	case strings.HasPrefix(urlPath, "login"), urlPath == "":
 		opts["flow"] = "login"
 		if opts["authenticated"].(bool) {
@@ -203,14 +273,16 @@ func (m AuthPortal) ServeHTTP(w http.ResponseWriter, r *http.Request, _ caddyhtt
 							continue
 						}
 						opts["auth_backend_found"] = true
-						if claims, code, err := backend.Authenticate(reqID, credentials); err != nil {
+						opts["auth_credentials"] = credentials
+						if resp, err := backend.Authenticate(opts); err != nil {
 							opts["message"] = "Authentication failed"
-							opts["status_code"] = code
+							opts["status_code"] = resp["code"].(int)
 							log.Warn("Authentication failed",
 								zap.String("request_id", reqID),
 								zap.String("error", err.Error()),
 							)
 						} else {
+							claims := resp["claims"].(*jwt.UserClaims)
 							opts["user_claims"] = claims
 							opts["authenticated"] = true
 							opts["status_code"] = 200

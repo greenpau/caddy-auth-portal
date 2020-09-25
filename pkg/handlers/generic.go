@@ -21,6 +21,14 @@ func ServeGeneric(w http.ResponseWriter, r *http.Request, opts map[string]interf
 	case "not_found":
 		title = "Not Found"
 		statusCode = 404
+	case "auth_failed":
+		statusCode = 401
+		title = "Authentication Failed"
+	case "backend_not_found":
+		title = "Authentication Backend Not Found"
+		statusCode = 404
+	case "malformed_backend":
+		title = "Malformed Authentication Backend"
 	case "unsupported_feature":
 		title = "Unsupported Feature"
 		statusCode = 404

@@ -1,4 +1,4 @@
-package bolt
+package boltdb
 
 import (
 	"context"
@@ -14,6 +14,7 @@ import (
 // Backend represents authentication provider with BoltDB backend.
 type Backend struct {
 	Name          string                   `json:"name,omitempty"`
+	Method        string                   `json:"method,omitempty"`
 	Realm         string                   `json:"realm,omitempty"`
 	Path          string                   `json:"path,omitempty"`
 	TokenProvider *jwt.TokenProviderConfig `json:"jwt,omitempty"`
@@ -25,6 +26,7 @@ type Backend struct {
 // with BoltDB backend.
 func NewDatabaseBackend() *Backend {
 	b := &Backend{
+		Method:        "boltdb",
 		TokenProvider: jwt.NewTokenProviderConfig(),
 		Authenticator: NewAuthenticator(),
 	}
@@ -132,26 +134,33 @@ func (b *Backend) ValidateConfig() error {
 }
 
 // Authenticate performs authentication.
-func (b *Backend) Authenticate(reqID string, kv map[string]string) (*jwt.UserClaims, int, error) {
+func (b *Backend) Authenticate(opts map[string]interface{}) (map[string]interface{}, error) {
+	resp := make(map[string]interface{})
+	resp["code"] = 400
+	kv := opts["auth_credentials"].(map[string]string)
 	if kv == nil {
-		return nil, 400, fmt.Errorf("No input to authenticate")
+		return resp, fmt.Errorf("No input to authenticate")
 	}
 	if _, exists := kv["username"]; !exists {
-		return nil, 400, fmt.Errorf("No username found")
+		return resp, fmt.Errorf("No username found")
 	}
 	if _, exists := kv["password"]; !exists {
-		return nil, 401, fmt.Errorf("No password found")
+		resp["code"] = 401
+		return resp, fmt.Errorf("No password found")
 	}
 	if b.Authenticator == nil {
-		return nil, 500, fmt.Errorf("boltdb backend is nil")
+		resp["code"] = 500
+		return resp, fmt.Errorf("boltdb backend is nil")
 	}
 	claims, statusCode, err := b.Authenticator.AuthenticateUser(kv["username"], kv["password"])
+	resp["code"] = statusCode
 	if statusCode == 200 {
 		claims.Origin = b.TokenProvider.TokenOrigin
 		claims.ExpiresAt = time.Now().Add(time.Duration(b.TokenProvider.TokenLifetime) * time.Second).Unix()
-		return claims, statusCode, nil
+		resp["claims"] = claims
+		return resp, nil
 	}
-	return nil, statusCode, err
+	return resp, err
 }
 
 // Validate checks whether Backend is functional.
@@ -234,4 +243,9 @@ func (b *Backend) ConfigureLogger(logger *zap.Logger) error {
 	}
 	b.logger = logger
 	return nil
+}
+
+// GetMethod returns the authentication method associated with this backend.
+func (b *Backend) GetMethod() string {
+	return b.Method
 }

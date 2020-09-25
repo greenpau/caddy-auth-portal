@@ -30,8 +30,7 @@ The following configuration is common across variations of SAML backend:
         azure_saml_backend {
           method saml
           realm azure
-          auth_endpoint azure/saml
-          auth_provider azure
+          provider azure
         }
       }
 ```
@@ -39,12 +38,15 @@ The following configuration is common across variations of SAML backend:
 | **Parameter Name** | **Description** |
 | --- | --- |
 | `method` | Must be set to `saml` |
-| `realm` | The realm is used internally |
-| `auth_endpoint` | The unique authentication endpoint for the backend |
-| `auth_provider` | It is either `generic` or specific, e.g. `azure` |
+| `realm` | The realm is used to distinguish between various SAML authentication providers |
+| `provider` | It is either `generic` or specific, e.g. `azure`, `okta`, etc. |
 
-If you specify endpoint as `azure/saml` and the portal is being served at
-`/auth`, then you could access the endpoint via `/auth/azure/saml`.
+The URL for the SAML endpoint is: `<AUTH_PORTAL_PATH>/saml/<REALM_NAME>`.
+
+If you specify `realm` as `azure` and the portal is being served at
+`/auth`, then you could access the endpoint via `/auth/saml/azure`.
+
+The Reply URL could be `https://localhost:8443/auth/saml/azure`.
 
 ### Azure Active Directory (Office 365) Applications
 
@@ -57,8 +59,7 @@ The Azure SAML backend configuration:
         azure_saml_backend {
           method saml
           realm azure
-          auth_endpoint azure/saml
-          auth_provider azure
+          provider azure
           idp_metadata_location /etc/gatekeeper/auth/idp/azure_ad_app_metadata.xml
           idp_sign_cert_location /etc/gatekeeper/auth/idp/azure_ad_app_signing_cert.pem
           tenant_id "1b9e886b-8ff2-4378-b6c8-6771259a5f51"
