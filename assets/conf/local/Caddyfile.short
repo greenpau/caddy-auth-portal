@@ -4,7 +4,7 @@
   debug
 }
 
-localhost:8443 {
+localhost, 127.0.0.1 {
   route /auth* {
     auth_portal {
       local_backend assets/conf/local/auth/user_db.json

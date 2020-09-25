@@ -30,7 +30,7 @@ func TestLocalCaddyfile(t *testing.T) {
       https_port    `+securePort+`
     }
 
-    `+hostPort+` {
+    `+host+`, localhost {
 	  route /`+authPath+`* {
         auth_portal {
           path /`+authPath+`
