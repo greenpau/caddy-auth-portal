@@ -1260,6 +1260,8 @@ who is logged in. The differences between standard OAuth2.0 flow are:
 1. In the initial request, a specific scope of `openid` is used
 2. In the final exchange the Client receives both an "Access Token" and an "ID Token" (JWT Token).
 
+[:arrow_up: Back to Top](#table-of-contents)
+
 ### OAuth 2.0 Authorization Servers and Identity Providers
 
 #### Okta
