@@ -9,6 +9,8 @@ The plugin supports the following **authentication** backends:
 
 * Local (`local`) - JSON flat file database
 * LDAP (`ldap`) - remote Microsoft AD database
+* SAML
+* OAuth 2.0 and OpenID Connect (OIDC)
 
 The plugin accepts user credentials for **authentication** with:
 

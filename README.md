@@ -67,6 +67,8 @@ The plugin supports the following **authentication** backends:
 
 * Local (`local`) - JSON flat file database
 * LDAP (`ldap`) - remote Microsoft AD database
+* SAML
+* OAuth 2.0 and OpenID Connect (OIDC)
 
 The plugin accepts user credentials for **authentication** with:
 
@@ -82,6 +84,7 @@ The following digram is visual representation of the configuration of
 [:arrow_up: Back to Top](#table-of-contents)
 
 <!--- end of section -->
+
 ## Authentication Portal
 
 <table cellspacing="0" cellpadding="0" style="border-collapse: collapse; border: none; vertical-align: top;">
