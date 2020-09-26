@@ -14,22 +14,68 @@
           path assets/conf/local/auth/user_db.json
           realm local
         }
+        ldap_backend {
+          method ldap
+          realm contoso.com
+          servers {
+            ldaps://ldaps.contoso.com ignore_cert_errors
+          }
+          attributes {
+            name givenName
+            surname sn
+            username sAMAccountName
+            member_of memberOf
+            email mail
+          }
+          username "CN=authzsvc,OU=Service Accounts,OU=Administrative Accounts,DC=CONTOSO,DC=COM"
+          password "P@ssW0rd123"
+          search_base_dn "DC=CONTOSO,DC=COM"
+          search_filter "(&(|(sAMAccountName=%s)(mail=%s))(objectclass=user))"
+          groups {
+            "CN=Admins,OU=Security,OU=Groups,DC=CONTOSO,DC=COM" admin
+            "CN=Editors,OU=Security,OU=Groups,DC=CONTOSO,DC=COM" editor
+            "CN=Viewers,OU=Security,OU=Groups,DC=CONTOSO,DC=COM" viewer
+          }
+        }
+        azure_saml_backend {
+          method saml
+          realm azure
+          provider azure
+          idp_metadata_location assets/conf/saml/azure/idp/azure_ad_app_metadata.xml
+          idp_sign_cert_location assets/conf/saml/azure/idp/azure_ad_app_signing_cert.pem
+          tenant_id "1b9e886b-8ff2-4378-b6c8-6771259a5f51"
+          application_id "623cae7c-e6b2-43c5-853c-2059c9b2cb58"
+          application_name "My Gatekeeper"
+          entity_id "urn:caddy:mygatekeeper"
+          acs_url https://mygatekeeper/auth/saml/azure
+          acs_url https://mygatekeeper.local/auth/saml/azure
+          acs_url https://192.168.10.10:3443/auth/saml/azure
+          acs_url https://localhost:3443/auth/saml/azure
+          acs_url https://localhost:8443/auth/saml/azure
+        }
       }
       jwt {
         token_name access_token
         token_secret 0e2fdcf8-6868-41a7-884b-7308795fc286
         token_issuer e1008f2d-ccfa-4e62-bbe6-c202ec2988cc
+        token_lifetime 3600
       }
       ui {
-        login_template "assets/conf/local/ui/login.template"
+        login_template "assets/ui/ldap/login.template"
         portal_template "assets/conf/local/ui/portal.template"
         logo_url "https://caddyserver.com/resources/images/caddy-circle-lock.svg"
         logo_description "Caddy"
         links {
           "Prometheus" /prometheus
           "Alertmanager" /alertmanager
-          "My App" /myapp
+          "My App" /myapp/
+          "My Identity" /auth/whoami
+          "My Settings" /auth/settings
         }
+      }
+      registration {
+        dropbox /etc/gatekeeper/auth/local/registrations_db.json
+        require domain_mx
       }
     }
   }
@@ -47,6 +93,7 @@
       auth_url /auth
       allow roles anonymous guest admin
       allow roles superadmin
+      allow roles admin editor viewer
       allow roles AzureAD_Administrator AzureAD_Editor AzureAD_Viewer
     }
     uri strip_prefix /prometheus
@@ -66,6 +113,20 @@
 
   route /version* {
     respond * "1.0.0" 200
+  }
+
+  route /sso/azure* {
+    jwt {
+      auth_url /auth/saml/azure
+    }
+    respond * "azure saml sso" 200
+  }
+
+  route /sso/oauth2/okta* {
+    jwt {
+      auth_url /auth/oauth2/okta
+    }
+    respond * "okta oauth2 sso" 200
   }
 
   route {

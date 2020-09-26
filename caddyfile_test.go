@@ -14,62 +14,21 @@ import (
 func TestLocalCaddyfile(t *testing.T) {
 	scheme := "https"
 	host := "127.0.0.1"
-	port := "8080"
 	securePort := "8443"
 	authPath := "auth"
 	hostPort := host + ":" + securePort
 	baseURL := scheme + "://" + hostPort
 	accessTokenName := "access_token"
-	tokenSecret := "0e2fdcf8-6868-41a7-884b-7308795fc286"
-	tokenIssuer := "e1008f2d-ccfa-4e62-bbe6-c202ec2988cc"
 	localhost, _ := url.Parse(baseURL)
+
 	tester := caddytest.NewTester(t)
-	tester.InitServer(`
-    {
-      http_port     `+port+`
-      https_port    `+securePort+`
-    }
-
-    `+host+`, localhost {
-	  route /`+authPath+`* {
-        auth_portal {
-          path /`+authPath+`
-          backends {
-            local_backend {
-              method local
-              path assets/conf/local/auth/user_db.json
-              realm local
-            }
-          }
-          jwt {
-            token_name access_token
-            token_secret `+tokenSecret+`
-            token_issuer `+tokenIssuer+`
-          }
-          ui {
-            login_template "assets/conf/local/ui/login.template"
-            portal_template "assets/conf/local/ui/portal.template"
-            whoami_template "assets/conf/local/ui/whoami.template"
-            logo_url "https://caddyserver.com/resources/images/caddy-circle-lock.svg"
-            logo_description "Caddy"
-            links {
-              "Public Access" /public
-			  "Private Access" /private
-            }
-          }
-        }
-      }
-
-      route /public* {
-        respond * "public" 200
-      }
-
-      route {
-        redir https://{hostport}/auth 302
-      }
-    }
-    `, "caddyfile")
-
+	configFile := "assets/conf/local/Caddyfile"
+	configContent, err := ioutil.ReadFile(configFile)
+	if err != nil {
+		t.Fatalf("Failed to load configuration file %s: %s", configFile, err)
+	}
+	rawConfig := string(configContent)
+	tester.InitServer(rawConfig, "caddyfile")
 	req, _ := http.NewRequest("POST", baseURL+"/"+authPath, strings.NewReader("username=webadmin&password=password123"))
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	resp := tester.AssertResponseCode(req, 200)
