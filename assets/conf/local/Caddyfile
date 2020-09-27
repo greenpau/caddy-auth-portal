@@ -104,6 +104,7 @@
       allow roles superadmin
       allow roles admin editor viewer
       allow roles AzureAD_Administrator AzureAD_Editor AzureAD_Viewer
+      allow roles everyone Everyone
     }
     uri strip_prefix /prometheus
     reverse_proxy http://127.0.0.1:9080

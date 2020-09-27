@@ -1,6 +1,7 @@
 package oauth2
 
 import (
+	"crypto/rsa"
 	"encoding/json"
 	"fmt"
 	"github.com/greenpau/caddy-auth-jwt"
@@ -32,7 +33,8 @@ type Backend struct {
 
 	// Stores data from .well-known/oauth-authorization-server
 	metadata         map[string]interface{}
-	keys             []*JwksKey
+	keys             map[string]*JwksKey
+	publicKeys       map[string]*rsa.PublicKey
 	authorizationURL string
 	tokenURL         string
 	keysURL          string
@@ -50,7 +52,8 @@ func NewDatabaseBackend() *Backend {
 		Method:        "oauth2",
 		TokenProvider: jwt.NewTokenProviderConfig(),
 		state:         newStateManager(),
-		keys:          []*JwksKey{},
+		keys:          make(map[string]*JwksKey),
+		publicKeys:    make(map[string]*rsa.PublicKey),
 	}
 	go manageStateManager(b.state)
 	return b
@@ -176,18 +179,25 @@ func (b *Backend) Authenticate(opts map[string]interface{}) (map[string]interfac
 				zap.Any("token", accessToken),
 			)
 
-			// TODO: validate token
-			// TODO: validate nonce
-			// TODO: issue token
-
-			return resp, fmt.Errorf("got OAuth 2.0 authorization code")
+			claims, err := b.validateAccessToken(reqParamsState, accessToken)
+			if err != nil {
+				return resp, fmt.Errorf("failed validating OAuth 2.0 access token: %s", err)
+			}
+			claims.Issuer = utils.GetCurrentBaseURL(r) + reqPath
+			resp["claims"] = claims
+			b.logger.Debug(
+				"received OAuth 2.0 authorization server access token",
+				zap.String("request_id", reqID),
+				zap.Any("claims", claims),
+			)
+			return resp, nil
 		}
 		return resp, fmt.Errorf("unable to process OAuth 2.0 response")
 	}
 
 	resp["code"] = 200
 	state := uuid.NewV4().String()
-	nonce := utils.GetRandomString(12)
+	nonce := utils.GetRandomString(32)
 	params := url.Values{}
 	// CSRF Protection
 	params.Set("state", state)
@@ -319,12 +329,21 @@ func (b *Backend) fetchKeysURL() error {
 		return fmt.Errorf("failed to compile jwks keys into JSON: %s", err)
 	}
 
-	if err := json.Unmarshal(jwksJSON, &b.keys); err != nil {
+	keys := []*JwksKey{}
+	if err := json.Unmarshal(jwksJSON, &keys); err != nil {
 		return err
 	}
 
-	if len(b.keys) < 1 {
+	if len(keys) < 1 {
 		return fmt.Errorf("no jwks keys found")
+	}
+
+	for _, k := range keys {
+		if err := k.Validate(); err != nil {
+			return fmt.Errorf("jwks key is invalid: %s", err)
+		}
+		b.keys[k.KeyID] = k
+		b.publicKeys[k.KeyID] = k.publicKey
 	}
 	return nil
 }

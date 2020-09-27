@@ -1,6 +1,7 @@
 package oauth2
 
 import (
+	"fmt"
 	"sync"
 	"time"
 )
@@ -45,6 +46,19 @@ func (sm *stateManager) exists(state string) bool {
 		return true
 	}
 	return false
+}
+
+func (sm *stateManager) validateNonce(state, nonce string) error {
+	sm.mux.Lock()
+	defer sm.mux.Unlock()
+	v, exists := sm.nonces[state]
+	if !exists {
+		return fmt.Errorf("no nonce found for %s", state)
+	}
+	if v != nonce {
+		return fmt.Errorf("nonce mismatch %s (expected) vs. %s (received)", v, nonce)
+	}
+	return nil
 }
 
 func (sm *stateManager) addCode(state, code string) {

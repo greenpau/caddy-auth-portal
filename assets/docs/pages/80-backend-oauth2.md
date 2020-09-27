@@ -121,6 +121,7 @@ Next, browse to "Claims" and click "Add Claim".
 
 Fill out the "Add Claim" form:
 * Name: `groups`
+* Include in token type: "ID Token", "Always"
 * Value type: Groups
 * Filter: Matches `.*` regex
 * Include in: The "groups" scope
@@ -154,129 +155,7 @@ Provided the Okta domain is `dev-680653.okta.com`, the authorization server is
 curl -X GET "https://dev-680653.okta.com/oauth2/default/.well-known/openid-configuration?client_id=0oa121qw81PJW0Tj34x7" | jq
 ```
 
-The expected output is:
-
-```
-{
-  "issuer": "https://dev-680653.okta.com/oauth2/default",
-  "authorization_endpoint": "https://dev-680653.okta.com/oauth2/default/v1/authorize",
-  "token_endpoint": "https://dev-680653.okta.com/oauth2/default/v1/token",
-  "userinfo_endpoint": "https://dev-680653.okta.com/oauth2/default/v1/userinfo",
-  "registration_endpoint": "https://dev-680653.okta.com/oauth2/v1/clients/0oa121qw81PJW0Tj34x7",
-  "jwks_uri": "https://dev-680653.okta.com/oauth2/default/v1/keys",
-  "response_types_supported": [
-    "code"
-  ],
-  "response_modes_supported": [
-    "query",
-    "fragment",
-    "form_post",
-    "okta_post_message"
-  ],
-  "grant_types_supported": [
-    "authorization_code"
-  ],
-  "subject_types_supported": [
-    "public"
-  ],
-  "id_token_signing_alg_values_supported": [
-    "RS256"
-  ],
-  "scopes_supported": [
-    "openid",
-    "profile",
-    "email",
-    "address",
-    "phone"
-  ],
-  "token_endpoint_auth_methods_supported": [
-    "client_secret_basic"
-  ],
-  "claims_supported": [
-    "iss",
-    "ver",
-    "sub",
-    "aud",
-    "iat",
-    "exp",
-    "jti",
-    "auth_time",
-    "amr",
-    "idp",
-    "nonce",
-    "name",
-    "nickname",
-    "preferred_username",
-    "given_name",
-    "middle_name",
-    "family_name",
-    "email",
-    "email_verified",
-    "profile",
-    "zoneinfo",
-    "locale",
-    "address",
-    "phone_number",
-    "picture",
-    "website",
-    "gender",
-    "birthdate",
-    "updated_at",
-    "at_hash",
-    "c_hash"
-  ],
-  "code_challenge_methods_supported": [
-    "S256"
-  ],
-  "introspection_endpoint": "https://dev-680653.okta.com/oauth2/default/v1/introspect",
-  "introspection_endpoint_auth_methods_supported": [
-    "client_secret_basic"
-  ],
-  "revocation_endpoint": "https://dev-680653.okta.com/oauth2/default/v1/revoke",
-  "revocation_endpoint_auth_methods_supported": [
-    "client_secret_basic"
-  ],
-  "end_session_endpoint": "https://dev-680653.okta.com/oauth2/default/v1/logout",
-  "request_parameter_supported": true,
-  "request_object_signing_alg_values_supported": [
-    "HS256",
-    "HS384",
-    "HS512"
-  ]
-}
-```
-
-The following returns a JSON Web Key Set (JWKS) that contains the public keys that
-can be used to verify the signatures of tokens received from Okta's authorization server.
-
-```bash
-curl https://dev-680653.okta.com/oauth2/default/v1/keys | jq
-```
-
-The expected output is:
-
-```bash
-{
-  "keys": [
-    {
-      "kty": "RSA",
-      "alg": "RS256",
-      "kid": "7NJ-w2OhocVRbyIT1HUY3pKaFTa8apJxSDe6hMpIRNQ",
-      "use": "sig",
-      "e": "AQAB",
-      "n": "mRg7MIf9I6Mp2SRdPyyHNCuf7ca695bTOGEUXrqQq51YO4wqs_LJX6T2JqJTreR9vIV856shOFlRvb0ZjCLSxQu6phdXFj7V3Qycm2wyZkKkQ8v1s52cec5KyNe3IRchtMfBVAcK0PXFwUAw6fu7xPW-2B7yD2_Xop-03GkSi7RmH7y4xnCz8eetyNU11cQZu9_nXex3Eo9_poiyDHHHO24menmjA6rMLraR2JlBMeI7VTFSaTyqEQ_qtdo1wRD0umGqN6jfsL6XUyvmKEsulZxj7KWbqtl6VyMxrtT3KDnwHVJ7I5V68NsjAZCF7iwgVpNQeXbRKi7SpoTet48bvQ"
-    },
-    {
-      "kty": "RSA",
-      "alg": "RS256",
-      "kid": "u4louF5gsEhI28_Oj6fQHcd6fViOT_P9GTedCQAiooY",
-      "use": "sig",
-      "e": "AQAB",
-      "n": "phxaY-ZGuuCiHbprkz3MeQJwgIBD5TqEb1IhnjhRlNrhYjtnj-0g5YqaOc_qPJGc8uFaPgtnk_UXMFAmNEqSYnrItBW9uh4hR_JHSEyq4TMiW6-1aqvBPUzVjYUYFKzkRjwUSqMafJyMlQD1DqOQf1MjZLW2RnI5IjsC6YHb0LOtqa890CeuDhllr5iBr2Q9LcU9e8YnQk-vzjLoN8F1ooXp0MFJ52eZObdJq0Gl6rnDhmtmJykmz6niTcEPM5UdqsRyh2L2Mv7oFA5y_qG1WDnqLugWynh8Pc-q6BW3DMRcxN3HNFOAJrnfy5CiqHY1Cleql9f2agQCCtypdCqNow"
-    }
-  ]
-}
-```
+By default, the plugin logs public keys from `keys` endpoint.
 
 [:arrow_up: Back to Top](#table-of-contents)
 
@@ -316,6 +195,9 @@ First, choose the type of credentials:
 Next, provide Redirect URL:
 
 ![Google Identity Platform - Identity Platform - Consent Screen](./assets/docs/images/oauth2_google_new_credentials_uri_choice.png)
+
+Login redirect URIs:
+* `https://localhost:8443/auth/oauth2/google/authorization-code-callback`
 
 Finally, you will get a confirmation. Store the Client ID and Client Secret securely.
 

@@ -111,6 +111,7 @@ func (m AuthPortal) ServeHTTP(w http.ResponseWriter, r *http.Request, _ caddyhtt
 	opts["cookie_names"] = []string{redirectToToken, m.TokenProvider.TokenName}
 	opts["token_name"] = m.TokenProvider.TokenName
 	opts["token_secret"] = m.TokenProvider.TokenSecret
+	// opts["token_issuer"] = m.TokenProvider.TokenIssuer
 	if m.UserInterface.Title != "" {
 		opts["ui_title"] = m.UserInterface.Title
 	}
