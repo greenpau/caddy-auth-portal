@@ -32,8 +32,10 @@ type Backend struct {
 
 	// Stores data from .well-known/oauth-authorization-server
 	metadata         map[string]interface{}
+	keys             []*JwksKey
 	authorizationURL string
 	tokenURL         string
+	keysURL          string
 	// Stores cached state IDs
 	state *stateManager
 
@@ -48,6 +50,7 @@ func NewDatabaseBackend() *Backend {
 		Method:        "oauth2",
 		TokenProvider: jwt.NewTokenProviderConfig(),
 		state:         newStateManager(),
+		keys:          []*JwksKey{},
 	}
 	go manageStateManager(b.state)
 	return b
@@ -91,7 +94,11 @@ func (b *Backend) ConfigureAuthenticator() error {
 	}
 
 	if err := b.fetchMetadataURL(); err != nil {
-		return fmt.Errorf("failed to fetch metdata for OAuth 2.0 authorization server: %s", err)
+		return fmt.Errorf("failed to fetch metadata for OAuth 2.0 authorization server: %s", err)
+	}
+
+	if err := b.fetchKeysURL(); err != nil {
+		return fmt.Errorf("failed to fetch jwt keys for OAuth 2.0 authorization server: %s", err)
 	}
 
 	b.logger.Info(
@@ -101,6 +108,7 @@ func (b *Backend) ConfigureAuthenticator() error {
 		zap.String("server_id", b.ServerID),
 		zap.String("domain_name", b.DomainName),
 		zap.Any("metadata", b.metadata),
+		zap.Any("jwks_keys", b.keys),
 	)
 
 	return nil
@@ -189,7 +197,6 @@ func (b *Backend) Authenticate(opts map[string]interface{}) (map[string]interfac
 	params.Set("redirect_uri", utils.GetCurrentBaseURL(r)+reqPath+"/authorization-code-callback")
 	params.Set("response_type", "code")
 	params.Set("client_id", b.ClientID)
-	// Any combination of code, token, and id_token. The combination determines the flow.
 	resp["redirect_url"] = b.authorizationURL + "?" + params.Encode()
 	b.state.add(state, nonce)
 	b.logger.Debug(
@@ -198,137 +205,6 @@ func (b *Backend) Authenticate(opts map[string]interface{}) (map[string]interfac
 		zap.String("redirect_url", resp["redirect_url"].(string)),
 	)
 	return resp, nil
-
-	/*
-
-		if r.ContentLength > 30000 {
-			return resp, fmt.Errorf("Request payload exceeded the limit of 30,000 bytes: %d", r.ContentLength)
-		}
-		if r.ContentLength < 500 {
-			return resp, fmt.Errorf("Request payload is too small: %d", r.ContentLength)
-		}
-		contentType := r.Header.Get("Content-Type")
-		if contentType != "application/x-www-form-urlencoded" {
-			return resp, fmt.Errorf("Request content type is not application/x-www-form-urlencoded")
-		}
-		if err := r.ParseForm(); err != nil {
-			return resp, fmt.Errorf("Failed to parse form: %s", err)
-		}
-		if r.FormValue("OAuth 2.0Response") == "" {
-			return resp, fmt.Errorf("Request payload has no OAuth 2.0Response field")
-		}
-		samlResponseBytes, err := base64.StdEncoding.DecodeString(r.FormValue("OAuth 2.0Response"))
-		if err != nil {
-			return resp, err
-		}
-		acsURL := ""
-		s := string(samlResponseBytes)
-		for _, elem := range []string{"Destination=\""} {
-			i := strings.Index(s, elem)
-			if i < 0 {
-				continue
-			}
-			j := strings.Index(s[i+len(elem):], "\"")
-			if j < 0 {
-				continue
-			}
-			acsURL = s[i+len(elem) : i+len(elem)+j]
-		}
-
-		if acsURL == "" {
-			return resp, fmt.Errorf("Failed to parse ACS URL")
-		}
-
-		if b.Provider == "azure" {
-			if !strings.Contains(r.Header.Get("Origin"), "login.microsoftonline.com") &&
-				!strings.Contains(r.Header.Get("Referer"), "windowsazure.com") {
-				return resp, fmt.Errorf("Origin does not contain login.microsoftonline.com and Referer is not windowsazure.com")
-			}
-		}
-
-		sp, serviceProviderExists := b.ServiceProviders[acsURL]
-		if !serviceProviderExists {
-			return resp, fmt.Errorf("Unsupported ACS URL %s", acsURL)
-		}
-
-		samlAssertions, err := sp.ParseXMLResponse(samlResponseBytes, []string{""})
-		if err != nil {
-			return resp, fmt.Errorf("Failed to ParseXMLResponse: %s", err)
-		}
-
-		claims := &jwt.UserClaims{}
-
-		foundAttr := make(map[string]interface{})
-
-		for _, attrStatement := range samlAssertions.AttributeStatements {
-			for _, attrEntry := range attrStatement.Attributes {
-				if len(attrEntry.Values) == 0 {
-					continue
-				}
-				if strings.HasSuffix(attrEntry.Name, "Attributes/MaxSessionDuration") {
-					multiplier, err := strconv.Atoi(attrEntry.Values[0].Value)
-					if err != nil {
-						b.logger.Error(
-							"Failed parsing Attributes/MaxSessionDuration",
-							zap.String("request_id", reqID),
-							zap.String("error", err.Error()),
-						)
-						continue
-					}
-					claims.ExpiresAt = time.Now().Add(time.Duration(multiplier) * time.Second).Unix()
-					foundAttr["exp"] = true
-					continue
-				}
-
-				if strings.HasSuffix(attrEntry.Name, "identity/claims/displayname") {
-					claims.Name = attrEntry.Values[0].Value
-					continue
-				}
-
-				if strings.HasSuffix(attrEntry.Name, "identity/claims/emailaddress") {
-					claims.Email = attrEntry.Values[0].Value
-					continue
-				}
-
-				if strings.HasSuffix(attrEntry.Name, "identity/claims/identityprovider") {
-					claims.Origin = attrEntry.Values[0].Value
-					continue
-				}
-
-				if strings.HasSuffix(attrEntry.Name, "identity/claims/name") {
-					claims.Subject = attrEntry.Values[0].Value
-					continue
-				}
-
-				if strings.HasSuffix(attrEntry.Name, "Attributes/Role") {
-					for _, attrEntryElement := range attrEntry.Values {
-						claims.Roles = append(claims.Roles, attrEntryElement.Value)
-					}
-					continue
-				}
-			}
-		}
-
-		if claims.Email == "" || claims.Name == "" {
-			return resp, fmt.Errorf("The Azure AD authorization failed, mandatory attributes not found: %v", claims)
-		}
-
-		if len(claims.Roles) == 0 {
-			claims.Roles = append(claims.Roles, "anonymous")
-		}
-
-		if claims.Origin == "" {
-			claims.Origin = b.TokenProvider.TokenOrigin
-		}
-
-		if _, found := foundAttr["exp"]; !found {
-			claims.ExpiresAt = time.Now().Add(time.Duration(b.TokenProvider.TokenLifetime) * time.Second).Unix()
-		}
-
-		resp["claims"] = claims
-		return resp, nil
-
-	*/
 }
 
 // Validate checks whether Backend is functional.
@@ -407,13 +283,49 @@ func (b *Backend) fetchMetadataURL() error {
 	if err := json.Unmarshal(respBody, &b.metadata); err != nil {
 		return err
 	}
-	for _, k := range []string{"authorization_endpoint", "token_endpoint"} {
+	for _, k := range []string{"authorization_endpoint", "token_endpoint", "jwks_uri"} {
 		if _, exists := b.metadata[k]; !exists {
 			return fmt.Errorf("metadata has no %s field", k)
 		}
 	}
 	b.authorizationURL = b.metadata["authorization_endpoint"].(string)
 	b.tokenURL = b.metadata["token_endpoint"].(string)
+	b.keysURL = b.metadata["jwks_uri"].(string)
+	return nil
+}
+
+func (b *Backend) fetchKeysURL() error {
+	resp, err := http.Get(b.keysURL)
+	if err != nil {
+		return err
+	}
+	respBody, err := ioutil.ReadAll(resp.Body)
+	resp.Body.Close()
+	if err != nil {
+		return err
+	}
+	data := make(map[string]interface{})
+
+	if err := json.Unmarshal(respBody, &data); err != nil {
+		return err
+	}
+
+	if _, exists := data["keys"]; !exists {
+		return fmt.Errorf("jwks response has no keys field")
+	}
+
+	jwksJSON, err := json.Marshal(data["keys"])
+	if err != nil {
+		return fmt.Errorf("failed to compile jwks keys into JSON: %s", err)
+	}
+
+	if err := json.Unmarshal(jwksJSON, &b.keys); err != nil {
+		return err
+	}
+
+	if len(b.keys) < 1 {
+		return fmt.Errorf("no jwks keys found")
+	}
 	return nil
 }
 
