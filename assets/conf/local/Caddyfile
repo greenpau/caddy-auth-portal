@@ -83,7 +83,7 @@
         }
       }
       registration {
-        dropbox /etc/gatekeeper/auth/local/registrations_db.json
+        dropbox assets/conf/local/auth/registrations_db.json
         require domain_mx
       }
     }
