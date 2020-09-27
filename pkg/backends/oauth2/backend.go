@@ -147,9 +147,8 @@ func (b *Backend) Authenticate(opts map[string]interface{}) (map[string]interfac
 		if errorExists {
 			if v, exists := reqParams["error_description"]; exists {
 				return resp, fmt.Errorf("failed OAuth 2.0 authorization flow, error: %s, description: %s", reqParamsError, v[0])
-			} else {
-				return resp, fmt.Errorf("failed OAuth 2.0 authorization flow, error: %s", reqParamsError)
 			}
+			return resp, fmt.Errorf("failed OAuth 2.0 authorization flow, error: %s", reqParamsError)
 		}
 		if codeExists && stateExists {
 			// Received Authorization Code
@@ -176,29 +175,29 @@ func (b *Backend) Authenticate(opts map[string]interface{}) (map[string]interfac
 			return resp, fmt.Errorf("got OAuth 2.0 authorization code")
 		}
 		return resp, fmt.Errorf("unable to process OAuth 2.0 response")
-	} else {
-		resp["code"] = 200
-		state := uuid.NewV4().String()
-		nonce := utils.GetRandomString(12)
-		params := url.Values{}
-		// CSRF Protection
-		params.Set("state", state)
-		// Server Side-Replay Protection
-		params.Set("nonce", nonce)
-		params.Set("scope", "openid email profile groups")
-		params.Set("redirect_uri", utils.GetCurrentBaseURL(r)+reqPath+"/authorization-code-callback")
-		params.Set("response_type", "code")
-		params.Set("client_id", b.ClientID)
-		// Any combination of code, token, and id_token. The combination determines the flow.
-		resp["redirect_url"] = b.authorizationURL + "?" + params.Encode()
-		b.state.add(state, nonce)
-		b.logger.Debug(
-			"redirecting to OAuth 2.0 endpoint",
-			zap.String("request_id", reqID),
-			zap.String("redirect_url", resp["redirect_url"].(string)),
-		)
-		return resp, nil
 	}
+
+	resp["code"] = 200
+	state := uuid.NewV4().String()
+	nonce := utils.GetRandomString(12)
+	params := url.Values{}
+	// CSRF Protection
+	params.Set("state", state)
+	// Server Side-Replay Protection
+	params.Set("nonce", nonce)
+	params.Set("scope", "openid email profile groups")
+	params.Set("redirect_uri", utils.GetCurrentBaseURL(r)+reqPath+"/authorization-code-callback")
+	params.Set("response_type", "code")
+	params.Set("client_id", b.ClientID)
+	// Any combination of code, token, and id_token. The combination determines the flow.
+	resp["redirect_url"] = b.authorizationURL + "?" + params.Encode()
+	b.state.add(state, nonce)
+	b.logger.Debug(
+		"redirecting to OAuth 2.0 endpoint",
+		zap.String("request_id", reqID),
+		zap.String("redirect_url", resp["redirect_url"].(string)),
+	)
+	return resp, nil
 
 	/*
 
@@ -330,8 +329,6 @@ func (b *Backend) Authenticate(opts map[string]interface{}) (map[string]interfac
 		return resp, nil
 
 	*/
-
-	return resp, fmt.Errorf("unsupported yet")
 }
 
 // Validate checks whether Backend is functional.
@@ -444,9 +441,8 @@ func (b *Backend) fetchAccessToken(redirectURI, state, code string) (map[string]
 	if _, exists := data["error"]; exists {
 		if v, exists := data["error_description"]; exists {
 			return nil, fmt.Errorf("failed obtaining OAuth 2.0 access token, error: %s, description: %s", data["error"].(string), v.(string))
-		} else {
-			return nil, fmt.Errorf("failed obtaining OAuth 2.0 access token, error: %s", data["error"].(string))
 		}
+		return nil, fmt.Errorf("failed obtaining OAuth 2.0 access token, error: %s", data["error"].(string))
 	}
 	for _, k := range []string{"access_token", "id_token"} {
 		if _, exists := data[k]; !exists {
