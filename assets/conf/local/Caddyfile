@@ -53,6 +53,15 @@
           acs_url https://localhost:3443/auth/saml/azure
           acs_url https://localhost:8443/auth/saml/azure
         }
+        okta_oauth2_backend {
+          method oauth2
+          realm okta
+          provider okta
+          domain_name dev-680653.okta.com
+          client_id 0oa121qw81PJW0Tj34x7
+          client_secret b3aJC5E59hU18YKC7Yca3994F4qFhWiAo_ZojanF
+          server_id default
+        }
       }
       jwt {
         token_name access_token
@@ -115,7 +124,7 @@
     respond * "1.0.0" 200
   }
 
-  route /sso/azure* {
+  route /sso/saml/azure* {
     jwt {
       auth_url /auth/saml/azure
     }

@@ -2,7 +2,7 @@ package portal
 
 import (
 	"github.com/caddyserver/caddy/v2/modules/caddyhttp"
-	uuid "github.com/satori/go.uuid"
+	"github.com/satori/go.uuid"
 	"net/http"
 )
 

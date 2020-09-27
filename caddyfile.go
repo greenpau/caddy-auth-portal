@@ -201,7 +201,9 @@ func parseCaddyfileAuthPortal(h httpcaddyfile.Helper) ([]httpcaddyfile.ConfigVal
 								return nil, h.Errf("auth backend %s subdirective %s has no value", backendName, backendArg)
 							}
 							backendProps[backendArg] = h.Val()
-						case "idp_metadata_location", "idp_sign_cert_location", "tenant_id", "application_id", "application_name", "entity_id":
+						case "idp_metadata_location", "idp_sign_cert_location", "tenant_id",
+							"application_id", "application_name", "entity_id", "domain_name",
+							"client_id", "client_secret", "server_id":
 							if !h.NextArg() {
 								return nil, h.Errf("auth backend %s subdirective %s has no value", backendName, backendArg)
 							}
