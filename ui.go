@@ -7,6 +7,7 @@ import (
 // UserInterfaceParameters represent a common set of configuration settings
 // for HTML UI.
 type UserInterfaceParameters struct {
+	Theme              string                 `json:"theme,omitempty"`
 	Templates          map[string]string      `json:"templates,omitempty"`
 	AllowRoleSelection bool                   `json:"allow_role_selection,omitempty"`
 	Title              string                 `json:"title,omitempty"`

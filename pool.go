@@ -259,11 +259,24 @@ func (p *AuthPortalPool) Register(m *AuthPortal) error {
 			zap.Any("realms", m.uiFactory.Realms),
 		)
 
+		if m.UserInterface.Theme == "" {
+			m.UserInterface.Theme = defaultTheme
+		}
+		if _, exists := ui.Themes[m.UserInterface.Theme]; !exists {
+			return fmt.Errorf(
+				"%s: UI settings validation error, theme %s does not exist",
+				m.Name, m.UserInterface.Theme,
+			)
+		}
+
 		// User Interface Templates
 		for k := range ui.PageTemplates {
 			tmplNameParts := strings.SplitN(k, "/", 2)
 			tmplTheme := tmplNameParts[0]
 			tmplName := tmplNameParts[1]
+			if tmplTheme != m.UserInterface.Theme {
+				continue
+			}
 			if _, exists := m.UserInterface.Templates[tmplName]; !exists {
 				m.logger.Debug(
 					"Provisioning default authentication user interface templates",
@@ -499,12 +512,23 @@ func (p *AuthPortalPool) Provision(name string) error {
 	)
 
 	// User Interface Templates
+	if m.UserInterface.Theme == "" {
+		m.UserInterface.Theme = primaryInstance.UserInterface.Theme
+	}
+	if _, exists := ui.Themes[m.UserInterface.Theme]; !exists {
+		return fmt.Errorf(
+			"%s: UI settings validation error, theme %s does not exist",
+			m.Name, m.UserInterface.Theme,
+		)
+	}
 
-	// User Interface Templates
 	for k := range ui.PageTemplates {
 		tmplNameParts := strings.SplitN(k, "/", 2)
 		tmplTheme := tmplNameParts[0]
 		tmplName := tmplNameParts[1]
+		if tmplTheme != m.UserInterface.Theme {
+			continue
+		}
 		if _, exists := m.UserInterface.Templates[tmplName]; !exists {
 			m.logger.Debug(
 				"Provisioning default authentication user interface templates",

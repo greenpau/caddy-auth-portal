@@ -8,6 +8,11 @@ import (
 	"text/template"
 )
 
+// Themes stores UI themes.
+var Themes = map[string]interface{}{
+	"basic": true,
+}
+
 // UserInterfaceFactory represents a collection of HTML templates
 // and associated methods for the creation of HTML user interfaces.
 type UserInterfaceFactory struct {

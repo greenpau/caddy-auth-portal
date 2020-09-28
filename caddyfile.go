@@ -280,6 +280,11 @@ func parseCaddyfileAuthPortal(h httpcaddyfile.Helper) ([]httpcaddyfile.ConfigVal
 						portal.UserInterface.Templates[templateName] = h.Val()
 					} else {
 						switch subDirective {
+						case "theme":
+							if !h.NextArg() {
+								return nil, h.Errf("%s %s subdirective has no value", rootDirective, subDirective)
+							}
+							portal.UserInterface.Theme = h.Val()
 						case "logo_url":
 							if !h.NextArg() {
 								return nil, h.Errf("%s %s subdirective has no value", rootDirective, subDirective)

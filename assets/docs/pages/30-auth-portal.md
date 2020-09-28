@@ -53,6 +53,57 @@ onboard your web account.
 
 ### Theming
 
+The theming of the portal works as follows.
+
+It starts with a concept of `theme`. By default, the portal uses `basic` theme.
+There is no need to defind it in Caddyfile.
+
+```
+localhost {
+  route /auth* {
+    auth_portal {
+      ui {
+        theme basic
+      }
+```
+
+Each theme must have a set of default pages:
+
+* `generic`
+* `login`
+* `portal`
+* `register`
+* `whoami`
+* `settings`
+
+The plain text templates are being stored in `assets/templates/<THEME>/<PAGE>.template`.
+
+```
+assets/templates/basic/generic.template
+assets/templates/basic/login.template
+assets/templates/basic/portal.template
+assets/templates/basic/register.template
+assets/templates/basic/whoami.template
+assets/templates/basic/settings.template
+```
+
+These templates are the parts of `pkg/ui/pages.go`. They are compiled in the
+portal's binary. That is, there is no need to store them on the disk.
+
+Next, if a user wants to use a different template, then it could be passed via
+Caddyfile directives. Specifically, use `<PAGE>_template` directive to point
+to a file on disk.
+
+```
+localhost {
+  route /auth* {
+    auth_portal {
+      ui {
+        theme basic
+        login_template "/etc/gatekeeper/ui/login.template"
+      }
+```
+
 TODO: Review [Refactoring UI Feed](https://twitter.com/i/events/994601867987619840)
 and [Refactoring UI Website](https://refactoringui.com/).
 

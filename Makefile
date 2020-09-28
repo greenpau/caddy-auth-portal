@@ -11,7 +11,7 @@ VERBOSE:=-v
 ifdef TEST
 	TEST:="-run ${TEST}"
 endif
-CADDY_VERSION="v2.1.1"
+CADDY_VERSION="v2.2.0"
 
 all:
 	@echo "Version: $(PLUGIN_VERSION), Branch: $(GIT_BRANCH), Revision: $(GIT_COMMIT)"
