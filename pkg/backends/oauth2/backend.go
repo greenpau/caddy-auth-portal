@@ -97,6 +97,7 @@ func (b *Backend) ConfigureAuthenticator() error {
 			b.BaseAuthURL = "https://accounts.google.com/o/oauth2/v2/"
 			b.MetadataURL = "https://accounts.google.com/.well-known/openid-configuration"
 		}
+	case "generic":
 	case "":
 		return fmt.Errorf("no OAuth 2.0 provider found for provider %s", b.Provider)
 	default:
