@@ -10,7 +10,7 @@ Form-Based, Basic, Local, LDAP, OpenID Connect, OAuth 2.0, SAML Authentication.
 Please see other relevant plugins:
 * [caddy-auth-jwt](https://github.com/greenpau/caddy-auth-jwt)
 
-Please show your appreciation for this work and :star2: :star2: :star2:
+Please show your appreciation for this work and :star: :star: :star:
 
 Please ask questions either here or via LinkedIn. I am happy to help you! @greenpau
 
