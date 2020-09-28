@@ -1376,6 +1376,20 @@ browses to the endpoint, the user will be redirected to Okta.
         }
 ```
 
+Next, protect a route, e.g. `/sso/oauth2/okta*`. When a user accesses the page, the
+the user will be redirected to `/auth/oauth2/okta` and, then, to Okta. Once authenticated,
+the user will be redirected back to `/sso/oauth2/okta...`, i.e. back to the path the user
+came from.
+
+```
+  route /sso/oauth2/okta* {
+    jwt {
+      auth_url /auth/oauth2/okta
+    }
+    respond * "okta oauth2 sso" 200
+  }
+```
+
 Provided the Okta domain is `dev-680653.okta.com`, the authorization server is
 `default`, and Client ID is `0oa121qw81PJW0Tj34x7`, check OpenID configuration:
 
@@ -1411,6 +1425,20 @@ browses to the endpoint, the user will be redirected to Google.
           client_secret YYYYYYYYYYYYYYYYYY
           scopes openid email profile
         }
+```
+
+Next, protect a route, e.g. `/sso/oauth2/google*`. When a user accesses the page, the
+the user will be redirected to `/auth/oauth2/google` and, then, to Google. Once authenticated,
+the user will be redirected back to `/sso/oauth2/google...`, i.e. back to the path the user
+came from.
+
+```
+  route /sso/oauth2/google* {
+    jwt {
+      auth_url /auth/oauth2/google
+    }
+    respond * "google oauth2 sso" 200
+  }
 ```
 
 First, create new application, e.g. "My Gatekeeper".
