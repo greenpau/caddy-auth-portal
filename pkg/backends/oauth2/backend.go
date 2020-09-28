@@ -26,12 +26,14 @@ type Backend struct {
 	ClientSecret string `json:"client_secret,omitempty"`
 	ServerID     string `json:"server_id,omitempty"`
 
+	Scopes []string `json:"scopes,omitempty"`
+
 	// The URL to OAuth 2.0 Custom Authorization Server.
 	BaseAuthURL string `json:"base_auth_url,omitempty"`
 	// The URL to OAuth 2.0 metadata related to your Custom Authorization Server.
 	MetadataURL string `json:"metadata_url,omitempty"`
 
-	// Stores data from .well-known/oauth-authorization-server
+	// Stores data from .well-known/openid-configuration
 	metadata         map[string]interface{}
 	keys             map[string]*JwksKey
 	publicKeys       map[string]*rsa.PublicKey
@@ -71,6 +73,10 @@ func (b *Backend) ConfigureAuthenticator() error {
 		return fmt.Errorf("no client_secret found for provider %s", b.Provider)
 	}
 
+	if len(b.Scopes) < 1 {
+		b.Scopes = []string{"openid", "email", "profile"}
+	}
+
 	switch b.Provider {
 	case "okta":
 		if b.ServerID == "" {
@@ -84,7 +90,12 @@ func (b *Backend) ConfigureAuthenticator() error {
 				"https://%s/oauth2/%s/",
 				b.DomainName, b.ServerID,
 			)
-			b.MetadataURL = b.BaseAuthURL + ".well-known/oauth-authorization-server?client_id=" + b.ClientID
+			b.MetadataURL = b.BaseAuthURL + ".well-known/openid-configuration?client_id=" + b.ClientID
+		}
+	case "google":
+		if b.BaseAuthURL == "" {
+			b.BaseAuthURL = "https://accounts.google.com/o/oauth2/v2/"
+			b.MetadataURL = "https://accounts.google.com/.well-known/openid-configuration"
 		}
 	case "":
 		return fmt.Errorf("no OAuth 2.0 provider found for provider %s", b.Provider)
@@ -203,7 +214,7 @@ func (b *Backend) Authenticate(opts map[string]interface{}) (map[string]interfac
 	params.Set("state", state)
 	// Server Side-Replay Protection
 	params.Set("nonce", nonce)
-	params.Set("scope", "openid email profile groups")
+	params.Set("scope", strings.Join(b.Scopes, " "))
 	params.Set("redirect_uri", utils.GetCurrentBaseURL(r)+reqPath+"/authorization-code-callback")
 	params.Set("response_type", "code")
 	params.Set("client_id", b.ClientID)

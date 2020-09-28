@@ -61,6 +61,7 @@
           client_id 0oa121qw81PJW0Tj34x7
           client_secret b3aJC5E59hU18YKC7Yca3994F4qFhWiAo_ZojanF
           server_id default
+          scopes openid email profile groups
         }
       }
       jwt {

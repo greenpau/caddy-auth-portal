@@ -130,7 +130,10 @@ Fill out the "Add Claim" form:
 
 Next, review [Okta OpenID Connect and OAuth 2.0 API - Get Started](https://developer.okta.com/docs/reference/api/oidc/#get-started).
 
-The Caddyfile snipper for Okta OAuth 2.0 backend is as follows:
+The Caddyfile snipper for Okta OAuth 2.0 backend is as follows.
+
+Based on the below configuration, Okta endpoint is `/auth/oauth2/okta`. If a user
+browses to the endpoint, the user will be redirected to Okta.
 
 ```
 127.0.0.1, localhost {
@@ -145,6 +148,7 @@ The Caddyfile snipper for Okta OAuth 2.0 backend is as follows:
           client_id 0oa121qw81PJW0Tj34x7
           client_secret b3aJC5E59hU18YKC7Yca3994F4qFhWiAo_ZojanF
           server_id default
+          scopes openid email profile groups
         }
 ```
 
@@ -162,7 +166,28 @@ By default, the plugin logs public keys from `keys` endpoint.
 #### Google Identity Platform
 
 References:
+* [Google Identity Platform - Using OAuth 2.0 for Web Server Applications](https://developers.google.com/identity/protocols/oauth2/web-server#httprest_2)
 * [Google Identity Platform - Identity Platform - OpenID Connect](https://developers.google.com/identity/protocols/oauth2/openid-connect)
+
+The Caddyfile snippet for Google OAuth 2.0 OpenID backend is as follows.
+
+Based on the below configuration, Google endpoint is `/auth/oauth2/google`. If a user
+browses to the endpoint, the user will be redirected to Google.
+
+```
+127.0.0.1, localhost {
+  route /auth* {
+    auth_portal {
+      backends {
+        google_oauth2_backend {
+          method oauth2
+          realm google
+          provider google
+          client_id XXXXXXXXXXXXXXXXX.apps.googleusercontent.com
+          client_secret YYYYYYYYYYYYYYYYYY
+          scopes openid email profile
+        }
+```
 
 First, create new application, e.g. "My Gatekeeper".
 

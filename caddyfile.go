@@ -218,6 +218,8 @@ func parseCaddyfileAuthPortal(h httpcaddyfile.Helper) ([]httpcaddyfile.ConfigVal
 							}
 							acsURLs = append(acsURLs, h.Val())
 							backendProps["acs_urls"] = acsURLs
+						case "scopes":
+							backendProps["scopes"] = h.RemainingArgs()
 						default:
 							return nil, h.Errf("unknown auth backend %s subdirective: %s", backendName, backendArg)
 						}
