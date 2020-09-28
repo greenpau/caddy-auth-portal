@@ -119,8 +119,6 @@ using local and LDAP credentials.
         token_issuer e1008f2d-ccfa-4e62-bbe6-c202ec2988cc
       }
       ui {
-        login_template "assets/ui/ldap/login.template"
-        portal_template "assets/conf/local/ui/portal.template"
         logo_url "https://caddyserver.com/resources/images/caddy-circle-lock.svg"
         logo_description "Caddy"
         links {
@@ -244,10 +242,6 @@ The JSON representation is:
             "token_issuer": "7a50e023-2c6e-4a5e-913e-23ecd0e2b940"
           },
           "ui": {
-            "templates": {
-              "login": "assets/ui/ldap/login.template",
-              "portal": "assets/ui/portal.template"
-            },
             "logo_url": "https://caddyserver.com/resources/images/caddy-circle-lock.svg",
             "logo_description": "Caddy",
             "allow_role_selection": false,

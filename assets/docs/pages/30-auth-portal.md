@@ -4,10 +4,10 @@
 <table cellspacing="0" cellpadding="0" style="border-collapse: collapse; border: none; vertical-align: top;">
   <tr style="border: none;">
     <td style="border: none; vertical-align: top;">
-      <img src="https://raw.githubusercontent.com/greenpau/caddy-auth-portal/main/assets/docs/images/forms_login.png">
+      <img src="https://raw.githubusercontent.com/greenpau/caddy-auth-portal/main/assets/docs/images/basic_login.png">
     </td>
     <td style="border: none; vertical-align: top;">
-      <img src="https://raw.githubusercontent.com/greenpau/caddy-auth-portal/main/assets/docs/images/forms_portal.png">
+      <img src="https://raw.githubusercontent.com/greenpau/caddy-auth-portal/main/assets/docs/images/basic_portal.png">
     </td>
   </tr>
 </table>

@@ -105,6 +105,7 @@ func (k *JwksKey) Validate() error {
 	return nil
 }
 
+// GetPublicKey returns pointer to rsa.PublicKey.
 func (k *JwksKey) GetPublicKey() *rsa.PublicKey {
 	return k.publicKey
 }

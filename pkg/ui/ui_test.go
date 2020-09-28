@@ -29,12 +29,12 @@ func TestNewUserInterface(t *testing.T) {
 	f.ActionEndpoint = "/auth/login"
 
 	t.Log("Adding a built-in template")
-	if err := f.AddBuiltinTemplate("saml_login"); err != nil {
+	if err := f.AddBuiltinTemplate("basic/login"); err != nil {
 		t.Fatalf("Expected success, but got error: %s, %v", err, f.Templates)
 	}
 
 	t.Log("Adding a template from file system")
-	if err := f.AddTemplate("login", "assets/templates/saml_login.template"); err != nil {
+	if err := f.AddTemplate("login", "assets/templates/basic/login.template"); err != nil {
 		t.Fatalf("Expected success, but got error: %s, %v", err, f.Templates)
 	}
 
@@ -42,14 +42,14 @@ func TestNewUserInterface(t *testing.T) {
 	args := f.GetArgs()
 	var t1, t2 *bytes.Buffer
 	var err error
-	if t1, err = f.Render("saml_login", args); err != nil {
+	if t1, err = f.Render("basic/login", args); err != nil {
 		t.Fatalf("Expected success, but got error: %s", err)
 	}
 	if t2, err = f.Render("login", args); err != nil {
 		t.Fatalf("Expected success, but got error: %s", err)
 	}
 	if strings.TrimSpace(t1.String()) != strings.TrimSpace(t2.String()) {
-		t.Fatalf("Expected templates to match, but got mismatch: %d (saml_login) vs. %d (login)", t1.Len(), t2.Len())
+		t.Fatalf("Expected templates to match, but got mismatch: %d (basic/login) vs. %d (login)", t1.Len(), t2.Len())
 	}
 
 }
@@ -77,7 +77,7 @@ func TestAddBuiltinTemplates(t *testing.T) {
 	f.DeleteTemplates()
 
 	t.Logf("Re-adding templates")
-	if err := f.AddBuiltinTemplate("saml_login"); err != nil {
+	if err := f.AddBuiltinTemplate("basic/login"); err != nil {
 		t.Fatalf("Expected success, but got error: %s", err)
 	}
 
@@ -85,7 +85,7 @@ func TestAddBuiltinTemplates(t *testing.T) {
 	f.DeleteTemplates()
 
 	t.Logf("Re-adding templates")
-	if err := f.AddBuiltinTemplate("forms_login"); err != nil {
+	if err := f.AddBuiltinTemplate("basic/login"); err != nil {
 		t.Fatalf("Expected success, but got error: %s", err)
 	}
 
@@ -93,7 +93,7 @@ func TestAddBuiltinTemplates(t *testing.T) {
 	f.DeleteTemplates()
 
 	t.Logf("Re-adding templates")
-	if err := f.AddBuiltinTemplate("forms_portal"); err != nil {
+	if err := f.AddBuiltinTemplate("basic/portal"); err != nil {
 		t.Fatalf("Expected success, but got error: %s", err)
 	}
 }

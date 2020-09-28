@@ -90,10 +90,10 @@ The following digram is visual representation of the configuration of
 <table cellspacing="0" cellpadding="0" style="border-collapse: collapse; border: none; vertical-align: top;">
   <tr style="border: none;">
     <td style="border: none; vertical-align: top;">
-      <img src="https://raw.githubusercontent.com/greenpau/caddy-auth-portal/main/assets/docs/images/forms_login.png">
+      <img src="https://raw.githubusercontent.com/greenpau/caddy-auth-portal/main/assets/docs/images/basic_login.png">
     </td>
     <td style="border: none; vertical-align: top;">
-      <img src="https://raw.githubusercontent.com/greenpau/caddy-auth-portal/main/assets/docs/images/forms_portal.png">
+      <img src="https://raw.githubusercontent.com/greenpau/caddy-auth-portal/main/assets/docs/images/basic_portal.png">
     </td>
   </tr>
 </table>
@@ -258,8 +258,8 @@ templates and settings:
 
 ```
       ui {
-        login_template "/etc/gatekeeper/ui/forms_login.template"
-        portal_template "/etc/gatekeeper/ui/forms_portal.template"
+        login_template "/etc/gatekeeper/ui/login.template"
+        portal_template "/etc/gatekeeper/ui/portal.template"
         logo_url "https://caddyserver.com/resources/images/caddy-circle-lock.svg"
         logo_description "Caddy"
         links {
@@ -456,7 +456,7 @@ The plugin creates the following a file having the following structure.
 
 Finally, browse to `/auth` and login with the username and password:
 
-<img src="https://raw.githubusercontent.com/greenpau/caddy-auth-portal/main/assets/docs/images/forms_login.png">
+<img src="https://raw.githubusercontent.com/greenpau/caddy-auth-portal/main/assets/docs/images/basic_login.png">
 
 ### Password Management
 
@@ -601,8 +601,6 @@ using local and LDAP credentials.
         token_issuer e1008f2d-ccfa-4e62-bbe6-c202ec2988cc
       }
       ui {
-        login_template "assets/ui/ldap/login.template"
-        portal_template "assets/conf/local/ui/portal.template"
         logo_url "https://caddyserver.com/resources/images/caddy-circle-lock.svg"
         logo_description "Caddy"
         links {
@@ -726,10 +724,6 @@ The JSON representation is:
             "token_issuer": "7a50e023-2c6e-4a5e-913e-23ecd0e2b940"
           },
           "ui": {
-            "templates": {
-              "login": "assets/ui/ldap/login.template",
-              "portal": "assets/ui/portal.template"
-            },
             "logo_url": "https://caddyserver.com/resources/images/caddy-circle-lock.svg",
             "logo_description": "Caddy",
             "allow_role_selection": false,
@@ -931,6 +925,7 @@ If the re-binding is successful, the plugin issues a JWT token.
 [:arrow_up: Back to Top](#table-of-contents)
 
 <!--- end of section -->
+
 ## SAML Authentication Backend
 
 The plugin supports the following SAML identity providers (IdP):

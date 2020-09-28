@@ -82,8 +82,8 @@ templates and settings:
 
 ```
       ui {
-        login_template "/etc/gatekeeper/ui/forms_login.template"
-        portal_template "/etc/gatekeeper/ui/forms_portal.template"
+        login_template "/etc/gatekeeper/ui/login.template"
+        portal_template "/etc/gatekeeper/ui/portal.template"
         logo_url "https://caddyserver.com/resources/images/caddy-circle-lock.svg"
         logo_description "Caddy"
         links {

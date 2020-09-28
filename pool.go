@@ -2,25 +2,18 @@ package portal
 
 import (
 	"fmt"
-	"go.uber.org/zap"
-	"os"
-	//"strings"
 	"github.com/greenpau/caddy-auth-jwt"
 	"github.com/greenpau/caddy-auth-portal/pkg/cookies"
 	"github.com/greenpau/caddy-auth-portal/pkg/registration"
 	"github.com/greenpau/caddy-auth-portal/pkg/ui"
 	"github.com/greenpau/go-identity"
+	"go.uber.org/zap"
+	"os"
+	"strings"
 	"sync"
 )
 
-var defaultPages = map[string]string{
-	"login":    "forms_login",
-	"portal":   "forms_portal",
-	"whoami":   "forms_whoami",
-	"register": "forms_register",
-	"generic":  "forms_generic",
-	"settings": "forms_settings",
-}
+var defaultTheme string = "basic"
 
 // AuthPortalPool provides access to all instances of the plugin.
 type AuthPortalPool struct {
@@ -267,21 +260,24 @@ func (p *AuthPortalPool) Register(m *AuthPortal) error {
 		)
 
 		// User Interface Templates
-		for tmplName, tmplAlias := range defaultPages {
+		for k := range ui.PageTemplates {
+			tmplNameParts := strings.SplitN(k, "/", 2)
+			tmplTheme := tmplNameParts[0]
+			tmplName := tmplNameParts[1]
 			if _, exists := m.UserInterface.Templates[tmplName]; !exists {
 				m.logger.Debug(
 					"Provisioning default authentication user interface templates",
 					zap.String("instance_name", m.Name),
+					zap.String("template_theme", tmplTheme),
 					zap.String("template_name", tmplName),
-					zap.String("template_alias", tmplAlias),
 				)
-				if err := m.uiFactory.AddBuiltinTemplate(tmplAlias); err != nil {
+				if err := m.uiFactory.AddBuiltinTemplate(k); err != nil {
 					return fmt.Errorf(
-						"%s: UI settings validation error, failed loading built-in %s (%s) template: %s",
-						m.Name, tmplName, tmplAlias, err,
+						"%s: UI settings validation error, failed loading built-in %s template from %s theme: %s",
+						m.Name, tmplName, tmplTheme, err,
 					)
 				}
-				m.uiFactory.Templates[tmplName] = m.uiFactory.Templates[tmplAlias]
+				m.uiFactory.Templates[tmplName] = m.uiFactory.Templates[k]
 			}
 		}
 
@@ -503,21 +499,26 @@ func (p *AuthPortalPool) Provision(name string) error {
 	)
 
 	// User Interface Templates
-	for tmplName, tmplAlias := range defaultPages {
+
+	// User Interface Templates
+	for k := range ui.PageTemplates {
+		tmplNameParts := strings.SplitN(k, "/", 2)
+		tmplTheme := tmplNameParts[0]
+		tmplName := tmplNameParts[1]
 		if _, exists := m.UserInterface.Templates[tmplName]; !exists {
 			m.logger.Debug(
 				"Provisioning default authentication user interface templates",
 				zap.String("instance_name", m.Name),
+				zap.String("template_theme", tmplTheme),
 				zap.String("template_name", tmplName),
-				zap.String("template_alias", tmplAlias),
 			)
-			if err := m.uiFactory.AddBuiltinTemplate(tmplAlias); err != nil {
+			if err := m.uiFactory.AddBuiltinTemplate(k); err != nil {
 				return fmt.Errorf(
-					"%s: UI settings validation error, failed loading built-in %s (%s) template: %s",
-					m.Name, tmplName, tmplAlias, err,
+					"%s: UI settings validation error, failed loading built-in %s template from %s theme: %s",
+					m.Name, tmplName, tmplTheme, err,
 				)
 			}
-			m.uiFactory.Templates[tmplName] = m.uiFactory.Templates[tmplAlias]
+			m.uiFactory.Templates[tmplName] = m.uiFactory.Templates[k]
 		}
 	}
 

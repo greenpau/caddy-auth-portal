@@ -71,8 +71,8 @@
         token_lifetime 3600
       }
       ui {
-        login_template "assets/ui/ldap/login.template"
-        portal_template "assets/conf/local/ui/portal.template"
+        login_template "assets/templates/basic/login.template"
+        portal_template "assets/templates/basic/portal.template"
         logo_url "https://caddyserver.com/resources/images/caddy-circle-lock.svg"
         logo_description "Caddy"
         links {

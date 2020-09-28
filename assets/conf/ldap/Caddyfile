@@ -44,8 +44,6 @@
         token_issuer e1008f2d-ccfa-4e62-bbe6-c202ec2988cc
       }
       ui {
-        login_template "assets/ui/ldap/login.template"
-        portal_template "assets/conf/local/ui/portal.template"
         logo_url "https://caddyserver.com/resources/images/caddy-circle-lock.svg"
         logo_description "Caddy"
         links {

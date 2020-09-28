@@ -1,94 +1,8 @@
 package ui
 
-var defaultPageTemplates = map[string]string{
-	"saml_login": `<!doctype html>
-<html lang="en">
-  <head>
-    <title>{{ .Title }}</title>
-    <!-- Required meta tags -->
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-    <meta name="description" content="">
-    <meta name="author" content="">
-    <link rel="shortcut icon" href="/favicon.ico" type="image/x-icon">
-    <link rel="icon" href="/favicon.ico" type="image/x-icon">
-
-    <!-- Bootstrap CSS -->
-    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
-    <!-- Fonts and Icons -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.13.0/js/all.min.js" integrity="sha256-KzZiKy0DWYsnwMF+X1DvQngQ2/FxF7MF3Ff72XcpuPs=" crossorigin="anonymous"></script>
-    {{ if .Authenticated }}
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.1/styles/atom-one-dark.min.css" integrity="sha256-GA29iW/iYj9FcuQQktvW45pRzHvZeFfgeFvA4tGVjpM=" crossorigin="anonymous" />
-    {{ end }}
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@500&display=swap" rel="stylesheet">
-    <style>
-      body { font-size: 0.875rem; color: #5a6268, padding-top: 3rem; background-color: #e6eaed; font-family: 'Roboto', sans-serif; }
-      @media screen and (max-width: 768px) {
-        body { padding-top: 0px; }
-      }
-      h2 { color: #5a6268 !important; }
-    </style>
-
-  </head>
-  <body class="bg-light">
-    <div class="container">
-      {{ if not .Authenticated }}
-      <div class="row justify-content-center py-5">
-        <div class="col-md-4 order-md-2 mb-4 card p-2">
-          <div class="py-2 text-center">
-            {{ if .LogoURL }}
-            <img class="d-block mx-auto mb-2" src="{{ .LogoURL }}" alt="{{ .LogoDescription }}" width="72" height="72">
-            {{ end }}
-            <h2>{{ .Title }}</h2>
-          </div>
-          {{ if .Message }}
-          <div class="alert alert-warning alert-dismissible fade show p-2" role="alert">
-            <p>{{ .Message }}</p>
-            <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-              <span aria-hidden="true">&times;</span>
-            </button>
-          </div>
-          {{ end }}
-
-          {{range .PublicLinks}}
-          <div class="pb-2 p-1">
-            <a class="btn btn-primary btn-lg btn-block" href="{{ .Link }}">
-              <span class="fab {{ .Style }}"></span> {{ .Title }}
-            </a>
-          </div>
-          {{ end }}
-        </div>
-      </div>
-      {{ else }}
-      <div class="py-5 text-center col-md-4 offset-md-4">
-        <h2>Welcome</h2>
-        <p class="lead">Access the following services.</p>
-        <ul class="list-group mb-3 pb-2">
-          {{range .PrivateLinks}}
-          <li class="list-group-item d-flex justify-content-between lh-condensed">
-            <div>
-              <h5 class="my-0"><a href="{{ .Link }}">{{ .Title }}</a></h6>
-            </div>
-          </li>
-          {{ end }}
-        </ul>
-        <a href="{{ .ActionEndpoint }}?logout=true" class="btn btn-primary btn-lg active" role="button" aria-pressed="true">Logout</a>
-      </div>
-      {{ end }}
-    </div>
-
-    <!-- Optional JavaScript -->
-    <!-- jQuery first, then Popper.js, then Bootstrap JS -->
-    <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js" integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1" crossorigin="anonymous"></script>
-    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js" integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM" crossorigin="anonymous"></script>
-    {{ if .Authenticated }}
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.1/highlight.min.js" integrity="sha256-eOgo0OtLL4cdq7RdwRUiGKLX9XsIJ7nGhWEKbohmVAQ=" crossorigin="anonymous"></script>
-    {{ end }}
-
-  </body>
-</html>`,
-	"forms_login": `<!doctype html>
+// PageTemplates stores UI templates.
+var PageTemplates = map[string]string{
+	"basic/login": `<!doctype html>
 <html lang="en">
   <head>
     <title>{{ .Title }}</title>
@@ -193,7 +107,7 @@ var defaultPageTemplates = map[string]string{
     {{ end }}
   </body>
 </html>`,
-	"forms_portal": `<!doctype html>
+	"basic/portal": `<!doctype html>
 <html lang="en">
   <head>
     <title>{{ .Title }}</title>
@@ -294,124 +208,7 @@ var defaultPageTemplates = map[string]string{
     {{ end }}
   </body>
 </html>`,
-	"forms_ldap_login": `<!doctype html>
-<html lang="en">
-  <head>
-    <title>{{ .Title }}</title>
-    <!-- Required meta tags -->
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-    <meta name="description" content="">
-    <meta name="author" content="">
-    <link rel="shortcut icon" href="/favicon.ico" type="image/x-icon">
-    <link rel="icon" href="/favicon.ico" type="image/x-icon">
-
-    <!-- Bootstrap CSS -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css" integrity="sha256-OweaP/Ic6rsV+lysfyS4h+LM6sRwuO3euTYfr6M124g=" crossorigin="anonymous" />
-    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@500&display=swap" rel="stylesheet">
-    <style>
-      body {
-        font-family: 'Roboto', sans-serif;
-        font-size: 1.25rem;
-      }
-      input {
-        font-family: 'Roboto', sans-serif;
-      }
-      select {
-        font-family: 'Roboto', sans-serif;
-        color: #155D56;
-      }
-      .app-background {
-        background-color: #155D56;
-      }
-      .app-header {
-        color: #EE6E73;
-      }
-      .helper-btn {
-        margin-bottom: 0.5em;
-      }
-      .toast-error {
-        // restyle post
-      }
-      input:-webkit-autofill,
-      input:-webkit-autofill:hover, 
-      input:-webkit-autofill:focus, 
-      input:-webkit-autofill:active  {
-          -webkit-box-shadow: 0 0 0 30px white inset !important;
-      }
-    </style>
-  </head>
-  <body class="app-background">
-    <div class="container hide-on-med-and-up no-padding" style="height: 5vh !important;"></div>
-    <div class="container hide-on-small-only no-padding" style="height: 10vh !important;"></div>
-    <div class="container app-container">
-      <div class="row">
-        <div class="col s12 m8 offset-m2 l6 offset-l3 xl4 offset-xl4 app-card-container">
-          <form action="{{ .ActionEndpoint }}" method="POST">
-            <div class="card card-large app-card">
-              <div class="card-content">
-                <span class="card-title center-align">
-                  <div class="section app-header">
-                    {{ if .LogoURL }}
-                    <img class="d-block mx-auto mb-2" src="{{ .LogoURL }}" alt="{{ .LogoDescription }}" width="72" height="72">
-                    {{ end }}
-                    <h4>{{ .Title }}</h4>
-                  </div>
-                </span>
-                <div class="input-field">
-                  <input id="username" name="username" type="text" class="validate">
-                  <label for="username">Username or Email</label>
-                </div>
-                <div class="input-field">
-                  <input id="password" name="password" type="password" class="validate">
-                  <label for="password">Password</label>
-                </div>
-                <div class="input-field">
-                  <label>Domain</label>
-                  <br /><br />
-                  <select id="realm" name="realm" class="browser-default">
-                    <option value="local" selected>Local</option>
-                    <option value="contoso.com">CONTOSO.COM</option>
-                  </select>
-                </div>
-              </div>
-              <div class="card-action right-align">
-                <button type="submit" name="submit" class="btn waves-effect waves-light btn-large">Login
-                  <i class="material-icons left">send</i>
-                </button>
-              </div>
-            </div>
-            <div class="card card-large">
-              <div class="card-content row">
-                  <div class="helper-btn col s12 m6 l6 xl6">
-                    <a href="{{ .ActionEndpoint }}?register=true" class="waves-effect waves-light btn-small">Register</a>
-                  </div>
-                  <div class="helper-btn col s12 m6 l6 xl6">
-                    <a href="{{ .ActionEndpoint }}?forgot=true" class="waves-effect waves-light btn-small">Forgot Password?</a>
-                  </div>
-              </div>
-            </div>
-          </form>
-        </div>
-      </div>
-    </div>
-    <!-- Optional JavaScript -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js" integrity="sha256-U/cHDMTIHCeMcvehBv1xQ052bPSbJtbuiw4QA9cTKz0=" crossorigin="anonymous"></script>
-    {{ if .Message }}
-    <script>
-    var toastHTML = '<span>{{ .Message }}</span><button class="btn-flat toast-action" onclick="M.Toast.dismissAll();">Close</button>';
-    toastElement = M.toast({
-      html: toastHTML,
-      classes: 'toast-error'
-    });
-    const appContainer = document.querySelector('.app-card-container')
-    appContainer.prepend(toastElement.el)
-    </script>
-    {{ end }}
-  </body>
-</html>`,
-	"forms_whoami": `<!doctype html>
+	"basic/whoami": `<!doctype html>
 <html lang="en">
   <head>
     <title>{{ .Title }}</title>
@@ -504,7 +301,7 @@ var defaultPageTemplates = map[string]string{
     {{ end }}
   </body>
 </html>`,
-	"forms_register": `<!doctype html>
+	"basic/register": `<!doctype html>
 <html lang="en">
   <head>
     <title>{{ .Title }}</title>
@@ -661,7 +458,7 @@ var defaultPageTemplates = map[string]string{
     {{ end }}
   </body>
 </html>`,
-	"forms_generic": `<!doctype html>
+	"basic/generic": `<!doctype html>
 <html lang="en">
   <head>
     <title>{{ .Title }}</title>
@@ -750,7 +547,7 @@ var defaultPageTemplates = map[string]string{
     {{ end }}
   </body>
 </html>`,
-	"forms_settings": `<!doctype html>
+	"basic/settings": `<!doctype html>
 <html lang="en">
   <head>
     <title>{{ .Title }}</title>
