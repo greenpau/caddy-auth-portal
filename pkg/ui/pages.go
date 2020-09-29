@@ -162,6 +162,10 @@ var PageTemplates = map[string]string{
                   </div>
 	        </div>
 	      </div>
+              {{ else }}
+                {{ range .Data.login_options.realms }}
+                  <input type="hidden" id="realm" name="realm" value="{{ .realm }}" />
+                {{ end }}
               {{ end }}
             </div>
             <div class="row app-control valign-wrapper">

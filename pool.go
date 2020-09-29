@@ -157,7 +157,7 @@ func (p *AuthPortalPool) Register(m *AuthPortal) error {
 		m.loginOptions["password_required"] = "no"
 		m.loginOptions["external_providers_required"] = "no"
 		m.loginOptions["registration_required"] = "no"
-		m.loginOptions["password_recovery_required"] = "yes"
+		m.loginOptions["password_recovery_required"] = "no"
 		var loginRealms []map[string]string
 		var externalLoginProviders []map[string]string
 		for _, backend := range m.Backends {
@@ -247,11 +247,10 @@ func (p *AuthPortalPool) Register(m *AuthPortal) error {
 			m.loginOptions["form_required"] = "yes"
 			m.loginOptions["username_required"] = "yes"
 			m.loginOptions["password_required"] = "yes"
+			m.loginOptions["realms"] = loginRealms
 		}
 		if len(loginRealms) > 1 {
 			m.loginOptions["realm_dropdown_required"] = "yes"
-			m.loginOptions["realms"] = loginRealms
-
 		}
 		if len(externalLoginProviders) > 0 {
 			m.loginOptions["external_providers_required"] = "yes"
@@ -343,6 +342,10 @@ func (p *AuthPortalPool) Register(m *AuthPortal) error {
 				"%s: UI settings validation error, theme %s does not exist",
 				m.Name, m.UserInterface.Theme,
 			)
+		}
+
+		if m.UserInterface.PasswordRecoveryEnabled {
+			m.loginOptions["password_recovery_required"] = "yes"
 		}
 
 		m.logger.Debug(

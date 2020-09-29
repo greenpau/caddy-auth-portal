@@ -306,6 +306,13 @@ func parseCaddyfileAuthPortal(h httpcaddyfile.Helper) ([]httpcaddyfile.ConfigVal
 								return nil, h.Errf("%s %s subdirective has no value", rootDirective, subDirective)
 							}
 							portal.UserInterface.AutoRedirectURL = h.Val()
+						case "password_recovery_enabled":
+							if !h.NextArg() {
+								return nil, h.Errf("%s %s subdirective has no value", rootDirective, subDirective)
+							}
+							if h.Val() == "yes" || h.Val() == "true" {
+								portal.UserInterface.PasswordRecoveryEnabled = true
+							}
 						case "links":
 							for subNesting := h.Nesting(); h.NextBlock(subNesting); {
 								title := h.Val()
