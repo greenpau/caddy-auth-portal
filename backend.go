@@ -9,8 +9,8 @@ import (
 	"github.com/greenpau/caddy-auth-portal/pkg/backends/ldap"
 	"github.com/greenpau/caddy-auth-portal/pkg/backends/local"
 	"github.com/greenpau/caddy-auth-portal/pkg/backends/oauth2"
-	"github.com/greenpau/caddy-auth-portal/pkg/backends/openid"
 	"github.com/greenpau/caddy-auth-portal/pkg/backends/saml"
+	"github.com/greenpau/caddy-auth-portal/pkg/backends/x509"
 	"go.uber.org/zap"
 )
 
@@ -130,9 +130,9 @@ func (b *Backend) UnmarshalJSON(data []byte) error {
 		}
 		b.driver = driver
 
-	case "openid":
-		b.authMethod = "openid"
-		driver, err := newOpenIDDriver(data)
+	case "x509":
+		b.authMethod = "x509"
+		driver, err := newX509Driver(data)
 		if err != nil {
 			return err
 		}
@@ -221,13 +221,13 @@ func newSamlDriver(data []byte) (*saml.Backend, error) {
 	return driver, nil
 }
 
-func newOpenIDDriver(data []byte) (*openid.Backend, error) {
-	driver := openid.NewDatabaseBackend()
+func newX509Driver(data []byte) (*x509.Backend, error) {
+	driver := x509.NewDatabaseBackend()
 	if err := json.Unmarshal(data, driver); err != nil {
-		return nil, fmt.Errorf("invalid OpenID Connect configuration, error: %s, config: %s", err, data)
+		return nil, fmt.Errorf("invalid X.509 configuration, error: %s, config: %s", err, data)
 	}
 	if err := driver.ValidateConfig(); err != nil {
-		return nil, fmt.Errorf("invalid OpenID Connect configuration, error: %s, config: %s", err, data)
+		return nil, fmt.Errorf("invalid X.509 configuration, error: %s, config: %s", err, data)
 	}
 	return driver, nil
 }

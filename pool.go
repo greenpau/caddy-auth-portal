@@ -150,6 +150,16 @@ func (p *AuthPortalPool) Register(m *AuthPortal) error {
 
 		backendNameRef := make(map[string]interface{})
 
+		m.loginOptions = make(map[string]interface{})
+		m.loginOptions["form_required"] = "no"
+		m.loginOptions["realm_dropdown_required"] = "no"
+		m.loginOptions["username_required"] = "no"
+		m.loginOptions["password_required"] = "no"
+		m.loginOptions["external_providers_required"] = "no"
+		m.loginOptions["registration_required"] = "no"
+		m.loginOptions["password_recovery_required"] = "yes"
+		var loginRealms []map[string]string
+		var externalLoginProviders []map[string]string
 		for _, backend := range m.Backends {
 			backendName := backend.GetName()
 			if backendName == "" {
@@ -165,12 +175,87 @@ func (p *AuthPortalPool) Register(m *AuthPortal) error {
 			if err := backend.Validate(m); err != nil {
 				return fmt.Errorf("%s: backend validation error: %s", m.Name, err)
 			}
+			backendRealm := backend.GetRealm()
+			backendMethod := backend.GetMethod()
+			if backendMethod == "local" || backendMethod == "ldap" {
+				loginRealm := make(map[string]string)
+				loginRealm["realm"] = backendRealm
+				loginRealm["default"] = "no"
+				if backendMethod == "ldap" {
+					loginRealm["label"] = strings.ToUpper(backendRealm)
+				} else {
+					loginRealm["label"] = strings.ToTitle(backendRealm)
+					loginRealm["default"] = "yes"
+				}
+				loginRealms = append(loginRealms, loginRealm)
+			}
+			if backendMethod != "local" && backendMethod != "ldap" {
+				externalLoginProvider := make(map[string]string)
+				externalLoginProvider["endpoint"] = m.AuthURLPath + "/" + backendMethod + "/" + backendRealm
+				externalLoginProvider["icon"] = backendMethod
+				externalLoginProvider["realm"] = backendRealm
+				switch backendRealm {
+				case "google":
+					externalLoginProvider["icon"] = "google"
+					externalLoginProvider["text"] = "Google"
+					externalLoginProvider["color"] = "red darken-1"
+				case "facebook":
+					externalLoginProvider["icon"] = "facebook"
+					externalLoginProvider["text"] = "Facebook"
+					externalLoginProvider["color"] = "blue darken-4"
+				case "twitter":
+					externalLoginProvider["icon"] = "twitter"
+					externalLoginProvider["text"] = "Twitter"
+					externalLoginProvider["color"] = "blue darken-1"
+				case "linkedin":
+					externalLoginProvider["icon"] = "linkedin"
+					externalLoginProvider["text"] = "LinkedIn"
+					externalLoginProvider["color"] = "blue darken-1"
+				case "github":
+					externalLoginProvider["icon"] = "github"
+					externalLoginProvider["text"] = "Github"
+					externalLoginProvider["color"] = "grey darken-3"
+				case "windows":
+					externalLoginProvider["icon"] = "windows"
+					externalLoginProvider["text"] = "Microsoft"
+					externalLoginProvider["color"] = "orange darken-1"
+				case "azure":
+					externalLoginProvider["icon"] = "windows"
+					externalLoginProvider["text"] = "Azure"
+					externalLoginProvider["color"] = "blue"
+				case "aws", "amazon":
+					externalLoginProvider["icon"] = "amazon"
+					externalLoginProvider["text"] = "AWS"
+					externalLoginProvider["color"] = "blue-grey darken-2"
+				default:
+					externalLoginProvider["icon"] = "shield"
+					externalLoginProvider["text"] = backendRealm
+					externalLoginProvider["color"] = "grey darken-3"
+				}
+				externalLoginProviders = append(externalLoginProviders, externalLoginProvider)
+			}
 			m.logger.Debug(
 				"Provisioned authentication backend",
 				zap.String("instance_name", m.Name),
 				zap.String("backend_name", backendName),
-				zap.String("backend_type", backend.authMethod),
+				zap.String("backend_type", backendMethod),
+				zap.String("backend_realm", backendRealm),
 			)
+		}
+
+		if len(loginRealms) > 0 {
+			m.loginOptions["form_required"] = "yes"
+			m.loginOptions["username_required"] = "yes"
+			m.loginOptions["password_required"] = "yes"
+		}
+		if len(loginRealms) > 1 {
+			m.loginOptions["realm_dropdown_required"] = "yes"
+			m.loginOptions["realms"] = loginRealms
+
+		}
+		if len(externalLoginProviders) > 0 {
+			m.loginOptions["external_providers_required"] = "yes"
+			m.loginOptions["external_providers"] = externalLoginProviders
 		}
 
 		// Cookies Validation
@@ -188,7 +273,9 @@ func (p *AuthPortalPool) Register(m *AuthPortal) error {
 		if m.UserRegistration.Dropbox == "" {
 			m.UserRegistration.Disabled = true
 		}
+
 		if !m.UserRegistration.Disabled {
+			m.loginOptions["registration_required"] = "yes"
 			if m.UserRegistrationDatabase == nil {
 				m.UserRegistrationDatabase = identity.NewDatabase()
 				fileInfo, err := os.Stat(m.UserRegistration.Dropbox)
@@ -248,17 +335,6 @@ func (p *AuthPortalPool) Register(m *AuthPortal) error {
 			m.uiFactory.Realms = m.UserInterface.Realms
 		}
 
-		m.logger.Debug(
-			"Provisioned authentication user interface parameters",
-			zap.String("instance_name", m.Name),
-			zap.String("title", m.uiFactory.Title),
-			zap.String("logo_url", m.uiFactory.LogoURL),
-			zap.String("logo_description", m.uiFactory.LogoDescription),
-			zap.Any("action_endpoint", m.uiFactory.ActionEndpoint),
-			zap.Any("private_links", m.uiFactory.PrivateLinks),
-			zap.Any("realms", m.uiFactory.Realms),
-		)
-
 		if m.UserInterface.Theme == "" {
 			m.UserInterface.Theme = defaultTheme
 		}
@@ -268,6 +344,18 @@ func (p *AuthPortalPool) Register(m *AuthPortal) error {
 				m.Name, m.UserInterface.Theme,
 			)
 		}
+
+		m.logger.Debug(
+			"Provisioned authentication user interface parameters",
+			zap.String("instance_name", m.Name),
+			zap.String("title", m.uiFactory.Title),
+			zap.String("logo_url", m.uiFactory.LogoURL),
+			zap.String("logo_description", m.uiFactory.LogoDescription),
+			zap.Any("action_endpoint", m.uiFactory.ActionEndpoint),
+			zap.Any("private_links", m.uiFactory.PrivateLinks),
+			zap.Any("realms", m.uiFactory.Realms),
+			zap.String("theme", m.UserInterface.Theme),
+		)
 
 		// User Interface Templates
 		for k := range ui.PageTemplates {

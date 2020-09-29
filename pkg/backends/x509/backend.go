@@ -1,4 +1,4 @@
-package openid
+package x509
 
 import (
 	"fmt"
@@ -17,7 +17,7 @@ func init() {
 	return
 }
 
-// Backend represents authentication provider with OpenID backend.
+// Backend represents authentication provider with X.509 backend.
 type Backend struct {
 	Name          string                   `json:"name,omitempty"`
 	Method        string                   `json:"method,omitempty"`
@@ -28,10 +28,10 @@ type Backend struct {
 }
 
 // NewDatabaseBackend return an instance of authentication provider
-// with OpenID backend.
+// with X.509 backend.
 func NewDatabaseBackend() *Backend {
 	b := &Backend{
-		Method:        "openid",
+		Method:        "x509",
 		TokenProvider: jwt.NewTokenProviderConfig(),
 		Authenticator: globalAuthenticator,
 	}
@@ -60,7 +60,7 @@ func (sa *Authenticator) ConfigureRealm(realm string) error {
 	}
 	sa.realm = realm
 	sa.logger.Info(
-		"OpenID plugin configuration",
+		"X.509 plugin configuration",
 		zap.String("phase", "realm"),
 		zap.String("realm", realm),
 	)
@@ -76,7 +76,7 @@ func (b *Backend) ConfigureAuthenticator() error {
 	b.Authenticator.logger = b.logger
 
 	if err := b.Authenticator.ConfigureRealm(b.Realm); err != nil {
-		b.logger.Error("failed configuring realm (domain) for OpenID authentication",
+		b.logger.Error("failed configuring realm (domain) for X.509 authentication",
 			zap.String("error", err.Error()))
 		return err
 	}
@@ -102,16 +102,16 @@ func (b *Backend) Validate() error {
 		return err
 	}
 	if b.logger == nil {
-		return fmt.Errorf("OpenID backend logger is nil")
+		return fmt.Errorf("X.509 backend logger is nil")
 	}
 
-	b.logger.Info("validating OpenID backend")
+	b.logger.Info("validating X.509 backend")
 
 	if b.Authenticator == nil {
-		return fmt.Errorf("OpenID authenticator is nil")
+		return fmt.Errorf("X.509 authenticator is nil")
 	}
 
-	b.logger.Info("successfully validated OpenID backend")
+	b.logger.Info("successfully validated X.509 backend")
 	return nil
 }
 

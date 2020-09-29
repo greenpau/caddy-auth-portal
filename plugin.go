@@ -49,6 +49,7 @@ type AuthPortal struct {
 	logger                   *zap.Logger
 	uiFactory                *ui.UserInterfaceFactory
 	startedAt                time.Time
+	loginOptions             map[string]interface{}
 }
 
 // CaddyModule returns the Caddy module information.
@@ -147,7 +148,7 @@ func (m AuthPortal) ServeHTTP(w http.ResponseWriter, r *http.Request, _ caddyhtt
 			w.Header().Set("Set-Cookie", redirectToToken+"="+redirectURL[0]+";"+m.Cookies.GetAttributes())
 			foundQueryOptions = true
 		}
-		if !strings.HasPrefix(urlPath, "saml") && !strings.HasPrefix(urlPath, "openid") && !strings.HasPrefix(urlPath, "oauth2") {
+		if !strings.HasPrefix(urlPath, "saml") && !strings.HasPrefix(urlPath, "x509") && !strings.HasPrefix(urlPath, "oauth2") {
 			if foundQueryOptions {
 				w.Header().Set("Location", m.AuthURLPath)
 				w.WriteHeader(302)
@@ -192,7 +193,7 @@ func (m AuthPortal) ServeHTTP(w http.ResponseWriter, r *http.Request, _ caddyhtt
 	case strings.HasPrefix(urlPath, "portal"):
 		opts["flow"] = "portal"
 		return handlers.ServePortal(w, r, opts)
-	case strings.HasPrefix(urlPath, "saml"), strings.HasPrefix(urlPath, "openid"), strings.HasPrefix(urlPath, "oauth2"):
+	case strings.HasPrefix(urlPath, "saml"), strings.HasPrefix(urlPath, "x509"), strings.HasPrefix(urlPath, "oauth2"):
 		urlPathParts := strings.Split(urlPath, "/")
 		if len(urlPathParts) < 2 {
 			opts["status_code"] = 400
@@ -263,6 +264,7 @@ func (m AuthPortal) ServeHTTP(w http.ResponseWriter, r *http.Request, _ caddyhtt
 		return handlers.ServeGeneric(w, r, opts)
 	case strings.HasPrefix(urlPath, "login"), urlPath == "":
 		opts["flow"] = "login"
+		opts["login_options"] = m.loginOptions
 		if opts["authenticated"].(bool) {
 			opts["authorized"] = true
 		} else {

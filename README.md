@@ -59,6 +59,7 @@ Please ask questions either here or via LinkedIn. I am happy to help you! @green
     * [Auth0](#auth0)
     * [OneLogin](#onelogin)
     * [Microsoft](#microsoft)
+* [X.509 Certificate-based Authentication Backend](#x509-certificate-based-authentication-backend)
 
 <!-- end-markdown-toc -->
 
@@ -1589,3 +1590,9 @@ TBD.
 [:arrow_up: Back to Top](#table-of-contents)
 
 <!--- end of section -->
+
+## X.509 Certificate-based Authentication Backend
+
+TBD.
+
+[:arrow_up: Back to Top](#table-of-contents)

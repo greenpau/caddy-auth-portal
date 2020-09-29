@@ -138,6 +138,7 @@ func parseCaddyfileAuthPortal(h httpcaddyfile.Helper) ([]httpcaddyfile.ConfigVal
 					backendName := h.Val()
 					backendProps := make(map[string]interface{})
 					backendProps["name"] = backendName
+					backendDisabled := false
 					var backendAuthMethod string
 					for subNesting := h.Nesting(); h.NextBlock(subNesting); {
 						backendArg := h.Val()
@@ -148,6 +149,9 @@ func parseCaddyfileAuthPortal(h httpcaddyfile.Helper) ([]httpcaddyfile.ConfigVal
 							}
 							backendAuthMethod = h.Val()
 							backendProps["method"] = backendAuthMethod
+						case "disabled":
+							backendDisabled = true
+							break
 						case "username", "password", "search_base_dn", "search_filter", "path", "realm":
 							if !h.NextArg() {
 								return nil, h.Errf("auth backend %s subdirective %s has no value", backendName, backendArg)
@@ -224,15 +228,17 @@ func parseCaddyfileAuthPortal(h httpcaddyfile.Helper) ([]httpcaddyfile.ConfigVal
 							return nil, h.Errf("unknown auth backend %s subdirective: %s", backendName, backendArg)
 						}
 					}
-					backendJSON, err := json.Marshal(backendProps)
-					if err != nil {
-						return nil, h.Errf("auth backend %s subdirective failed to compile to JSON: %s", backendName, err.Error())
+					if !backendDisabled {
+						backendJSON, err := json.Marshal(backendProps)
+						if err != nil {
+							return nil, h.Errf("auth backend %s subdirective failed to compile to JSON: %s", backendName, err.Error())
+						}
+						backend := &Backend{}
+						if err := backend.UnmarshalJSON(backendJSON); err != nil {
+							return nil, h.Errf("auth backend %s subdirective failed to compile backend from JSON: %s", backendName, err.Error())
+						}
+						portal.Backends = append(portal.Backends, *backend)
 					}
-					backend := &Backend{}
-					if err := backend.UnmarshalJSON(backendJSON); err != nil {
-						return nil, h.Errf("auth backend %s subdirective failed to compile backend from JSON: %s", backendName, err.Error())
-					}
-					portal.Backends = append(portal.Backends, *backend)
 				}
 			case "jwt":
 				if portal.TokenProvider == nil {
