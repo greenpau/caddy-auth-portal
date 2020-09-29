@@ -9,6 +9,7 @@ Form-Based, Basic, Local, LDAP, OpenID Connect, OAuth 2.0, SAML Authentication.
 
 Please see other relevant plugins:
 * [caddy-auth-jwt](https://github.com/greenpau/caddy-auth-jwt)
+* [caddy-trace](https://github.com/greenpau/caddy-trace)
 
 Please show your appreciation for this work and :star: :star: :star:
 
