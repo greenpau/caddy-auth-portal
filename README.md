@@ -1052,10 +1052,10 @@ The Azure SAML backend configuration:
           application_id "623cae7c-e6b2-43c5-853c-2059c9b2cb58"
           application_name "My Gatekeeper"
           entity_id "urn:caddy:mygatekeeper"
-          acs_url https://mygatekeeper/saml
-          acs_url https://mygatekeeper.local/saml
-          acs_url https://192.168.10.10:3443/saml
-          acs_url https://localhost:3443/saml
+          acs_url https://mygatekeeper/auth/saml/azure
+          acs_url https://mygatekeeper.local/auth/saml/azure
+          acs_url https://192.168.10.10:3443/auth/saml/azure
+          acs_url https://localhost:3443/auth/saml/azure
         }
       }
 ```
@@ -1077,10 +1077,10 @@ Use the `acs_url` directive to list all URLs the users of the application
 can reach it at. One URL per line:
 
 ```
-  acs_url https://mygatekeeper/saml
-  acs_url https://mygatekeeper.local/saml
-  acs_url https://192.168.10.10:3443/saml
-  acs_url https://localhost:3443/saml
+  acs_url https://mygatekeeper/auth/saml/azure
+  acs_url https://mygatekeeper.local/auth/saml/azure
+  acs_url https://192.168.10.10:3443/auth/saml/azure
+  acs_url https://localhost:3443/auth/saml/azure
 ```
 
 [:arrow_up: Back to Top](#table-of-contents)
@@ -1180,7 +1180,7 @@ Next, in the "Set up Single Sign-On with SAML", provide the following
 "Basic SAML Configuration":
 
 * Identifier (Entity ID): `urn:caddy:mygatekeeper`
-* Reply URL (Assertion Consumer Service URL): `https://localhost:3443/saml`
+* Reply URL (Assertion Consumer Service URL): `https://localhost:3443/auth/saml/azure`
 
 ![Azure AD App - Basic SAML Configuration](./assets/docs/images/azure_app_saml_id.png)
 
@@ -1233,7 +1233,7 @@ Next, download the "Certificate (Base64)" and store it in
 #### User Interface Options
 
 First option is a login button on the login server web page. Once Azure AD has
-been enabled, the `/saml` page will have "Sign in with Office 365" button
+been enabled, the `/auth/saml/azure` page will have "Sign in with Office 365" button
 
 ![Azure AD App - Login with Azure Button](./assets/docs/images/login_with_azure_button.png?width=20px)
 
@@ -1243,7 +1243,7 @@ server by Office 365.
 
 ![Office 365 - Access Application](./assets/docs/images/azure_app_user_access.png)
 
-The URL is `https://localhost:3443/saml`.
+The URL is `https://localhost:3443/auth/saml/azure`.
 
 [:arrow_up: Back to Top](#table-of-contents)
 
@@ -1254,7 +1254,7 @@ browser makes upon clicking "My Gatekeeper" application:
 
 ```
 Method: POST
-URL: /saml
+URL: /auth/saml/azure
 Protocol: HTTP/2.0
 Host: localhost:3443
 Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9
