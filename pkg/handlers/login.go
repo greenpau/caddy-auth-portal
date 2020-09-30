@@ -5,6 +5,7 @@ import (
 	"github.com/greenpau/caddy-auth-jwt"
 	"github.com/greenpau/caddy-auth-portal/pkg/cookies"
 	"github.com/greenpau/caddy-auth-portal/pkg/ui"
+	"github.com/greenpau/caddy-auth-portal/pkg/utils"
 	"go.uber.org/zap"
 	"net/http"
 	"net/url"
@@ -44,6 +45,7 @@ func ServeLogin(w http.ResponseWriter, r *http.Request, opts map[string]interfac
 	// Create JWT token
 	if opts["authenticated"].(bool) && !authorized {
 		claims := opts["user_claims"].(*jwt.UserClaims)
+		claims.Issuer = utils.GetCurrentURL(r)
 		userToken, err := claims.GetToken("HS512", []byte(tokenSecret))
 		if err != nil {
 			opts["status_code"] = 500

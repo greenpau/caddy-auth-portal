@@ -103,7 +103,8 @@ using local and LDAP credentials.
             email mail
           }
           username "CN=authzsvc,OU=Service Accounts,OU=Administrative Accounts,DC=CONTOSO,DC=COM"
-          password "P@ssW0rd123"
+          # password "P@ssW0rd123"
+          password "file:/etc/gatekeeper/auth/ldap.secret"
           search_base_dn "DC=CONTOSO,DC=COM"
           search_filter "(&(|(sAMAccountName=%s)(mail=%s))(objectclass=user))"
           groups {

@@ -515,7 +515,8 @@ func (sa *Authenticator) AuthenticateUser(userInput, passwordInput string) (*jwt
 		for role := range userRoles {
 			claims.Roles = append(claims.Roles, role)
 		}
-		claims.Origin = sa.searchBaseDN
+		//claims.Origin = sa.searchBaseDN
+		claims.Origin = server.Address
 
 		return claims, 200, nil
 	}
@@ -588,7 +589,6 @@ func (b *Backend) Authenticate(opts map[string]interface{}) (map[string]interfac
 		resp["code"] = 500
 		return resp, fmt.Errorf("LDAP backend is nil")
 	}
-
 	if kv["username"] == "" {
 		return resp, fmt.Errorf("input username is empty")
 	}
@@ -603,7 +603,9 @@ func (b *Backend) Authenticate(opts map[string]interface{}) (map[string]interfac
 	claims, statusCode, err := b.Authenticator.AuthenticateUser(kv["username"], kv["password"])
 	resp["code"] = statusCode
 	if statusCode == 200 {
-		claims.Origin = b.TokenProvider.TokenOrigin
+		if claims.Origin == "" {
+			claims.Origin = b.TokenProvider.TokenOrigin
+		}
 		claims.ExpiresAt = time.Now().Add(time.Duration(b.TokenProvider.TokenLifetime) * time.Second).Unix()
 		resp["claims"] = claims
 		return resp, nil

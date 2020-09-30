@@ -195,7 +195,6 @@ func (b *Backend) Authenticate(opts map[string]interface{}) (map[string]interfac
 			if err != nil {
 				return resp, fmt.Errorf("failed validating OAuth 2.0 access token: %s", err)
 			}
-			claims.Issuer = utils.GetCurrentBaseURL(r) + reqPath
 			resp["claims"] = claims
 			b.logger.Debug(
 				"received OAuth 2.0 authorization server access token",

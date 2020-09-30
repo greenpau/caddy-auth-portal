@@ -62,6 +62,7 @@ Please ask questions either here or via LinkedIn. I am happy to help you! @green
     * [Microsoft](#microsoft)
     * [Github](#github)
 * [X.509 Certificate-based Authentication Backend](#x509-certificate-based-authentication-backend)
+* [Miscellaneous](#miscellaneous)
 
 <!-- end-markdown-toc -->
 
@@ -645,7 +646,8 @@ using local and LDAP credentials.
             email mail
           }
           username "CN=authzsvc,OU=Service Accounts,OU=Administrative Accounts,DC=CONTOSO,DC=COM"
-          password "P@ssW0rd123"
+          # password "P@ssW0rd123"
+          password "file:/etc/gatekeeper/auth/ldap.secret"
           search_base_dn "DC=CONTOSO,DC=COM"
           search_filter "(&(|(sAMAccountName=%s)(mail=%s))(objectclass=user))"
           groups {
@@ -1622,5 +1624,20 @@ Additionally, click "generate a private key" to sign access token requests.
 ## X.509 Certificate-based Authentication Backend
 
 TBD.
+
+[:arrow_up: Back to Top](#table-of-contents)
+
+## Miscellaneous
+
+It may be necessary to bind Caddy to privileged port, e.g. 80 or 443.
+Grant the `cap_net_bind_service` capability to the Caddy binary, e.g.:
+
+```bash
+sudo systemctl stop gatekeeper
+sudo rm -rf /usr/local/bin/gatekeeper
+sudo cp bin/caddy /usr/local/bin/gatekeeper
+sudo setcap cap_net_bind_service=+ep /usr/local/bin/gatekeeper
+sudo systemctl start gatekeeper
+```
 
 [:arrow_up: Back to Top](#table-of-contents)

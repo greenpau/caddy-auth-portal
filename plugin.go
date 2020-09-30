@@ -13,6 +13,7 @@ import (
 	"github.com/greenpau/caddy-auth-portal/pkg/handlers"
 	"github.com/greenpau/caddy-auth-portal/pkg/registration"
 	"github.com/greenpau/caddy-auth-portal/pkg/ui"
+	"github.com/greenpau/caddy-auth-portal/pkg/utils"
 	"github.com/greenpau/go-identity"
 	"go.uber.org/zap"
 )
@@ -247,6 +248,7 @@ func (m AuthPortal) ServeHTTP(w http.ResponseWriter, r *http.Request, _ caddyhtt
 			}
 
 			claims := resp["claims"].(*jwt.UserClaims)
+			claims.Issuer = utils.GetCurrentURL(r)
 			opts["authenticated"] = true
 			opts["user_claims"] = claims
 			opts["status_code"] = 200
@@ -287,6 +289,7 @@ func (m AuthPortal) ServeHTTP(w http.ResponseWriter, r *http.Request, _ caddyhtt
 							)
 						} else {
 							claims := resp["claims"].(*jwt.UserClaims)
+							claims.Issuer = utils.GetCurrentURL(r)
 							opts["user_claims"] = claims
 							opts["authenticated"] = true
 							opts["status_code"] = 200
