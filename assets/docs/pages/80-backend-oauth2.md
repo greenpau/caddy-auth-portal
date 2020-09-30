@@ -312,4 +312,30 @@ TBD.
 
 [:arrow_up: Back to Top](#table-of-contents)
 
+#### Github
+
+Follow the instructions at `https://github.com/settings/apps/new`.
+
+GitHub App name: "My Gatekeeper"
+
+Description: "Caddy v2 Authentication Portal"
+
+Homepage URL: `https://localhost:8443/`
+
+User authorization callback URL: `https://localhost:8443/auth/oauth2/github/authorization-code-callback`
+
+Check "Expire user authorization tokens".
+
+Check "Request user authorization (OAuth) during installation"
+
+Upon successful completion of the instructions, you will get:
+
+![Settings - Developer settings - GitHub Apps - My Gatekeeper](./assets/docs/images/oauth2_github_new_app.png)
+
+Additionally, click "generate a private key" to sign access token requests.
+
+![Settings - Developer settings - GitHub Apps - My Gatekeeper - Private Keys](./assets/docs/images/oauth2_github_sign_keys.png)
+
+[:arrow_up: Back to Top](#table-of-contents)
+
 <!--- end of section -->

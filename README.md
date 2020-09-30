@@ -60,6 +60,7 @@ Please ask questions either here or via LinkedIn. I am happy to help you! @green
     * [Auth0](#auth0)
     * [OneLogin](#onelogin)
     * [Microsoft](#microsoft)
+    * [Github](#github)
 * [X.509 Certificate-based Authentication Backend](#x509-certificate-based-authentication-backend)
 
 <!-- end-markdown-toc -->
@@ -1587,6 +1588,32 @@ TBD.
 #### Microsoft
 
 TBD.
+
+[:arrow_up: Back to Top](#table-of-contents)
+
+#### Github
+
+Follow the instructions at `https://github.com/settings/apps/new`.
+
+GitHub App name: "My Gatekeeper"
+
+Description: "Caddy v2 Authentication Portal"
+
+Homepage URL: `https://localhost:8443/`
+
+User authorization callback URL: `https://localhost:8443/auth/oauth2/github/authorization-code-callback`
+
+Check "Expire user authorization tokens".
+
+Check "Request user authorization (OAuth) during installation"
+
+Upon successful completion of the instructions, you will get:
+
+![Settings - Developer settings - GitHub Apps - My Gatekeeper](./assets/docs/images/oauth2_github_new_app.png)
+
+Additionally, click "generate a private key" to sign access token requests.
+
+![Settings - Developer settings - GitHub Apps - My Gatekeeper - Private Keys](./assets/docs/images/oauth2_github_sign_keys.png)
 
 [:arrow_up: Back to Top](#table-of-contents)
 
