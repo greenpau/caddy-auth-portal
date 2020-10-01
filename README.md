@@ -560,6 +560,18 @@ There is a single LDAP server associated with the domain: `ldaps://ldaps.contoso
 The plugin DOES NOT ignore certificate errors when connecting to the servers.
 However, one may ignore the errors by setting `ignore_cert_errors` to `true`.
 
+As a better alternative to ignoring certificate errors, the plugin allows
+adding trusted certificate authorities via `trusted_authority` Caddyfile directive:
+
+```
+          servers {
+            ldaps://ldaps.contoso.com
+          }
+          trusted_authority /etc/gatekeeper/tls/trusted_authority/contoso_com_root1_ca_cert.pem
+          trusted_authority /etc/gatekeeper/tls/trusted_authority/contoso_com_root2_ca_cert.pem
+          trusted_authority /etc/gatekeeper/tls/trusted_authority/contoso_com_root3_ca_cert.pem
+```
+
 The LDAP attribute mapping to JWT fields is as follows.
 
 | **JWT Token Field** | **LDAP Attribute** |
@@ -635,8 +647,11 @@ using local and LDAP credentials.
           method ldap
           realm contoso.com
           servers {
-            ldaps://ldaps.contoso.com ignore_cert_errors
+            ldaps://ldaps.contoso.com
           }
+          trusted_authority /etc/gatekeeper/tls/trusted_authority/contoso_com_root1_ca_cert.pem
+          trusted_authority /etc/gatekeeper/tls/trusted_authority/contoso_com_root2_ca_cert.pem
+          trusted_authority /etc/gatekeeper/tls/trusted_authority/contoso_com_root3_ca_cert.pem
           attributes {
             name givenName
             surname sn

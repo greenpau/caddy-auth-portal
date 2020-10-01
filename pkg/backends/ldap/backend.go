@@ -2,6 +2,7 @@ package ldap
 
 import (
 	"crypto/tls"
+	"crypto/x509"
 	"fmt"
 	"github.com/go-ldap/ldap"
 	"github.com/greenpau/caddy-auth-jwt"
@@ -56,19 +57,20 @@ type UserAttributes struct {
 
 // Backend represents authentication provider with LDAP backend.
 type Backend struct {
-	Name          string                   `json:"name,omitempty"`
-	Method        string                   `json:"method,omitempty"`
-	Realm         string                   `json:"realm,omitempty"`
-	Servers       []AuthServer             `json:"servers,omitempty"`
-	BindUsername  string                   `json:"username,omitempty"`
-	BindPassword  string                   `json:"password,omitempty"`
-	Attributes    UserAttributes           `json:"attributes,omitempty"`
-	SearchBaseDN  string                   `json:"search_base_dn,omitempty"`
-	SearchFilter  string                   `json:"search_filter,omitempty"`
-	Groups        []UserGroup              `json:"groups,omitempty"`
-	TokenProvider *jwt.TokenProviderConfig `json:"-"`
-	Authenticator *Authenticator           `json:"-"`
-	logger        *zap.Logger
+	Name               string                   `json:"name,omitempty"`
+	Method             string                   `json:"method,omitempty"`
+	Realm              string                   `json:"realm,omitempty"`
+	Servers            []AuthServer             `json:"servers,omitempty"`
+	BindUsername       string                   `json:"username,omitempty"`
+	BindPassword       string                   `json:"password,omitempty"`
+	Attributes         UserAttributes           `json:"attributes,omitempty"`
+	SearchBaseDN       string                   `json:"search_base_dn,omitempty"`
+	SearchFilter       string                   `json:"search_filter,omitempty"`
+	Groups             []UserGroup              `json:"groups,omitempty"`
+	TrustedAuthorities []string                 `json:"trusted_authorities,omitempty"`
+	TokenProvider      *jwt.TokenProviderConfig `json:"-"`
+	Authenticator      *Authenticator           `json:"-"`
+	logger             *zap.Logger
 }
 
 // NewDatabaseBackend return an instance of authentication provider
@@ -92,6 +94,7 @@ type Authenticator struct {
 	searchBaseDN   string
 	searchFilter   string
 	userAttributes UserAttributes
+	rootCAs        *x509.CertPool
 	groups         []*UserGroup
 	logger         *zap.Logger
 }
@@ -295,15 +298,20 @@ func (sa *Authenticator) AuthenticateUser(userInput, passwordInput string) (*jwt
 	for _, server := range sa.servers {
 		timeout := time.Duration(server.Timeout) * time.Second
 
+		tlsConfig := &tls.Config{
+			InsecureSkipVerify: server.IgnoreCertErrors,
+		}
+		if sa.rootCAs != nil {
+			tlsConfig.RootCAs = sa.rootCAs
+		}
+
 		ldapDialer, err := tls.DialWithDialer(
 			&net.Dialer{
 				Timeout: timeout,
 			},
 			"tcp",
 			net.JoinHostPort(server.URL.Hostname(), server.Port),
-			&tls.Config{
-				InsecureSkipVerify: server.IgnoreCertErrors,
-			},
+			tlsConfig,
 		)
 		if err != nil {
 			sa.logger.Error(
@@ -524,6 +532,31 @@ func (sa *Authenticator) AuthenticateUser(userInput, passwordInput string) (*jwt
 	return nil, 400, fmt.Errorf("LDAP auth backends are unavailable")
 }
 
+// ConfigureTrustedAuthorities configured trusted certificate authorities, if any.
+func (sa *Authenticator) ConfigureTrustedAuthorities(authorities []string) error {
+	if len(authorities) == 0 {
+		return nil
+	}
+	for _, authority := range authorities {
+		pemCerts, err := ioutil.ReadFile(authority)
+		if err != nil {
+			return fmt.Errorf("failed reading trusted authority file: %s, %s", authority, err)
+		}
+
+		if sa.rootCAs == nil {
+			sa.rootCAs = x509.NewCertPool()
+		}
+		if ok := sa.rootCAs.AppendCertsFromPEM(pemCerts); !ok {
+			return fmt.Errorf("failed added trusted authority file contents to Root CA pool: %s", authority)
+		}
+		sa.logger.Debug(
+			"added trusted authority",
+			zap.String("pem_file", authority),
+		)
+	}
+	return nil
+}
+
 // ConfigureAuthenticator configures backend for .
 func (b *Backend) ConfigureAuthenticator() error {
 	if b.Authenticator == nil {
@@ -558,6 +591,12 @@ func (b *Backend) ConfigureAuthenticator() error {
 
 	if err := b.Authenticator.ConfigureUserGroups(b.Groups); err != nil {
 		b.logger.Error("failed configuring user groups for LDAP search",
+			zap.String("error", err.Error()))
+		return err
+	}
+
+	if err := b.Authenticator.ConfigureTrustedAuthorities(b.TrustedAuthorities); err != nil {
+		b.logger.Error("failed configuring trusted authorities",
 			zap.String("error", err.Error()))
 		return err
 	}

@@ -149,6 +149,16 @@ func parseCaddyfileAuthPortal(h httpcaddyfile.Helper) ([]httpcaddyfile.ConfigVal
 							}
 							backendAuthMethod = h.Val()
 							backendProps["method"] = backendAuthMethod
+						case "trusted_authority":
+							if !h.NextArg() {
+								return nil, h.Errf("auth backend %s subdirective %s has no value", backendName, backendArg)
+							}
+							var trustedAuthorities []string
+							if v, exists := backendProps["trusted_authorities"]; exists {
+								trustedAuthorities = v.([]string)
+							}
+							trustedAuthorities = append(trustedAuthorities, h.Val())
+							backendProps["trusted_authorities"] = trustedAuthorities
 						case "disabled":
 							backendDisabled = true
 							break
