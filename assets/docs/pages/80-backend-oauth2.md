@@ -44,6 +44,31 @@ References:
 
 [:arrow_up: Back to Top](#table-of-contents)
 
+### Adding Role Claims
+
+The Caddyfile `user` directive allows adding roles to
+a user based on the user's email.
+
+A user with email claim of `contoso.com` would get an additional `superuser` role.
+
+```
+          user jsmith@contoso.com add role superuser
+```
+
+A user with the email address beginning with `jsmith` would get additional roles.
+Specifically, it would be viewer, editor, and admin.
+
+```
+          user "^greenpau" regex add roles viewer editor admin
+```
+
+All users with `contoso.com` email address would get "employee" role:
+
+```
+          user "@contoso.com$" regex add role employee
+
+```
+
 ### OAuth 2.0 Authorization Servers and Identity Providers
 
 The Caddyfile snippet for generic (non-specific) OAuth 2.0 backend.

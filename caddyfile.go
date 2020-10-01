@@ -16,6 +16,7 @@ package portal
 
 import (
 	"encoding/json"
+	"regexp"
 	"strconv"
 	"strings"
 
@@ -159,6 +160,75 @@ func parseCaddyfileAuthPortal(h httpcaddyfile.Helper) ([]httpcaddyfile.ConfigVal
 							}
 							trustedAuthorities = append(trustedAuthorities, h.Val())
 							backendProps["trusted_authorities"] = trustedAuthorities
+						case "user":
+							userArgs := h.RemainingArgs()
+							if len(userArgs) < 4 {
+								return nil, h.Errf("auth backend %s subdirective %s is missing arguments", backendName, backendArg)
+							}
+							var userRoles []string
+							var userEmail string
+							var userMatchType string
+							var ptr int
+							// Get email address pattern
+							if userArgs[ptr] == "" {
+								return nil, h.Errf("auth backend %s subdirective %s is malformed, empty email", backendName, backendArg)
+							}
+							userEmail = userArgs[ptr]
+							ptr++
+							// Search for the indicator of whether it is exact or regex match
+							switch userArgs[ptr] {
+							case "regex":
+								userMatchType = userArgs[ptr]
+								if _, err := regexp.Compile(userEmail); err != nil {
+									return nil, h.Errf(
+										"auth backend %s subdirective %s is malformed, failed to compile regex: %s",
+										backendName, backendArg, err,
+									)
+								}
+								ptr++
+							case "exact":
+								userMatchType = userArgs[ptr]
+								ptr++
+							default:
+								userMatchType = "exact"
+							}
+
+							// Next, search for add argument
+							if userArgs[ptr] != "add" {
+								return nil, h.Errf(
+									"auth backend %s subdirective %s is malformed: add (expected) vs %s (received)",
+									backendName, backendArg, userArgs[ptr],
+								)
+							}
+							ptr++
+							// Next, the only supported values are role and roles
+							switch userArgs[ptr] {
+							case "role", "roles":
+								ptr++
+							default:
+								return nil, h.Errf(
+									"auth backend %s subdirective %s is malformed: role/roles (expected) vs %s (received)",
+									backendName, backendArg, userArgs[2],
+								)
+							}
+							if ptr >= len(userArgs) {
+								return nil, h.Errf(
+									"auth backend %s subdirective %s is malformed, not enough arguments: %v",
+									backendName, backendArg, userArgs,
+								)
+							}
+							userRoles = userArgs[ptr:]
+							// Finally, amend the existing mapping
+							if _, exists := backendProps["user_roles"]; !exists {
+								backendProps["user_roles"] = make([]map[string]interface{}, 1, 1)
+							}
+							userRoleMap := make(map[string]interface{})
+							userRoleMap["email"] = userEmail
+							userRoleMap["match"] = userMatchType
+							userRoleMap["roles"] = userRoles
+							userRoleMaps := backendProps["user_roles"].([]map[string]interface{})
+							userRoleMaps = append(userRoleMaps, userRoleMap)
+							backendProps["user_roles"] = userRoleMaps
 						case "disabled":
 							backendDisabled = true
 							break

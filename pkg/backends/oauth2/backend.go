@@ -11,6 +11,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
+	"regexp"
 	"strings"
 )
 
@@ -27,6 +28,8 @@ type Backend struct {
 	ServerID     string `json:"server_id,omitempty"`
 
 	Scopes []string `json:"scopes,omitempty"`
+
+	UserRoleMapList []map[string]interface{} `json:"user_roles,omitempty"`
 
 	// The URL to OAuth 2.0 Custom Authorization Server.
 	BaseAuthURL string `json:"base_auth_url,omitempty"`
@@ -195,6 +198,8 @@ func (b *Backend) Authenticate(opts map[string]interface{}) (map[string]interfac
 			if err != nil {
 				return resp, fmt.Errorf("failed validating OAuth 2.0 access token: %s", err)
 			}
+			// Add additional roles, if necessary
+			b.supplementClaims(claims)
 			resp["claims"] = claims
 			b.logger.Debug(
 				"received OAuth 2.0 authorization server access token",
@@ -392,4 +397,55 @@ func (b *Backend) fetchAccessToken(redirectURI, state, code string) (map[string]
 		}
 	}
 	return data, nil
+}
+
+func (b *Backend) supplementClaims(claims *jwt.UserClaims) {
+	if len(b.UserRoleMapList) < 1 {
+		return
+	}
+	if claims.Email == "" {
+		return
+	}
+	roles := []string{}
+	roleMap := make(map[string]interface{})
+	for _, roleName := range claims.Roles {
+		roleMap[roleName] = true
+		roles = append(roles, roleName)
+	}
+
+	for _, entry := range b.UserRoleMapList {
+		if entry == nil {
+			continue
+		}
+		entryEmail := entry["email"].(string)
+		entryMatchType := entry["match"].(string)
+
+		switch entryMatchType {
+		case "regex":
+			// Perform regex match
+			matched, err := regexp.MatchString(entryEmail, claims.Email)
+			if err != nil {
+				continue
+			}
+			if !matched {
+				continue
+			}
+		case "exact":
+			// Perform exact match
+			if entryEmail != claims.Email {
+				continue
+			}
+		default:
+			continue
+		}
+		entryRoles := entry["roles"].([]interface{})
+		for _, r := range entryRoles {
+			roleName := r.(string)
+			if _, exists := roleMap[roleName]; !exists {
+				roleMap[roleName] = true
+				roles = append(roles, roleName)
+			}
+		}
+	}
+	claims.Roles = roles
 }
