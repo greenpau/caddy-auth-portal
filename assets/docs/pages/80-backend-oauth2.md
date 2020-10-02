@@ -69,6 +69,25 @@ All users with `contoso.com` email address would get "employee" role:
 
 ```
 
+In sum, Caddyfile may look as follows:
+
+```
+myapp.localdomain.local, localhost, 127.0.0.1 {
+  route /auth* {
+    auth_portal {
+      path /auth
+      backends {
+        google_oauth2_backend {
+          method oauth2
+          realm google
+          provider google
+          client_id XXXXXXXXXXXXXX.apps.googleusercontent.com
+          client_secret YYYYYYYYYYYYYYYYY
+          scopes openid email profile
+          user "^greenpau" regex add role superuser
+        }
+```
+
 ### OAuth 2.0 Authorization Servers and Identity Providers
 
 The Caddyfile snippet for generic (non-specific) OAuth 2.0 backend.
