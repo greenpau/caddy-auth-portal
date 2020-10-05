@@ -453,6 +453,14 @@ func parseCaddyfileAuthPortal(h httpcaddyfile.Helper) ([]httpcaddyfile.ConfigVal
 						return nil, h.Errf("unsupported subdirective for %s: %s", rootDirective, subDirective)
 					}
 				}
+			case "enable":
+				args := strings.Join(h.RemainingArgs(), " ")
+				switch args {
+				case "source ip tracking":
+					portal.EnableSourceIPTracking = true
+				default:
+					return nil, h.Errf("unsupported directive for %s: %s", rootDirective, args)
+				}
 			default:
 				return nil, h.Errf("unsupported root directive: %s", rootDirective)
 			}

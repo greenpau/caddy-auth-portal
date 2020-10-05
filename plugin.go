@@ -46,6 +46,7 @@ type AuthPortal struct {
 	Cookies                  *cookies.Cookies           `json:"cookies,omitempty"`
 	Backends                 []Backend                  `json:"backends,omitempty"`
 	TokenProvider            *jwt.TokenProviderConfig   `json:"jwt,omitempty"`
+	EnableSourceIPTracking   bool                       `json:"source_ip_tracking,omitempty"`
 	TokenValidator           *jwt.TokenValidator        `json:"-"`
 	logger                   *zap.Logger
 	uiFactory                *ui.UserInterfaceFactory
@@ -249,6 +250,9 @@ func (m AuthPortal) ServeHTTP(w http.ResponseWriter, r *http.Request, _ caddyhtt
 
 			claims := resp["claims"].(*jwt.UserClaims)
 			claims.Issuer = utils.GetCurrentURL(r)
+			if m.EnableSourceIPTracking {
+				claims.Address = GetSourceAddress(r)
+			}
 			opts["authenticated"] = true
 			opts["user_claims"] = claims
 			opts["status_code"] = 200
@@ -290,6 +294,9 @@ func (m AuthPortal) ServeHTTP(w http.ResponseWriter, r *http.Request, _ caddyhtt
 						} else {
 							claims := resp["claims"].(*jwt.UserClaims)
 							claims.Issuer = utils.GetCurrentURL(r)
+							if m.EnableSourceIPTracking {
+								claims.Address = GetSourceAddress(r)
+							}
 							opts["user_claims"] = claims
 							opts["authenticated"] = true
 							opts["status_code"] = 200
