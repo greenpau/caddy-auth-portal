@@ -2,6 +2,7 @@ package oauth2
 
 import (
 	"crypto/rsa"
+	//"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"github.com/greenpau/caddy-auth-jwt"
@@ -9,10 +10,13 @@ import (
 	"github.com/satori/go.uuid"
 	"go.uber.org/zap"
 	"io/ioutil"
+	"net"
 	"net/http"
 	"net/url"
 	"regexp"
+	"strconv"
 	"strings"
+	"time"
 )
 
 // Backend represents authentication provider with OAuth 2.0 backend.
@@ -37,12 +41,19 @@ type Backend struct {
 	MetadataURL string `json:"metadata_url,omitempty"`
 
 	// Stores data from .well-known/openid-configuration
-	metadata         map[string]interface{}
-	keys             map[string]*JwksKey
-	publicKeys       map[string]*rsa.PublicKey
-	authorizationURL string
-	tokenURL         string
-	keysURL          string
+	metadata               map[string]interface{}
+	keys                   map[string]*JwksKey
+	publicKeys             map[string]*rsa.PublicKey
+	authorizationURL       string
+	tokenURL               string
+	keysURL                string
+	disableKeyVerification bool
+	disablePassGrantType   bool
+	disableResponseType    bool
+	disableNonce           bool
+	enableAcceptHeader     bool
+	enableBodyDecoder      bool
+	requiredTokenFields    map[string]interface{}
 	// Stores cached state IDs
 	state *stateManager
 
@@ -59,6 +70,10 @@ func NewDatabaseBackend() *Backend {
 		state:         newStateManager(),
 		keys:          make(map[string]*JwksKey),
 		publicKeys:    make(map[string]*rsa.PublicKey),
+		requiredTokenFields: map[string]interface{}{
+			"access_token": true,
+			"id_token":     true,
+		},
 	}
 	go manageStateManager(b.state)
 	return b
@@ -100,6 +115,20 @@ func (b *Backend) ConfigureAuthenticator() error {
 			b.BaseAuthURL = "https://accounts.google.com/o/oauth2/v2/"
 			b.MetadataURL = "https://accounts.google.com/.well-known/openid-configuration"
 		}
+	case "github":
+		if b.BaseAuthURL == "" {
+			b.BaseAuthURL = "https://github.com/login/oauth/"
+		}
+		b.authorizationURL = "https://github.com/login/oauth/authorize"
+		b.tokenURL = "https://github.com/login/oauth/access_token"
+		b.disableKeyVerification = true
+		b.disablePassGrantType = true
+		b.disableResponseType = true
+		b.disableNonce = true
+		b.enableAcceptHeader = true
+		b.requiredTokenFields = map[string]interface{}{
+			"access_token": true,
+		}
 	case "generic":
 	case "":
 		return fmt.Errorf("no OAuth 2.0 provider found for provider %s", b.Provider)
@@ -111,12 +140,16 @@ func (b *Backend) ConfigureAuthenticator() error {
 		return fmt.Errorf("authorization URL not found for provider %s", b.Provider)
 	}
 
-	if err := b.fetchMetadataURL(); err != nil {
-		return fmt.Errorf("failed to fetch metadata for OAuth 2.0 authorization server: %s", err)
+	if b.authorizationURL == "" {
+		if err := b.fetchMetadataURL(); err != nil {
+			return fmt.Errorf("failed to fetch metadata for OAuth 2.0 authorization server: %s", err)
+		}
 	}
 
-	if err := b.fetchKeysURL(); err != nil {
-		return fmt.Errorf("failed to fetch jwt keys for OAuth 2.0 authorization server: %s", err)
+	if !b.disableKeyVerification {
+		if err := b.fetchKeysURL(); err != nil {
+			return fmt.Errorf("failed to fetch jwt keys for OAuth 2.0 authorization server: %s", err)
+		}
 	}
 
 	b.logger.Info(
@@ -194,10 +227,20 @@ func (b *Backend) Authenticate(opts map[string]interface{}) (map[string]interfac
 				zap.Any("token", accessToken),
 			)
 
-			claims, err := b.validateAccessToken(reqParamsState, accessToken)
-			if err != nil {
-				return resp, fmt.Errorf("failed validating OAuth 2.0 access token: %s", err)
+			var claims *jwt.UserClaims
+			switch b.Provider {
+			case "github":
+				claims, err = b.fetchClaims(accessToken)
+				if err != nil {
+					return resp, fmt.Errorf("failed fetching OAuth 2.0 claims: %s", err)
+				}
+			default:
+				claims, err = b.validateAccessToken(reqParamsState, accessToken)
+				if err != nil {
+					return resp, fmt.Errorf("failed validating OAuth 2.0 access token: %s", err)
+				}
 			}
+
 			// Add additional roles, if necessary
 			b.supplementClaims(claims)
 			resp["claims"] = claims
@@ -217,11 +260,15 @@ func (b *Backend) Authenticate(opts map[string]interface{}) (map[string]interfac
 	params := url.Values{}
 	// CSRF Protection
 	params.Set("state", state)
-	// Server Side-Replay Protection
-	params.Set("nonce", nonce)
+	if !b.disableNonce {
+		// Server Side-Replay Protection
+		params.Set("nonce", nonce)
+	}
 	params.Set("scope", strings.Join(b.Scopes, " "))
 	params.Set("redirect_uri", utils.GetCurrentBaseURL(r)+reqPath+"/authorization-code-callback")
-	params.Set("response_type", "code")
+	if !b.disableResponseType {
+		params.Set("response_type", "code")
+	}
 	params.Set("client_id", b.ClientID)
 	resp["redirect_url"] = b.authorizationURL + "?" + params.Encode()
 	b.state.add(state, nonce)
@@ -368,19 +415,51 @@ func (b *Backend) fetchAccessToken(redirectURI, state, code string) (map[string]
 	params := url.Values{}
 	params.Set("client_id", b.ClientID)
 	params.Set("client_secret", b.ClientSecret)
-	params.Set("grant_type", "authorization_code")
+	if !b.disablePassGrantType {
+		params.Set("grant_type", "authorization_code")
+	}
 	params.Set("state", state)
 	params.Set("code", code)
 	params.Set("redirect_uri", redirectURI)
-	resp, err := http.Post(b.tokenURL, "application/x-www-form-urlencoded", strings.NewReader(params.Encode()))
+
+	cli := &http.Client{
+		Timeout: time.Second * 10,
+	}
+
+	cli, err := newBrowser()
 	if err != nil {
 		return nil, err
 	}
+
+	req, err := http.NewRequest("POST", b.tokenURL, strings.NewReader(params.Encode()))
+	if err != nil {
+		return nil, err
+	}
+
+	// Adjust !!!
+	if b.enableAcceptHeader {
+		req.Header.Set("Accept", "application/json")
+	}
+
+	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
+	req.Header.Add("Content-Length", strconv.Itoa(len(params.Encode())))
+
+	resp, err := cli.Do(req)
+	if err != nil {
+		return nil, err
+	}
+
 	respBody, err := ioutil.ReadAll(resp.Body)
 	resp.Body.Close()
 	if err != nil {
 		return nil, err
 	}
+
+	b.logger.Debug(
+		"OAuth 2.0 access token response received",
+		zap.Any("body", respBody),
+	)
+
 	data := make(map[string]interface{})
 	if err := json.Unmarshal(respBody, &data); err != nil {
 		return nil, err
@@ -391,7 +470,7 @@ func (b *Backend) fetchAccessToken(redirectURI, state, code string) (map[string]
 		}
 		return nil, fmt.Errorf("failed obtaining OAuth 2.0 access token, error: %s", data["error"].(string))
 	}
-	for _, k := range []string{"access_token", "id_token"} {
+	for k := range b.requiredTokenFields {
 		if _, exists := data[k]; !exists {
 			return nil, fmt.Errorf("authorization server response has no %s field", k)
 		}
@@ -403,9 +482,22 @@ func (b *Backend) supplementClaims(claims *jwt.UserClaims) {
 	if len(b.UserRoleMapList) < 1 {
 		return
 	}
-	if claims.Email == "" {
-		return
+
+	var userID string
+
+	switch b.Provider {
+	case "github":
+		if claims.Subject == "" {
+			return
+		}
+		userID = claims.Subject
+	default:
+		if claims.Email == "" {
+			return
+		}
+		userID = claims.Email
 	}
+
 	roles := []string{}
 	roleMap := make(map[string]interface{})
 	for _, roleName := range claims.Roles {
@@ -423,7 +515,7 @@ func (b *Backend) supplementClaims(claims *jwt.UserClaims) {
 		switch entryMatchType {
 		case "regex":
 			// Perform regex match
-			matched, err := regexp.MatchString(entryEmail, claims.Email)
+			matched, err := regexp.MatchString(entryEmail, userID)
 			if err != nil {
 				continue
 			}
@@ -432,7 +524,7 @@ func (b *Backend) supplementClaims(claims *jwt.UserClaims) {
 			}
 		case "exact":
 			// Perform exact match
-			if entryEmail != claims.Email {
+			if entryEmail != userID {
 				continue
 			}
 		default:
@@ -448,4 +540,24 @@ func (b *Backend) supplementClaims(claims *jwt.UserClaims) {
 		}
 	}
 	claims.Roles = roles
+}
+
+func newBrowser() (*http.Client, error) {
+	/*
+		cj, err := cookiejar.New(nil)
+		if err != nil {
+			return nil, err
+		}
+	*/
+	tr := &http.Transport{
+		Dial: (&net.Dialer{
+			Timeout: 5 * time.Second,
+		}).Dial,
+		TLSHandshakeTimeout: 5 * time.Second,
+	}
+	return &http.Client{
+		//Jar:       cj,
+		Timeout:   time.Second * 10,
+		Transport: tr,
+	}, nil
 }
