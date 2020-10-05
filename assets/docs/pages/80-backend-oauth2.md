@@ -406,6 +406,10 @@ to match on `sub`, i.e. subject claim. The `sub` claim is in the format of
         }
 ```
 
+The users authenticating via Github would have to accept the terms:
+
+![Settings - Developer settings - GitHub Apps - My Gatekeeper - Accept Terms Screen](./assets/docs/images/oauth2_github_accept_screen.png)
+
 [:arrow_up: Back to Top](#table-of-contents)
 
 <!--- end of section -->
