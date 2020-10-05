@@ -99,4 +99,38 @@ remove the `ui` section and use an auto-redirect feature.
 
 [:arrow_up: Back to Top](#table-of-contents)
 
+### Secure Kibana
+
+First, add the following line in `/etc/kibana/kibana.yml`. It must match the
+the prefix used when proxying traffic through:
+
+```
+server.basePath: "/elk"
+```
+
+Next, add the following route in you Caddyfile:
+
+```
+  route /elk* {
+    jwt
+    uri strip_prefix /elk
+    reverse_proxy KIBANA_IP:5601
+  }
+```
+
+Also, add the link to Kibana in `ui` section of Caddyfile:
+
+```
+      ui {
+        ...
+        links {
+          ...
+          "Kibana" /elk/
+          ...
+        }
+      }
+```
+
+[:arrow_up: Back to Top](#table-of-contents)
+
 <!--- end of section -->

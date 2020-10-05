@@ -28,6 +28,7 @@ Please ask questions either here or via LinkedIn. I am happy to help you! @green
 * [Authorization Cookie](#authorization-cookie)
 * [Usage Examples](#usage-examples)
   * [Secure Prometheus](#secure-prometheus)
+  * [Secure Kibana](#secure-kibana)
 * [Authentication Methods](#authentication-methods)
   * [Basic Authentication](#basic-authentication)
   * [Form-Based Authentication](#form-based-authentication)
@@ -336,6 +337,40 @@ templates and settings:
 
 In fact, if you are not going to display any links, then
 remove the `ui` section and use an auto-redirect feature.
+
+[:arrow_up: Back to Top](#table-of-contents)
+
+### Secure Kibana
+
+First, add the following line in `/etc/kibana/kibana.yml`. It must match the
+the prefix used when proxying traffic through:
+
+```
+server.basePath: "/elk"
+```
+
+Next, add the following route in you Caddyfile:
+
+```
+  route /elk* {
+    jwt
+    uri strip_prefix /elk
+    reverse_proxy KIBANA_IP:5601
+  }
+```
+
+Also, add the link to Kibana in `ui` section of Caddyfile:
+
+```
+      ui {
+        ...
+        links {
+          ...
+          "Kibana" /elk/
+          ...
+        }
+      }
+```
 
 [:arrow_up: Back to Top](#table-of-contents)
 
