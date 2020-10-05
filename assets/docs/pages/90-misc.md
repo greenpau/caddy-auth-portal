@@ -32,3 +32,16 @@ localhost {
 
 This could be useful to force re-authentication when the client IP
 address changes.
+
+### Session ID Cache
+
+When the plugin issues JWT tokens, it either passes `jti` values
+from upstream providers or generates its own `jti` values.
+
+The plugin stores the mappings between `jti` value and associated
+data in a cache. The associated data contains claims and the
+metadata from the backend which authenticated a particular session.
+
+This cache is used to assess whether a claim holder is able using
+certain portal's capabilities, e.g. add public SSH/GPG key, configure
+MFA tokens, change password, etc.

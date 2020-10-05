@@ -9,6 +9,7 @@ import (
 	"github.com/caddyserver/caddy/v2"
 	"github.com/caddyserver/caddy/v2/modules/caddyhttp"
 	"github.com/greenpau/caddy-auth-jwt"
+	"github.com/greenpau/caddy-auth-portal/pkg/cache"
 	"github.com/greenpau/caddy-auth-portal/pkg/cookies"
 	"github.com/greenpau/caddy-auth-portal/pkg/handlers"
 	"github.com/greenpau/caddy-auth-portal/pkg/registration"
@@ -26,7 +27,10 @@ const (
 // It provides access to all instances of authentication portal plugin.
 var PortalPool *AuthPortalPool
 
+var sessionCache *cache.SessionCache
+
 func init() {
+	sessionCache = cache.NewSessionCache()
 	PortalPool = &AuthPortalPool{}
 	caddy.RegisterModule(AuthPortal{})
 }
@@ -253,6 +257,15 @@ func (m AuthPortal) ServeHTTP(w http.ResponseWriter, r *http.Request, _ caddyhtt
 			if m.EnableSourceIPTracking {
 				claims.Address = GetSourceAddress(r)
 			}
+			if claims.ID == "" {
+				claims.ID = reqID
+			}
+			sessionCache.Add(claims.ID, map[string]interface{}{
+				"claims":         claims,
+				"backend_name":   backend.GetName(),
+				"backend_realm":  backend.GetRealm(),
+				"backend_method": backend.GetMethod(),
+			})
 			opts["authenticated"] = true
 			opts["user_claims"] = claims
 			opts["status_code"] = 200
@@ -297,6 +310,15 @@ func (m AuthPortal) ServeHTTP(w http.ResponseWriter, r *http.Request, _ caddyhtt
 							if m.EnableSourceIPTracking {
 								claims.Address = GetSourceAddress(r)
 							}
+							if claims.ID == "" {
+								claims.ID = reqID
+							}
+							sessionCache.Add(claims.ID, map[string]interface{}{
+								"claims":         claims,
+								"backend_name":   backend.GetName(),
+								"backend_realm":  backend.GetRealm(),
+								"backend_method": backend.GetMethod(),
+							})
 							opts["user_claims"] = claims
 							opts["authenticated"] = true
 							opts["status_code"] = 200

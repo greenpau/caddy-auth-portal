@@ -65,6 +65,7 @@ Please ask questions either here or via LinkedIn. I am happy to help you! @green
 * [Miscellaneous](#miscellaneous)
   * [Binding to Privileged Ports](#binding-to-privileged-ports)
   * [Recording Source IP Address in JWT Token](#recording-source-ip-address-in-jwt-token)
+  * [Session ID Cache](#session-id-cache)
 
 <!-- end-markdown-toc -->
 
@@ -1583,3 +1584,16 @@ localhost {
 
 This could be useful to force re-authentication when the client IP
 address changes.
+
+### Session ID Cache
+
+When the plugin issues JWT tokens, it either passes `jti` values
+from upstream providers or generates its own `jti` values.
+
+The plugin stores the mappings between `jti` value and associated
+data in a cache. The associated data contains claims and the
+metadata from the backend which authenticated a particular session.
+
+This cache is used to assess whether a claim holder is able using
+certain portal's capabilities, e.g. add public SSH/GPG key, configure
+MFA tokens, change password, etc.
