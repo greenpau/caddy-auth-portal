@@ -171,10 +171,10 @@ var PageTemplates = map[string]string{
             <div class="row app-control valign-wrapper">
               <div class="col s6">
                 {{ if eq .Data.login_options.registration_required "yes" }}
-                <span class="app-link"><a href="{{ .ActionEndpoint }}/register">Register</a></span>
+                <span class="app-link"><a href="{{ pathjoin .ActionEndpoint "/register" }}">Register</a></span>
                 {{ end }}
                 {{ if eq .Data.login_options.password_recovery_required "yes" }}
-                <span class="app-link"><a href="{{ .ActionEndpoint }}/forgot">Forgot Password?</a></span>
+                <span class="app-link"><a href="{{ pathjoin .ActionEndpoint "/forgot" }}">Forgot Password?</a></span>
                 {{ end }}
               </div>
               <div class="col s6 right-align">
@@ -290,7 +290,7 @@ var PageTemplates = map[string]string{
               </ul>
             </div>
             <div class="card-action right-align">
-              <a href="{{ .ActionEndpoint }}/logout" class="navbtn-last">
+              <a href="{{ pathjoin .ActionEndpoint "/logout" }}" class="navbtn-last">
                 <button type="button" class="btn waves-effect waves-light navbtn active navbtn-last">
                   <span class="white-text"><i class="material-icons left">power_settings_new</i>Logout</span>
                 </button>
@@ -384,12 +384,12 @@ var PageTemplates = map[string]string{
 	      <pre><code class="json hljs">{{ .Data.token }}</code></pre>
             </div>
             <div class="card-action right-align">
-              <a href="{{ .ActionEndpoint }}/portal">
+              <a href="{{ pathjoin .ActionEndpoint "/portal" }}">
 	        <button type="button" class="btn waves-effect waves-light navbtn active">
                   <span class="white-text"><i class="material-icons left">home</i>Portal</span>
                 </button>
               </a>
-              <a href="{{ .ActionEndpoint }}/logout" class="navbtn-last">
+              <a href="{{ pathjoin .ActionEndpoint "/logout" }}" class="navbtn-last">
                 <button type="button" class="btn waves-effect waves-light navbtn active navbtn-last">
                   <span class="white-text"><i class="material-icons left">power_settings_new</i>Logout</span>
                 </button>
@@ -473,7 +473,7 @@ var PageTemplates = map[string]string{
       <div class="row">
         <div class="col s12 m12 l6 offset-l3 app-card-container">
           {{ if not .Data.registered }}
-          <form action="{{ .ActionEndpoint }}/register" method="POST">
+          <form action="{{ pathjoin .ActionEndpoint "/register" }}" method="POST">
           {{ end }}
           <div class="card card-large app-card">
             <div class="card-content">
@@ -517,8 +517,8 @@ var PageTemplates = map[string]string{
                 <label>
                   <input type="checkbox" id="accept_terms" name="accept_terms" required />
                   <span>I agree to
-                    <a href="{{ .ActionEndpoint }}/termsandconditions">Terms and Conditions</a> and
-                    <a href="{{ .ActionEndpoint }}/privacypolicy">Privacy Policy</a>.
+                    <a href="{{ pathjoin .ActionEndpoint "/termsandconditions" }}">Terms and Conditions</a> and
+                    <a href="{{ pathjoin .ActionEndpoint "/privacypolicy" }}">Privacy Policy</a>.
                   </span>
                 </label>
               </p>
@@ -744,14 +744,14 @@ var PageTemplates = map[string]string{
 	    <a href="#" class="brand-logo">{{ .Title }}</a>
             <ul id="nav-mobile" class="right hide-on-med-and-down">
               <li>
-                <a href="{{ .ActionEndpoint }}/portal">
+                <a href="{{ pathjoin .ActionEndpoint "/portal" }}">
                   <button type="button" class="btn waves-effect waves-light navbtn active">
                     <span class="white-text"><i class="material-icons navbar left">home</i>Portal</span>
                   </button>
                 </a>
               </li>
               <li>
-                <a href="{{ .ActionEndpoint }}/logout" class="navbtn-last">
+                <a href="{{ pathjoin .ActionEndpoint "/logout" }}" class="navbtn-last">
                   <button type="button" class="btn waves-effect waves-light navbtn active navbtn-last">
                     <i class="material-icons navbar left">power_settings_new</i>Logout</button>
                 </a>
@@ -763,13 +763,13 @@ var PageTemplates = map[string]string{
       <div class="row">
         <div class="col s12 l3">
           <div class="collection">
-            <a href="{{ .ActionEndpoint }}/settings/" class="collection-item{{ if eq .Data.view "general" }} active{{ end }}">General</a>
-	    <a href="{{ .ActionEndpoint }}/settings/sshkeys" class="collection-item{{ if eq .Data.view "sshkeys" }} active{{ end }}">SSH Keys</a>
-            <a href="{{ .ActionEndpoint }}/settings/gpgkeys" class="collection-item{{ if eq .Data.view "gpgkeys" }} active{{ end }}">GPG Keys</a>
-            <a href="{{ .ActionEndpoint }}/settings/apikeys" class="collection-item{{ if eq .Data.view "apikeys" }} active{{ end }}">API Keys</a>
-            <a href="{{ .ActionEndpoint }}/settings/mfa" class="collection-item{{ if eq .Data.view "mfa" }} active{{ end }}">MFA</a>
-            <a href="{{ .ActionEndpoint }}/settings/passwords" class="collection-item{{ if eq .Data.view "passwords" }} active{{ end }}">Passwords</a>
-            <a href="{{ .ActionEndpoint }}/settings/misc" class="collection-item{{ if eq .Data.view "misc" }} active{{ end }}">Miscellaneous</a>
+            <a href="{{ pathjoin .ActionEndpoint "/settings/" }}" class="collection-item{{ if eq .Data.view "general" }} active{{ end }}">General</a>
+	    <a href="{{ pathjoin .ActionEndpoint "/settings/sshkeys" }}" class="collection-item{{ if eq .Data.view "sshkeys" }} active{{ end }}">SSH Keys</a>
+            <a href="{{ pathjoin .ActionEndpoint "/settings/gpgkeys" }}" class="collection-item{{ if eq .Data.view "gpgkeys" }} active{{ end }}">GPG Keys</a>
+            <a href="{{ pathjoin .ActionEndpoint "/settings/apikeys" }}" class="collection-item{{ if eq .Data.view "apikeys" }} active{{ end }}">API Keys</a>
+            <a href="{{ pathjoin .ActionEndpoint "/settings/mfa" }}" class="collection-item{{ if eq .Data.view "mfa" }} active{{ end }}">MFA</a>
+            <a href="{{ pathjoin .ActionEndpoint "/settings/passwords" }}" class="collection-item{{ if eq .Data.view "passwords" }} active{{ end }}">Passwords</a>
+            <a href="{{ pathjoin .ActionEndpoint "/settings/misc" }}" class="collection-item{{ if eq .Data.view "misc" }} active{{ end }}">Miscellaneous</a>
           </div>
         </div>
         <div class="col s12 l9 app-content">
@@ -788,8 +788,8 @@ var PageTemplates = map[string]string{
           {{ if eq .Data.view "mfa" }}
           <div class="row">
             <div class="col right">
-              <a class="waves-effect waves-light btn modal-trigger" href="{{ .ActionEndpoint }}/settings/mfa/add/app">Add MFA App</a>
-              <a class="waves-effect waves-light btn modal-trigger" href="{{ .ActionEndpoint }}/settings/mfa/add/u2f">Add U2F Key</a>
+              <a class="waves-effect waves-light btn modal-trigger" href="{{ pathjoin .ActionEndpoint "/settings/mfa/add/app" }}">Add MFA App</a>
+              <a class="waves-effect waves-light btn modal-trigger" href="{{ pathjoin .ActionEndpoint "/settings/mfa/add/u2f" }}">Add U2F Key</a>
             </div>
           </div>
           <div class="row">
@@ -801,7 +801,7 @@ var PageTemplates = map[string]string{
           </div>
           {{ end }}
           {{ if eq .Data.view "mfa-add-app" }}
-            <form action="{{ .ActionEndpoint }}/settings/mfa/add/app" method="POST">
+            <form action="{{ pathjoin .ActionEndpoint "/settings/mfa/add/app" }}" method="POST">
               <div class="row">
                 <h1>Add MFA Authenticator Application</h1>
                 <div class="row">
@@ -823,7 +823,7 @@ var PageTemplates = map[string]string{
                     </div>
                   </div>
                   <div class="col s12 m6 l6">
-                    <div class="center-align"><img src="{{ .ActionEndpoint }}/settings/mfa/barcode/{{ .Data.code_uri_encoded }}.png" alt="QR Code" /></div>
+                    <div class="center-align"><img src="{{ pathjoin .ActionEndpoint "/settings/mfa/barcode/{{ .Data.code_uri_encoded }}.png" }}" alt="QR Code" /></div>
 		    <div class="center-align"><a href="{{ .Data.code_uri }}">Link</a></div>
                   </div>
                 </div>
@@ -836,7 +836,7 @@ var PageTemplates = map[string]string{
             </form>
           {{ end }}
           {{ if eq .Data.view "mfa-add-u2f" }}
-            <form action="{{ .ActionEndpoint }}/settings/mfa/add/u2f" method="POST">
+            <form action="{{ pathjoin .ActionEndpoint "/settings/mfa/add/u2f" }}" method="POST">
               <div class="row">
                 <h1>Add U2F Security Key</h1>
                 <div class="row">

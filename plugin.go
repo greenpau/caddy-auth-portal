@@ -3,6 +3,7 @@ package portal
 import (
 	"fmt"
 	"net/http"
+	"path"
 	"strings"
 	"time"
 
@@ -218,7 +219,7 @@ func (m AuthPortal) ServeHTTP(w http.ResponseWriter, r *http.Request, _ caddyhtt
 				continue
 			}
 			opts["request"] = r
-			opts["request_path"] = fmt.Sprintf("%s/%s/%s", m.AuthURLPath, reqBackendMethod, reqBackendRealm)
+			opts["request_path"] = path.Join(m.AuthURLPath, reqBackendMethod, reqBackendRealm)
 			resp, err := backend.Authenticate(opts)
 			if err != nil {
 				opts["flow"] = "auth_failed"

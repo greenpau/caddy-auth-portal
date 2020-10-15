@@ -72,7 +72,7 @@
               </ul>
             </div>
             <div class="card-action right-align">
-              <a href="{{ .ActionEndpoint }}/logout" class="navbtn-last">
+              <a href="{{ pathjoin .ActionEndpoint "/logout" }}" class="navbtn-last">
                 <button type="button" class="btn waves-effect waves-light navbtn active navbtn-last">
                   <span class="white-text"><i class="material-icons left">power_settings_new</i>Logout</span>
                 </button>
