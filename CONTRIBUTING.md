@@ -17,17 +17,17 @@ Please fill out either the individual or corporate Contributor License Agreement
 Follow either of the two links above to access the appropriate CLA. Next, if you are
 ready to accept, add the following text in the body your first commit message.
 
-For individual CLA:
+* For Individual CLA:
 
-  I hereby consent to the Individual CLA provided in assets/cla/individual_cla.md
+      I hereby consent to the Individual CLA provided in assets/cla/individual_cla.md
 
-For corporate CLA:
+* For Corporate CLA:
 
-  I hereby consent to the Corporate CLA provided in assets/cla/corporate_cla.md
+      I hereby consent to the Corporate CLA provided in assets/cla/corporate_cla.md
 
 ## Pull Request Checklist
 
 Before sending your pull requests, make sure you followed this list.
 
-- Ensure you read approviate Contributor License Agreement (CLA)
-- Run tests
+- Ensure you read appropriate Contributor License Agreement (CLA)
+- Run unit tests
