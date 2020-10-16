@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/greenpau/caddy-auth-jwt"
+	"github.com/greenpau/caddy-auth-portal/pkg/errors"
 	"github.com/greenpau/caddy-auth-portal/pkg/utils"
 	"github.com/satori/go.uuid"
 	"go.uber.org/zap"
@@ -82,13 +83,13 @@ func NewDatabaseBackend() *Backend {
 // ConfigureAuthenticator configures backend authenticator.
 func (b *Backend) ConfigureAuthenticator() error {
 	if b.Realm == "" {
-		return fmt.Errorf("no realm found for provider %s", b.Provider)
+		return errors.ErrBackendRealmNotFound.WithArgs(b.Provider)
 	}
 	if b.ClientID == "" {
-		return fmt.Errorf("no client_id found for provider %s", b.Provider)
+		return errors.ErrBackendClientIDNotFound.WithArgs(b.Provider)
 	}
 	if b.ClientSecret == "" {
-		return fmt.Errorf("no client_secret found for provider %s", b.Provider)
+		return errors.ErrBackendClientSecretNotFound.WithArgs(b.Provider)
 	}
 
 	if len(b.Scopes) < 1 {
@@ -98,10 +99,10 @@ func (b *Backend) ConfigureAuthenticator() error {
 	switch b.Provider {
 	case "okta":
 		if b.ServerID == "" {
-			return fmt.Errorf("no server_id found for provider %s", b.Provider)
+			return errors.ErrBackendServerIDNotFound.WithArgs(b.Provider)
 		}
 		if b.DomainName == "" {
-			return fmt.Errorf("no application name found for provider %s", b.Provider)
+			return errors.ErrBackendAppNameNotFound.WithArgs(b.Provider)
 		}
 		if b.BaseAuthURL == "" {
 			b.BaseAuthURL = fmt.Sprintf(
@@ -131,24 +132,24 @@ func (b *Backend) ConfigureAuthenticator() error {
 		}
 	case "generic":
 	case "":
-		return fmt.Errorf("no OAuth 2.0 provider found for provider %s", b.Provider)
+		return errors.ErrBackendOauthProviderNotFound.WithArgs(b.Provider)
 	default:
-		return fmt.Errorf("unsupported OAuth 2.0 provider %s", b.Provider)
+		return errors.ErrBackendUnsupportedProvider.WithArgs(b.Provider)
 	}
 
 	if b.BaseAuthURL == "" {
-		return fmt.Errorf("authorization URL not found for provider %s", b.Provider)
+		return errors.ErrBackendOauthAuthorizationURLNotFound.WithArgs(b.Provider)
 	}
 
 	if b.authorizationURL == "" {
 		if err := b.fetchMetadataURL(); err != nil {
-			return fmt.Errorf("failed to fetch metadata for OAuth 2.0 authorization server: %s", err)
+			return errors.ErrBackendOauthMetadataFetchFailed.WithArgs(err)
 		}
 	}
 
 	if !b.disableKeyVerification {
 		if err := b.fetchKeysURL(); err != nil {
-			return fmt.Errorf("failed to fetch jwt keys for OAuth 2.0 authorization server: %s", err)
+			return errors.ErrBackendOauthKeyFetchFailed.WithArgs(err)
 		}
 	}
 
@@ -205,21 +206,21 @@ func (b *Backend) Authenticate(opts map[string]interface{}) (map[string]interfac
 		)
 		if errorExists {
 			if v, exists := reqParams["error_description"]; exists {
-				return resp, fmt.Errorf("failed OAuth 2.0 authorization flow, error: %s, description: %s", reqParamsError, v[0])
+				return resp, errors.ErrBackendOauthAuthorizationFailedDetailed.WithArgs(reqParamsError, v[0])
 			}
-			return resp, fmt.Errorf("failed OAuth 2.0 authorization flow, error: %s", reqParamsError)
+			return resp, errors.ErrBackendOauthAuthorizationFailed.WithArgs(reqParamsError)
 		}
 		if codeExists && stateExists {
 			// Received Authorization Code
 			if b.state.exists(reqParamsState) {
 				b.state.addCode(reqParamsState, reqParamsCode)
 			} else {
-				return resp, fmt.Errorf("OAuth 2.0 authorization state %s not found")
+				return resp, errors.ErrBackendOauthAuthorizationStateNotFound
 			}
 			reqRedirectURI := utils.GetCurrentBaseURL(r) + reqPath + "/authorization-code-callback"
 			accessToken, err := b.fetchAccessToken(reqRedirectURI, reqParamsState, reqParamsCode)
 			if err != nil {
-				return resp, fmt.Errorf("failed fetching OAuth 2.0 access token: %s", err)
+				return resp, errors.ErrBackendOauthFetchAccessTokenFailed.WithArgs(err)
 			}
 			b.logger.Debug(
 				"received OAuth 2.0 authorization server access token",
@@ -232,12 +233,12 @@ func (b *Backend) Authenticate(opts map[string]interface{}) (map[string]interfac
 			case "github":
 				claims, err = b.fetchClaims(accessToken)
 				if err != nil {
-					return resp, fmt.Errorf("failed fetching OAuth 2.0 claims: %s", err)
+					return resp, errors.ErrBackendOauthFetchClaimsFailed.WithArgs(err)
 				}
 			default:
 				claims, err = b.validateAccessToken(reqParamsState, accessToken)
 				if err != nil {
-					return resp, fmt.Errorf("failed validating OAuth 2.0 access token: %s", err)
+					return resp, errors.ErrBackendOauthValidateAccessTokenFailed.WithArgs(err)
 				}
 			}
 
@@ -251,7 +252,7 @@ func (b *Backend) Authenticate(opts map[string]interface{}) (map[string]interfac
 			)
 			return resp, nil
 		}
-		return resp, fmt.Errorf("unable to process OAuth 2.0 response")
+		return resp, errors.ErrBackendOauthResponseProcessingFailed
 	}
 
 	resp["code"] = 200
@@ -286,7 +287,7 @@ func (b *Backend) Validate() error {
 		return err
 	}
 	if b.logger == nil {
-		return fmt.Errorf("OAuth 2.0 backend logger is nil")
+		return errors.ErrBackendLoggerNotFound.WithArgs("OAuth 2.0")
 	}
 
 	b.logger.Info("successfully validated OAuth 2.0 backend")
@@ -306,7 +307,7 @@ func (b *Backend) GetName() string {
 // ConfigureTokenProvider configures TokenProvider.
 func (b *Backend) ConfigureTokenProvider(upstream *jwt.TokenProviderConfig) error {
 	if upstream == nil {
-		return fmt.Errorf("upstream token provider is nil")
+		return errors.ErrBackendTokenProviderNotFound
 	}
 	if b.TokenProvider == nil {
 		b.TokenProvider = jwt.NewTokenProviderConfig()
@@ -332,7 +333,7 @@ func (b *Backend) ConfigureTokenProvider(upstream *jwt.TokenProviderConfig) erro
 // ConfigureLogger configures backend with the same logger as its user.
 func (b *Backend) ConfigureLogger(logger *zap.Logger) error {
 	if logger == nil {
-		return fmt.Errorf("upstream logger is nil")
+		return errors.ErrBackendUpstreamLoggerNotFound
 	}
 	b.logger = logger
 	return nil
@@ -358,7 +359,7 @@ func (b *Backend) fetchMetadataURL() error {
 	}
 	for _, k := range []string{"authorization_endpoint", "token_endpoint", "jwks_uri"} {
 		if _, exists := b.metadata[k]; !exists {
-			return fmt.Errorf("metadata has no %s field", k)
+			return errors.ErrBackendOauthMetadataFieldNotFound.WithArgs(k, b.Provider)
 		}
 	}
 	b.authorizationURL = b.metadata["authorization_endpoint"].(string)
@@ -384,12 +385,12 @@ func (b *Backend) fetchKeysURL() error {
 	}
 
 	if _, exists := data["keys"]; !exists {
-		return fmt.Errorf("jwks response has no keys field")
+		return errors.ErrBackendOauthJwksResponseKeysNotFound
 	}
 
 	jwksJSON, err := json.Marshal(data["keys"])
 	if err != nil {
-		return fmt.Errorf("failed to compile jwks keys into JSON: %s", err)
+		return errors.ErrBackendOauthJwksKeysParseFailed.WithArgs(err)
 	}
 
 	keys := []*JwksKey{}
@@ -398,12 +399,12 @@ func (b *Backend) fetchKeysURL() error {
 	}
 
 	if len(keys) < 1 {
-		return fmt.Errorf("no jwks keys found")
+		return errors.ErrBackendOauthJwksKeysNotFound
 	}
 
 	for _, k := range keys {
 		if err := k.Validate(); err != nil {
-			return fmt.Errorf("jwks key is invalid: %s", err)
+			return errors.ErrBackendOauthJwksInvalidKey.WithArgs(err)
 		}
 		b.keys[k.KeyID] = k
 		b.publicKeys[k.KeyID] = k.publicKey
@@ -466,13 +467,13 @@ func (b *Backend) fetchAccessToken(redirectURI, state, code string) (map[string]
 	}
 	if _, exists := data["error"]; exists {
 		if v, exists := data["error_description"]; exists {
-			return nil, fmt.Errorf("failed obtaining OAuth 2.0 access token, error: %s, description: %s", data["error"].(string), v.(string))
+			return nil, errors.ErrBackendOauthGetAccessTokenFailedDetailed.WithArgs(data["error"].(string), v.(string))
 		}
-		return nil, fmt.Errorf("failed obtaining OAuth 2.0 access token, error: %s", data["error"].(string))
+		return nil, errors.ErrBackendOauthGetAccessTokenFailed.WithArgs(data["error"].(string))
 	}
 	for k := range b.requiredTokenFields {
 		if _, exists := data[k]; !exists {
-			return nil, fmt.Errorf("authorization server response has no %s field", k)
+			return nil, errors.ErrBackendAuthorizationServerResponseFieldNotFound.WithArgs(k)
 		}
 	}
 	return data, nil
