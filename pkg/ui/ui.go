@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"io/ioutil"
+	"path"
 	"strings"
 	"text/template"
 )
@@ -194,7 +195,10 @@ func (f *UserInterfaceFactory) DeleteTemplates() {
 }
 
 func loadTemplateFromString(s, p string) (*template.Template, error) {
-	t := template.New(s)
+	funcMap := template.FuncMap{
+		"pathjoin": path.Join,
+	}
+	t := template.New(s).Funcs(funcMap)
 	t, err := t.Parse(p)
 	if err != nil {
 		return nil, err

@@ -167,10 +167,10 @@
             <div class="row app-control valign-wrapper">
               <div class="col s6">
                 {{ if eq .Data.login_options.registration_required "yes" }}
-                <span class="app-link"><a href="{{ .ActionEndpoint }}/register">Register</a></span>
+                <span class="app-link"><a href="{{ pathjoin .ActionEndpoint "/register" }}">Register</a></span>
                 {{ end }}
                 {{ if eq .Data.login_options.password_recovery_required "yes" }}
-                <span class="app-link"><a href="{{ .ActionEndpoint }}/forgot">Forgot Password?</a></span>
+                <span class="app-link"><a href="{{ pathjoin .ActionEndpoint "/forgot" }}">Forgot Password?</a></span>
                 {{ end }}
               </div>
               <div class="col s6 right-align">

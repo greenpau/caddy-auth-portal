@@ -61,7 +61,7 @@
       <div class="row">
         <div class="col s12 m12 l6 offset-l3 app-card-container">
           {{ if not .Data.registered }}
-          <form action="{{ .ActionEndpoint }}/register" method="POST">
+          <form action="{{ pathjoin .ActionEndpoint "/register" }}" method="POST">
           {{ end }}
           <div class="card card-large app-card">
             <div class="card-content">
@@ -105,8 +105,8 @@
                 <label>
                   <input type="checkbox" id="accept_terms" name="accept_terms" required />
                   <span>I agree to
-                    <a href="{{ .ActionEndpoint }}/termsandconditions">Terms and Conditions</a> and
-                    <a href="{{ .ActionEndpoint }}/privacypolicy">Privacy Policy</a>.
+                    <a href="{{ pathjoin .ActionEndpoint "/termsandconditions" }}">Terms and Conditions</a> and
+                    <a href="{{ pathjoin .ActionEndpoint "/privacypolicy" }}">Privacy Policy</a>.
                   </span>
                 </label>
               </p>
