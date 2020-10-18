@@ -39,11 +39,11 @@
         font-size: 1.25rem;
       }
       .app-form, .app-control {
-	font-family: 'Roboto', sans-serif;
+        font-family: 'Roboto', sans-serif;
         font-size: 1.25rem;
       }
       .app-link a:link, .app-link a:visited, .app-link a:active, .app-link a:hover {
-	font-size: 1rem;
+        font-size: 1rem;
         text-transform: none !important;
         display: block;
       }
@@ -156,8 +156,8 @@
                     {{ end }}
                     </select>
                   </div>
-	        </div>
-	      </div>
+	              </div>
+	            </div>
               {{ else }}
                 {{ range .Data.login_options.realms }}
                   <input type="hidden" id="realm" name="realm" value="{{ .realm }}" />
@@ -183,9 +183,9 @@
           </form>
           {{ end }}
           {{ if eq .Data.login_options.external_providers_required "yes" }}
-	  <div class="row">
+          <div class="row">
             {{ if eq .Data.login_options.username_required "yes" }}
-              <p class="app-text">Additional Sign In Options:</p>
+            <p class="app-text">Additional Sign In Options:</p>
             {{end}}
             {{ range .Data.login_options.external_providers }}
             <a class="app-icon-btn btn waves-effect waves-light {{ .color }}" href="{{ .endpoint }}">

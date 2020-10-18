@@ -43,11 +43,11 @@ var PageTemplates = map[string]string{
         font-size: 1.25rem;
       }
       .app-form, .app-control {
-	font-family: 'Roboto', sans-serif;
+        font-family: 'Roboto', sans-serif;
         font-size: 1.25rem;
       }
       .app-link a:link, .app-link a:visited, .app-link a:active, .app-link a:hover {
-	font-size: 1rem;
+        font-size: 1rem;
         text-transform: none !important;
         display: block;
       }
@@ -160,8 +160,8 @@ var PageTemplates = map[string]string{
                     {{ end }}
                     </select>
                   </div>
-	        </div>
-	      </div>
+	              </div>
+	            </div>
               {{ else }}
                 {{ range .Data.login_options.realms }}
                   <input type="hidden" id="realm" name="realm" value="{{ .realm }}" />
@@ -187,9 +187,9 @@ var PageTemplates = map[string]string{
           </form>
           {{ end }}
           {{ if eq .Data.login_options.external_providers_required "yes" }}
-	  <div class="row">
+          <div class="row">
             {{ if eq .Data.login_options.username_required "yes" }}
-              <p class="app-text">Additional Sign In Options:</p>
+            <p class="app-text">Additional Sign In Options:</p>
             {{end}}
             {{ range .Data.login_options.external_providers }}
             <a class="app-icon-btn btn waves-effect waves-light {{ .color }}" href="{{ .endpoint }}">
@@ -244,6 +244,21 @@ var PageTemplates = map[string]string{
       .app-background {
         background-color: #155D56;
       }
+      .app-card-container {
+        background-color: white;
+        box-shadow: 0 4px 8px 0 rgba(0,0,0,0.2);
+        transition: 0.3s;
+        margin-top: 2em;
+        padding-top: 1em !important;
+        padding-left: 2em !important;
+        padding-right: 2em !important;
+      }
+      .app-header {
+        font-family: 'Roboto', sans-serif;
+        padding-top: 1em !important;
+        color: #EE6E73;
+        font-size: 1.25rem;
+      }
       .app-header {
         color: #EE6E73;
       }
@@ -265,37 +280,37 @@ var PageTemplates = map[string]string{
     </style>
   </head>
   <body class="app-background">
-    <div class="container hide-on-med-and-up no-padding" style="height: 5vh !important;"></div>
-    <div class="container hide-on-small-only no-padding" style="height: 10vh !important;"></div>
     <div class="container app-container">
       <div class="row">
         <div class="col s12 m6 offset-m3 l4 offset-l4 app-card-container">
-          <div class="card card-large app-card">
-            <div class="card-content">
-              <span class="card-title center-align">
-                <div class="section app-header">
-                  {{ if .LogoURL }}
-                  <img class="d-block mx-auto mb-2" src="{{ .LogoURL }}" alt="{{ .LogoDescription }}" width="72" height="72">
-                  {{ end }}
-                  <h4>{{ .Title }}</h4>
-                </div>
-              </span>
-              <p>Access the following services.</p>
-              <ul class="collection">
-                {{range .PrivateLinks}}
-                <li class="collection-item">
-                  <a href="{{ .Link }}">{{ .Title }}</a>
-                </li>
-                {{ end }}
-              </ul>
+          <div class="row app-header center">
+            {{ if .LogoURL }}
+            <div class="col">
+              <img class="d-block mx-auto mb-2" src="{{ .LogoURL }}" alt="{{ .LogoDescription }}" width="72" height="72">
             </div>
-            <div class="card-action right-align">
-              <a href="{{ pathjoin .ActionEndpoint "/logout" }}" class="navbtn-last">
-                <button type="button" class="btn waves-effect waves-light navbtn active navbtn-last">
-                  <span class="white-text"><i class="material-icons left">power_settings_new</i>Logout</span>
-                </button>
-              </a>
+            <div class="col">
+              <h4>{{ .Title }}</h4>
             </div>
+            {{ else }}
+              <h4>{{ .Title }}</h4>
+            {{ end }}
+          </div>
+          <div class="row">
+            <p>Access the following services.</p>
+            <ul class="collection">
+              {{range .PrivateLinks}}
+              <li class="collection-item">
+                <a href="{{ .Link }}">{{ .Title }}</a>
+              </li>
+              {{ end }}
+            </ul>
+          </div>
+          <div class="row right">
+            <a href="{{ pathjoin .ActionEndpoint "/logout" }}" class="navbtn-last">
+              <button type="button" class="btn waves-effect waves-light navbtn active navbtn-last">
+                <span class="white-text"><i class="material-icons left">power_settings_new</i>Logout</span>
+              </button>
+            </a>
           </div>
         </div>
       </div>
@@ -345,8 +360,20 @@ var PageTemplates = map[string]string{
       .app-background {
         background-color: #155D56;
       }
+      .app-card-container {
+        background-color: white;
+        box-shadow: 0 4px 8px 0 rgba(0,0,0,0.2);
+        transition: 0.3s;
+        margin-top: 2em;
+        padding-top: 1em !important;
+        padding-left: 2em !important;
+        padding-right: 2em !important;
+      }
       .app-header {
+        font-family: 'Roboto', sans-serif;
+        padding-top: 1em !important;
         color: #EE6E73;
+        font-size: 1.25rem;
       }
       .navbtn {
         font-family: 'Roboto', sans-serif;
@@ -366,35 +393,35 @@ var PageTemplates = map[string]string{
     </style>
   </head>
   <body class="app-background">
-    <div class="container hide-on-med-and-up no-padding" style="height: 5vh !important;"></div>
-    <div class="container hide-on-small-only no-padding" style="height: 10vh !important;"></div>
     <div class="container app-container">
       <div class="row">
         <div class="col s12 m12 l6 offset-l3 app-card-container">
-          <div class="card card-large app-card">
-            <div class="card-content">
-              <span class="card-title center-align">
-                <div class="section app-header">
-                  {{ if .LogoURL }}
-                  <img class="d-block mx-auto mb-2" src="{{ .LogoURL }}" alt="{{ .LogoDescription }}" width="72" height="72">
-                  {{ end }}
-                  <h4>{{ .Title }}</h4>
-                </div>
-              </span>
-	      <pre><code class="json hljs">{{ .Data.token }}</code></pre>
+          <div class="row app-header center">
+            {{ if .LogoURL }}
+            <div class="col">
+              <img class="d-block mx-auto mb-2" src="{{ .LogoURL }}" alt="{{ .LogoDescription }}" width="72" height="72">
             </div>
-            <div class="card-action right-align">
-              <a href="{{ pathjoin .ActionEndpoint "/portal" }}">
-	        <button type="button" class="btn waves-effect waves-light navbtn active">
-                  <span class="white-text"><i class="material-icons left">home</i>Portal</span>
-                </button>
-              </a>
-              <a href="{{ pathjoin .ActionEndpoint "/logout" }}" class="navbtn-last">
-                <button type="button" class="btn waves-effect waves-light navbtn active navbtn-last">
-                  <span class="white-text"><i class="material-icons left">power_settings_new</i>Logout</span>
-                </button>
-              </a>
+            <div class="col">
+              <h4>{{ .Title }}</h4>
             </div>
+            {{ else }}
+              <h4>{{ .Title }}</h4>
+            {{ end }}
+          </div>
+          <div class="row">
+	          <pre><code class="json hljs">{{ .Data.token }}</code></pre>
+          </div>
+          <div class="row right">
+            <a href="{{ pathjoin .ActionEndpoint "/portal" }}">
+              <button type="button" class="btn waves-effect waves-light navbtn active">
+                <span class="white-text"><i class="material-icons left">home</i>Portal</span>
+              </button>
+            </a>
+            <a href="{{ pathjoin .ActionEndpoint "/logout" }}" class="navbtn-last">
+              <button type="button" class="btn waves-effect waves-light navbtn active navbtn-last">
+                <span class="white-text"><i class="material-icons left">power_settings_new</i>Logout</span>
+              </button>
+            </a>
           </div>
         </div>
       </div>
