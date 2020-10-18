@@ -27,7 +27,7 @@ type BackendDriver interface {
 	GetMethod() string
 	Authenticate(map[string]interface{}) (map[string]interface{}, error)
 	ConfigureLogger(*zap.Logger) error
-	ConfigureTokenProvider(*jwt.TokenProviderConfig) error
+	ConfigureTokenProvider(*jwt.CommonTokenConfig) error
 	ConfigureAuthenticator() error
 	Validate() error
 }

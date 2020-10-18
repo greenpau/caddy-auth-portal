@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"crypto/rsa"
 	"encoding/json"
 	"github.com/greenpau/caddy-auth-jwt"
 	"github.com/greenpau/caddy-auth-portal/pkg/cookies"
@@ -17,8 +18,9 @@ func ServeLogin(w http.ResponseWriter, r *http.Request, opts map[string]interfac
 	log := opts["logger"].(*zap.Logger)
 	uiFactory := opts["ui"].(*ui.UserInterfaceFactory)
 	authURLPath := opts["auth_url_path"].(string)
-	tokenName := opts["token_name"].(string)
-	tokenSecret := opts["token_secret"].(string)
+
+	tokenProvider := opts["token_provider"].(*jwt.CommonTokenConfig)
+
 	cookies := opts["cookies"].(*cookies.Cookies)
 	redirectToToken := opts["redirect_token_name"].(string)
 	authorized := false
@@ -33,7 +35,7 @@ func ServeLogin(w http.ResponseWriter, r *http.Request, opts map[string]interfac
 
 	// Remove tokens when authentication failed
 	if opts["auth_credentials_found"].(bool) && !opts["authenticated"].(bool) {
-		for _, k := range []string{tokenName} {
+		for _, k := range []string{tokenProvider.TokenName} {
 			w.Header().Add("Set-Cookie", k+"=delete;"+cookies.GetDeleteAttributes()+" expires=Thu, 01 Jan 1970 00:00:00 GMT")
 		}
 	}
@@ -46,15 +48,49 @@ func ServeLogin(w http.ResponseWriter, r *http.Request, opts map[string]interfac
 	if opts["authenticated"].(bool) && !authorized {
 		claims := opts["user_claims"].(*jwt.UserClaims)
 		claims.Issuer = utils.GetCurrentURL(r)
-		userToken, err := claims.GetToken("HS512", []byte(tokenSecret))
-		if err != nil {
+		var userToken string
+		var tokenError error
+		switch tokenProvider.TokenSignMethod {
+		case "HS512":
+			userToken, tokenError = claims.GetToken(tokenProvider.TokenSignMethod, []byte(tokenProvider.TokenSecret))
+		case "RS512":
+			var privKey *rsa.PrivateKey
+			var keyID string
+			privKey, keyID, tokenError = tokenProvider.GetPrivateKey()
+			if tokenError == nil {
+				tokenOpts := make(map[string]interface{})
+				tokenOpts["method"] = tokenProvider.TokenSignMethod
+				if keyID != "" {
+					tokenOpts["kid"] = keyID
+				}
+				tokenOpts["private_key"] = privKey
+				userToken, tokenError = claims.GetSignedToken(tokenOpts)
+			}
+		default:
 			opts["status_code"] = 500
 			opts["authenticated"] = false
 			opts["message"] = "Internal Server Error"
+			log.Error(
+				"invalid signing method",
+				zap.String("request_id", reqID),
+				zap.String("token_sign_method", tokenProvider.TokenSignMethod),
+			)
+		}
+		if tokenError != nil {
+			opts["status_code"] = 500
+			opts["authenticated"] = false
+			opts["message"] = "Internal Server Error"
+			log.Warn(
+				"token signing error",
+				zap.String("request_id", reqID),
+				zap.String("error", tokenError.Error()),
+			)
 		} else {
-			opts["user_token"] = userToken
-			w.Header().Set("Authorization", "Bearer "+userToken)
-			w.Header().Set("Set-Cookie", tokenName+"="+userToken+";"+cookies.GetAttributes())
+			if opts["authenticated"].(bool) {
+				opts["user_token"] = userToken
+				w.Header().Set("Authorization", "Bearer "+userToken)
+				w.Header().Set("Set-Cookie", tokenProvider.TokenName+"="+userToken+";"+cookies.GetAttributes())
+			}
 		}
 	}
 
@@ -123,9 +159,8 @@ func ServeAPILogin(w http.ResponseWriter, r *http.Request, opts map[string]inter
 	resp := make(map[string]interface{})
 	if opts["authenticated"].(bool) {
 		resp["authenticated"] = true
-		tokenName := opts["token_name"].(string)
-		tokenValue := opts["user_token"].(string)
-		resp[tokenName] = tokenValue
+		tokenProvider := opts["token_provider"].(*jwt.CommonTokenConfig)
+		resp[tokenProvider.TokenName] = opts["user_token"].(string)
 	} else {
 		resp["authenticated"] = false
 		if opts["auth_credentials_found"].(bool) {

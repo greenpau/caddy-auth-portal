@@ -49,7 +49,7 @@ type Backend struct {
 	// by name, i.e. app. Each of the URLs is a separate endpoint.
 	AssertionConsumerServiceURLs []string `json:"acs_urls,omitempty"`
 
-	TokenProvider *jwt.TokenProviderConfig `json:"-"`
+	TokenProvider *jwt.CommonTokenConfig `json:"-"`
 	logger        *zap.Logger
 }
 
@@ -58,7 +58,7 @@ type Backend struct {
 func NewDatabaseBackend() *Backend {
 	b := &Backend{
 		Method:        "saml",
-		TokenProvider: jwt.NewTokenProviderConfig(),
+		TokenProvider: jwt.NewCommonTokenConfig(),
 	}
 	return b
 }
@@ -357,12 +357,12 @@ func (b *Backend) GetName() string {
 }
 
 // ConfigureTokenProvider configures TokenProvider.
-func (b *Backend) ConfigureTokenProvider(upstream *jwt.TokenProviderConfig) error {
+func (b *Backend) ConfigureTokenProvider(upstream *jwt.CommonTokenConfig) error {
 	if upstream == nil {
 		return fmt.Errorf("upstream token provider is nil")
 	}
 	if b.TokenProvider == nil {
-		b.TokenProvider = jwt.NewTokenProviderConfig()
+		b.TokenProvider = jwt.NewCommonTokenConfig()
 	}
 	if b.TokenProvider.TokenName == "" {
 		b.TokenProvider.TokenName = upstream.TokenName

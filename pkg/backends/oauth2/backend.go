@@ -58,7 +58,7 @@ type Backend struct {
 	// Stores cached state IDs
 	state *stateManager
 
-	TokenProvider *jwt.TokenProviderConfig `json:"-"`
+	TokenProvider *jwt.CommonTokenConfig `json:"-"`
 	logger        *zap.Logger
 }
 
@@ -67,7 +67,7 @@ type Backend struct {
 func NewDatabaseBackend() *Backend {
 	b := &Backend{
 		Method:        "oauth2",
-		TokenProvider: jwt.NewTokenProviderConfig(),
+		TokenProvider: jwt.NewCommonTokenConfig(),
 		state:         newStateManager(),
 		keys:          make(map[string]*JwksKey),
 		publicKeys:    make(map[string]*rsa.PublicKey),
@@ -305,12 +305,12 @@ func (b *Backend) GetName() string {
 }
 
 // ConfigureTokenProvider configures TokenProvider.
-func (b *Backend) ConfigureTokenProvider(upstream *jwt.TokenProviderConfig) error {
+func (b *Backend) ConfigureTokenProvider(upstream *jwt.CommonTokenConfig) error {
 	if upstream == nil {
 		return errors.ErrBackendTokenProviderNotFound
 	}
 	if b.TokenProvider == nil {
-		b.TokenProvider = jwt.NewTokenProviderConfig()
+		b.TokenProvider = jwt.NewCommonTokenConfig()
 	}
 	if b.TokenProvider.TokenName == "" {
 		b.TokenProvider.TokenName = upstream.TokenName

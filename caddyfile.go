@@ -322,7 +322,7 @@ func parseCaddyfileAuthPortal(h httpcaddyfile.Helper) ([]httpcaddyfile.ConfigVal
 				}
 			case "jwt":
 				if portal.TokenProvider == nil {
-					portal.TokenProvider = &jwt.TokenProviderConfig{}
+					portal.TokenProvider = jwt.NewCommonTokenConfig()
 				}
 				for nesting := h.Nesting(); h.NextBlock(nesting); {
 					subDirective := h.Val()
@@ -337,6 +337,14 @@ func parseCaddyfileAuthPortal(h httpcaddyfile.Helper) ([]httpcaddyfile.ConfigVal
 							return nil, h.Errf("%s %s subdirective has no value", rootDirective, subDirective)
 						}
 						portal.TokenProvider.TokenSecret = h.Val()
+
+					case "token_rsa_file":
+						rsaArgs := h.RemainingArgs()
+						if len(rsaArgs) != 2 {
+							return nil, h.Errf("%s %s subdirective requires two arguments: key id and file path", rootDirective, subDirective)
+						}
+						portal.TokenProvider.TokenRSAFiles = make(map[string]string)
+						portal.TokenProvider.TokenRSAFiles[rsaArgs[0]] = rsaArgs[1]
 					case "token_issuer":
 						if !h.NextArg() {
 							return nil, h.Errf("%s %s subdirective has no value", rootDirective, subDirective)
@@ -482,7 +490,7 @@ func parseCaddyfileAuthPortal(h httpcaddyfile.Helper) ([]httpcaddyfile.ConfigVal
 	}
 
 	if portal.TokenProvider == nil {
-		portal.TokenProvider = &jwt.TokenProviderConfig{}
+		portal.TokenProvider = jwt.NewCommonTokenConfig()
 		portal.TokenProvider.TokenSecret = utils.GetRandomStringFromRange(32, 64)
 	}
 

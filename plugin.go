@@ -16,6 +16,7 @@ import (
 	"github.com/greenpau/caddy-auth-portal/pkg/ui"
 	"github.com/greenpau/caddy-auth-portal/pkg/utils"
 	"github.com/greenpau/go-identity"
+	"github.com/satori/go.uuid"
 	"go.uber.org/zap"
 )
 
@@ -49,7 +50,7 @@ type AuthPortal struct {
 	UserRegistrationDatabase *identity.Database         `json:"-"`
 	Cookies                  *cookies.Cookies           `json:"cookies,omitempty"`
 	Backends                 []Backend                  `json:"backends,omitempty"`
-	TokenProvider            *jwt.TokenProviderConfig   `json:"jwt,omitempty"`
+	TokenProvider            *jwt.CommonTokenConfig     `json:"jwt,omitempty"`
 	EnableSourceIPTracking   bool                       `json:"source_ip_tracking,omitempty"`
 	TokenValidator           *jwt.TokenValidator        `json:"-"`
 	logger                   *zap.Logger
@@ -107,7 +108,7 @@ func (m AuthPortal) ServeHTTP(w http.ResponseWriter, r *http.Request, _ caddyhtt
 	log := m.logger
 	opts := make(map[string]interface{})
 	opts["request_id"] = reqID
-	opts["content_type"] = GetContentType(r)
+	opts["content_type"] = utils.GetContentType(r)
 	opts["authenticated"] = false
 	opts["auth_backend_found"] = false
 	opts["auth_credentials_found"] = false
@@ -116,9 +117,7 @@ func (m AuthPortal) ServeHTTP(w http.ResponseWriter, r *http.Request, _ caddyhtt
 	opts["ui"] = m.uiFactory
 	opts["cookies"] = m.Cookies
 	opts["cookie_names"] = []string{redirectToToken, m.TokenProvider.TokenName}
-	opts["token_name"] = m.TokenProvider.TokenName
-	opts["token_secret"] = m.TokenProvider.TokenSecret
-	// opts["token_issuer"] = m.TokenProvider.TokenIssuer
+	opts["token_provider"] = m.TokenProvider
 	if m.UserInterface.Title != "" {
 		opts["ui_title"] = m.UserInterface.Title
 	}
@@ -138,9 +137,10 @@ func (m AuthPortal) ServeHTTP(w http.ResponseWriter, r *http.Request, _ caddyhtt
 				return handlers.ServeSessionLoginRedirect(w, r, opts)
 			case "no token found":
 			default:
-				log.Debug("Authorization failed",
+				log.Warn("Authorization failed",
 					zap.String("request_id", opts["request_id"].(string)),
 					zap.Any("error", err.Error()),
+					zap.String("src_ip_address", utils.GetSourceAddress(r)),
 				)
 			}
 		}
@@ -255,7 +255,7 @@ func (m AuthPortal) ServeHTTP(w http.ResponseWriter, r *http.Request, _ caddyhtt
 			claims := resp["claims"].(*jwt.UserClaims)
 			claims.Issuer = utils.GetCurrentURL(r)
 			if m.EnableSourceIPTracking {
-				claims.Address = GetSourceAddress(r)
+				claims.Address = utils.GetSourceAddress(r)
 			}
 			if claims.ID == "" {
 				claims.ID = reqID
@@ -288,7 +288,7 @@ func (m AuthPortal) ServeHTTP(w http.ResponseWriter, r *http.Request, _ caddyhtt
 			opts["authorized"] = true
 		} else {
 			// Authenticating the request
-			if credentials, err := parseCredentials(r); err == nil {
+			if credentials, err := utils.ParseCredentials(r); err == nil {
 				if credentials != nil {
 					opts["auth_credentials_found"] = true
 					for _, backend := range m.Backends {
@@ -308,7 +308,7 @@ func (m AuthPortal) ServeHTTP(w http.ResponseWriter, r *http.Request, _ caddyhtt
 							claims := resp["claims"].(*jwt.UserClaims)
 							claims.Issuer = utils.GetCurrentURL(r)
 							if m.EnableSourceIPTracking {
-								claims.Address = GetSourceAddress(r)
+								claims.Address = utils.GetSourceAddress(r)
 							}
 							if claims.ID == "" {
 								claims.ID = reqID
@@ -350,6 +350,17 @@ func (m AuthPortal) ServeHTTP(w http.ResponseWriter, r *http.Request, _ caddyhtt
 		opts["flow"] = "not_found"
 		return handlers.ServeGeneric(w, r, opts)
 	}
+}
+
+// GetRequestID returns request ID.
+func GetRequestID(r *http.Request) string {
+	rawRequestID := caddyhttp.GetVar(r.Context(), "request_id")
+	if rawRequestID == nil {
+		requestID := uuid.NewV4().String()
+		caddyhttp.SetVar(r.Context(), "request_id", requestID)
+		return requestID
+	}
+	return rawRequestID.(string)
 }
 
 // Interface guards

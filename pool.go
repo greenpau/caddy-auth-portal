@@ -1,6 +1,7 @@
 package portal
 
 import (
+	"crypto/rsa"
 	"fmt"
 	"github.com/greenpau/caddy-auth-jwt"
 	"github.com/greenpau/caddy-auth-portal/pkg/cookies"
@@ -61,381 +62,442 @@ func (p *AuthPortalPool) Register(m *AuthPortal) error {
 		p.PrimaryInstances[m.Context] = m
 	}
 
-	if m.PrimaryInstance {
-		if m.AuthURLPath == "" {
-			return fmt.Errorf("%s: auth_url_path must be set", m.Name)
-		}
+	if !m.PrimaryInstance {
+		return nil
+	}
 
-		m.logger.Debug(
-			"Authentication URL found",
-			zap.String("instance_name", m.Name),
-			zap.String("auth_url_path", m.AuthURLPath),
-		)
+	if m.AuthURLPath == "" {
+		return fmt.Errorf("%s: auth_url_path must be set", m.Name)
+	}
 
-		if m.TokenProvider.TokenName == "" {
-			m.TokenProvider.TokenName = "access_token"
-		}
-		m.logger.Info(
-			"JWT token name found",
-			zap.String("instance_name", m.Name),
-			zap.String("token_name", m.TokenProvider.TokenName),
-		)
+	m.logger.Debug(
+		"Authentication URL found",
+		zap.String("instance_name", m.Name),
+		zap.String("auth_url_path", m.AuthURLPath),
+	)
 
-		if m.TokenProvider.TokenSecret == "" {
-			if os.Getenv("JWT_TOKEN_SECRET") == "" {
-				return fmt.Errorf("%s: token_secret must be defined either "+
-					"via JWT_TOKEN_SECRET environment variable or "+
-					"via token_secret configuration element",
-					m.Name,
-				)
+	if m.TokenProvider.TokenName == "" {
+		m.TokenProvider.TokenName = "access_token"
+	}
+	m.logger.Info(
+		"JWT token name found",
+		zap.String("instance_name", m.Name),
+		zap.String("token_name", m.TokenProvider.TokenName),
+	)
+
+	var signingKeyFound bool
+	var signingKeyID string
+	var signingKey *rsa.PrivateKey
+
+	if m.TokenProvider.TokenSecret != "" {
+		signingKeyFound = true
+		m.TokenProvider.TokenSignMethod = "HS512"
+	}
+
+	if !signingKeyFound && os.Getenv("JWT_TOKEN_SECRET") != "" {
+		signingKeyFound = true
+		m.TokenProvider.TokenSignMethod = "HS512"
+		m.TokenProvider.TokenSecret = os.Getenv("JWT_TOKEN_SECRET")
+	}
+
+	if !signingKeyFound && m.TokenProvider.TokenRSAFiles != nil {
+		if len(m.TokenProvider.TokenRSAFiles) > 0 {
+			if err := jwt.LoadEncryptionKeys(m.TokenProvider); err != nil {
+				return fmt.Errorf("%s: token provider error: %s", m.Name, err)
 			}
-			m.TokenProvider.TokenSecret = os.Getenv("JWT_TOKEN_SECRET")
-		}
-
-		if m.TokenProvider.TokenIssuer == "" {
-			m.logger.Warn(
-				"JWT token issuer not found, using default",
-				zap.String("instance_name", m.Name),
-			)
-			m.TokenProvider.TokenIssuer = "localhost"
-		}
-
-		if m.TokenProvider.TokenOrigin == "" {
-			m.logger.Warn(
-				"JWT token origin not found, using default",
-				zap.String("instance_name", m.Name),
-			)
-			m.TokenProvider.TokenOrigin = "localhost"
-		}
-
-		m.logger.Debug(
-			"JWT token origin found",
-			zap.String("instance_name", m.Name),
-			zap.String("token_origin", m.TokenProvider.TokenOrigin),
-		)
-
-		m.logger.Debug(
-			"JWT token issuer found",
-			zap.String("instance_name", m.Name),
-			zap.String("token_issuer", m.TokenProvider.TokenIssuer),
-		)
-
-		if m.TokenProvider.TokenLifetime == 0 {
-			m.logger.Warn(
-				"JWT token lifetime not found, using default",
-				zap.String("instance_name", m.Name),
-			)
-			m.TokenProvider.TokenLifetime = 900
-		}
-		m.logger.Debug(
-			"JWT token lifetime found",
-			zap.String("instance_name", m.Name),
-			zap.Int("token_lifetime", m.TokenProvider.TokenLifetime),
-		)
-
-		m.logger.Debug(
-			"JWT token configuration provisioned",
-			zap.String("instance_name", m.Name),
-			zap.String("auth_url_path", m.AuthURLPath),
-			zap.String("token_name", m.TokenProvider.TokenName),
-			zap.String("token_origin", m.TokenProvider.TokenOrigin),
-			zap.String("token_issuer", m.TokenProvider.TokenIssuer),
-			zap.Int("token_lifetime", m.TokenProvider.TokenLifetime),
-		)
-
-		// Backend Validation
-		if len(m.Backends) == 0 {
-			return fmt.Errorf("%s: no valid backend found", m.Name)
-		}
-
-		backendNameRef := make(map[string]interface{})
-
-		m.loginOptions = make(map[string]interface{})
-		m.loginOptions["form_required"] = "no"
-		m.loginOptions["realm_dropdown_required"] = "no"
-		m.loginOptions["username_required"] = "no"
-		m.loginOptions["password_required"] = "no"
-		m.loginOptions["external_providers_required"] = "no"
-		m.loginOptions["registration_required"] = "no"
-		m.loginOptions["password_recovery_required"] = "no"
-		var loginRealms []map[string]string
-		var externalLoginProviders []map[string]string
-		for _, backend := range m.Backends {
-			backendName := backend.GetName()
-			if backendName == "" {
-				return fmt.Errorf("%s: backend name is required but missing", m.Name)
+			signingKeys := m.TokenProvider.GetKeys()
+			if signingKeys == nil {
+				return fmt.Errorf("%s: token provider has no keys", m.Name)
 			}
-			if _, exists := backendNameRef[backendName]; exists {
-				return fmt.Errorf("%s: backend name %s is duplicate", m.Name, backendName)
+			if len(signingKeys) != 1 {
+				return fmt.Errorf("%s: token provider has more than one key", m.Name)
 			}
-			backendNameRef[backendName] = true
-			if err := backend.Configure(m); err != nil {
-				return fmt.Errorf("%s: backend configuration error: %s", m.Name, err)
-			}
-			if err := backend.Validate(m); err != nil {
-				return fmt.Errorf("%s: backend validation error: %s", m.Name, err)
-			}
-			backendRealm := backend.GetRealm()
-			backendMethod := backend.GetMethod()
-			if backendMethod == "local" || backendMethod == "ldap" {
-				loginRealm := make(map[string]string)
-				loginRealm["realm"] = backendRealm
-				loginRealm["default"] = "no"
-				if backendMethod == "ldap" {
-					loginRealm["label"] = strings.ToUpper(backendRealm)
-				} else {
-					loginRealm["label"] = strings.ToTitle(backendRealm)
-					loginRealm["default"] = "yes"
-				}
-				loginRealms = append(loginRealms, loginRealm)
-			}
-			if backendMethod != "local" && backendMethod != "ldap" {
-				externalLoginProvider := make(map[string]string)
-				externalLoginProvider["endpoint"] = m.AuthURLPath + "/" + backendMethod + "/" + backendRealm
-				externalLoginProvider["icon"] = backendMethod
-				externalLoginProvider["realm"] = backendRealm
-				switch backendRealm {
-				case "google":
-					externalLoginProvider["icon"] = "google"
-					externalLoginProvider["text"] = "Google"
-					externalLoginProvider["color"] = "red darken-1"
-				case "facebook":
-					externalLoginProvider["icon"] = "facebook"
-					externalLoginProvider["text"] = "Facebook"
-					externalLoginProvider["color"] = "blue darken-4"
-				case "twitter":
-					externalLoginProvider["icon"] = "twitter"
-					externalLoginProvider["text"] = "Twitter"
-					externalLoginProvider["color"] = "blue darken-1"
-				case "linkedin":
-					externalLoginProvider["icon"] = "linkedin"
-					externalLoginProvider["text"] = "LinkedIn"
-					externalLoginProvider["color"] = "blue darken-1"
-				case "github":
-					externalLoginProvider["icon"] = "github"
-					externalLoginProvider["text"] = "Github"
-					externalLoginProvider["color"] = "grey darken-3"
-				case "windows":
-					externalLoginProvider["icon"] = "windows"
-					externalLoginProvider["text"] = "Microsoft"
-					externalLoginProvider["color"] = "orange darken-1"
-				case "azure":
-					externalLoginProvider["icon"] = "windows"
-					externalLoginProvider["text"] = "Azure"
-					externalLoginProvider["color"] = "blue"
-				case "aws", "amazon":
-					externalLoginProvider["icon"] = "amazon"
-					externalLoginProvider["text"] = "AWS"
-					externalLoginProvider["color"] = "blue-grey darken-2"
+			for k, v := range signingKeys {
+				switch kt := v.(type) {
+				case *rsa.PrivateKey:
+					signingKeyID = k
+					signingKey = v.(*rsa.PrivateKey)
 				default:
-					externalLoginProvider["icon"] = "shield"
-					externalLoginProvider["text"] = backendRealm
-					externalLoginProvider["color"] = "grey darken-3"
+					return fmt.Errorf("%s: token provider has unsupported key type %T for key ID %s", m.Name, kt, k)
 				}
-				externalLoginProviders = append(externalLoginProviders, externalLoginProvider)
 			}
-			m.logger.Debug(
-				"Provisioned authentication backend",
-				zap.String("instance_name", m.Name),
-				zap.String("backend_name", backendName),
-				zap.String("backend_type", backendMethod),
-				zap.String("backend_realm", backendRealm),
-			)
+			signingKeyFound = true
+			m.TokenProvider.TokenSignMethod = "RS512"
 		}
+	}
 
-		if len(loginRealms) > 0 {
-			m.loginOptions["form_required"] = "yes"
-			m.loginOptions["username_required"] = "yes"
-			m.loginOptions["password_required"] = "yes"
-			m.loginOptions["realms"] = loginRealms
-		}
-		if len(loginRealms) > 1 {
-			m.loginOptions["realm_dropdown_required"] = "yes"
-		}
-		if len(externalLoginProviders) > 0 {
-			m.loginOptions["external_providers_required"] = "yes"
-			m.loginOptions["external_providers"] = externalLoginProviders
-		}
+	if !signingKeyFound {
+		return fmt.Errorf("%s: token_secret must be defined either "+
+			"via JWT_TOKEN_SECRET environment variable or "+
+			"via token_secret, token_rsa_file directive",
+			m.Name,
+		)
+	}
 
-		// Cookies Validation
-		if m.Cookies == nil {
-			m.Cookies = &cookies.Cookies{}
-		}
+	if m.TokenProvider.TokenIssuer == "" {
+		m.logger.Warn(
+			"JWT token issuer not found, using default",
+			zap.String("instance_name", m.Name),
+		)
+		m.TokenProvider.TokenIssuer = "localhost"
+	}
 
-		// Setup User Registration
-		if m.UserRegistration == nil {
-			m.UserRegistration = &registration.Registration{}
-		}
-		if m.UserRegistration.Title == "" {
-			m.UserRegistration.Title = "Sign Up"
-		}
-		if m.UserRegistration.Dropbox == "" {
-			m.UserRegistration.Disabled = true
-		}
+	if m.TokenProvider.TokenOrigin == "" {
+		m.logger.Warn(
+			"JWT token origin not found, using default",
+			zap.String("instance_name", m.Name),
+		)
+		m.TokenProvider.TokenOrigin = "localhost"
+	}
 
-		if !m.UserRegistration.Disabled {
-			m.loginOptions["registration_required"] = "yes"
-			if m.UserRegistrationDatabase == nil {
-				m.UserRegistrationDatabase = identity.NewDatabase()
-				fileInfo, err := os.Stat(m.UserRegistration.Dropbox)
-				if err != nil {
-					if os.IsNotExist(err) {
-						if err := m.UserRegistrationDatabase.SaveToFile(m.UserRegistration.Dropbox); err != nil {
-							return fmt.Errorf("%s: registration dropbox setup failed: %s", m.Name, err)
-						}
-					} else {
-						return fmt.Errorf("%s: registration dropbox metadata read failed: %s", m.Name, err)
+	m.logger.Debug(
+		"JWT token origin found",
+		zap.String("instance_name", m.Name),
+		zap.String("token_origin", m.TokenProvider.TokenOrigin),
+	)
+
+	m.logger.Debug(
+		"JWT token issuer found",
+		zap.String("instance_name", m.Name),
+		zap.String("token_issuer", m.TokenProvider.TokenIssuer),
+	)
+
+	if m.TokenProvider.TokenLifetime == 0 {
+		m.logger.Warn(
+			"JWT token lifetime not found, using default",
+			zap.String("instance_name", m.Name),
+		)
+		m.TokenProvider.TokenLifetime = 900
+	}
+	m.logger.Debug(
+		"JWT token lifetime found",
+		zap.String("instance_name", m.Name),
+		zap.Int("token_lifetime", m.TokenProvider.TokenLifetime),
+	)
+
+	m.logger.Debug(
+		"JWT token configuration provisioned",
+		zap.String("instance_name", m.Name),
+		zap.String("auth_url_path", m.AuthURLPath),
+		zap.String("token_name", m.TokenProvider.TokenName),
+		zap.String("token_origin", m.TokenProvider.TokenOrigin),
+		zap.String("token_issuer", m.TokenProvider.TokenIssuer),
+		zap.Int("token_lifetime", m.TokenProvider.TokenLifetime),
+		zap.String("token_sign_method", m.TokenProvider.TokenSignMethod),
+	)
+
+	// Backend Validation
+	if len(m.Backends) == 0 {
+		return fmt.Errorf("%s: no valid backend found", m.Name)
+	}
+
+	backendNameRef := make(map[string]interface{})
+
+	m.loginOptions = make(map[string]interface{})
+	m.loginOptions["form_required"] = "no"
+	m.loginOptions["realm_dropdown_required"] = "no"
+	m.loginOptions["username_required"] = "no"
+	m.loginOptions["password_required"] = "no"
+	m.loginOptions["external_providers_required"] = "no"
+	m.loginOptions["registration_required"] = "no"
+	m.loginOptions["password_recovery_required"] = "no"
+	var loginRealms []map[string]string
+	var externalLoginProviders []map[string]string
+	for _, backend := range m.Backends {
+		backendName := backend.GetName()
+		if backendName == "" {
+			return fmt.Errorf("%s: backend name is required but missing", m.Name)
+		}
+		if _, exists := backendNameRef[backendName]; exists {
+			return fmt.Errorf("%s: backend name %s is duplicate", m.Name, backendName)
+		}
+		backendNameRef[backendName] = true
+		if err := backend.Configure(m); err != nil {
+			return fmt.Errorf("%s: backend configuration error: %s", m.Name, err)
+		}
+		if err := backend.Validate(m); err != nil {
+			return fmt.Errorf("%s: backend validation error: %s", m.Name, err)
+		}
+		backendRealm := backend.GetRealm()
+		backendMethod := backend.GetMethod()
+		if backendMethod == "local" || backendMethod == "ldap" {
+			loginRealm := make(map[string]string)
+			loginRealm["realm"] = backendRealm
+			loginRealm["default"] = "no"
+			if backendMethod == "ldap" {
+				loginRealm["label"] = strings.ToUpper(backendRealm)
+			} else {
+				loginRealm["label"] = strings.ToTitle(backendRealm)
+				loginRealm["default"] = "yes"
+			}
+			loginRealms = append(loginRealms, loginRealm)
+		}
+		if backendMethod != "local" && backendMethod != "ldap" {
+			externalLoginProvider := make(map[string]string)
+			externalLoginProvider["endpoint"] = m.AuthURLPath + "/" + backendMethod + "/" + backendRealm
+			externalLoginProvider["icon"] = backendMethod
+			externalLoginProvider["realm"] = backendRealm
+			switch backendRealm {
+			case "google":
+				externalLoginProvider["icon"] = "google"
+				externalLoginProvider["text"] = "Google"
+				externalLoginProvider["color"] = "red darken-1"
+			case "facebook":
+				externalLoginProvider["icon"] = "facebook"
+				externalLoginProvider["text"] = "Facebook"
+				externalLoginProvider["color"] = "blue darken-4"
+			case "twitter":
+				externalLoginProvider["icon"] = "twitter"
+				externalLoginProvider["text"] = "Twitter"
+				externalLoginProvider["color"] = "blue darken-1"
+			case "linkedin":
+				externalLoginProvider["icon"] = "linkedin"
+				externalLoginProvider["text"] = "LinkedIn"
+				externalLoginProvider["color"] = "blue darken-1"
+			case "github":
+				externalLoginProvider["icon"] = "github"
+				externalLoginProvider["text"] = "Github"
+				externalLoginProvider["color"] = "grey darken-3"
+			case "windows":
+				externalLoginProvider["icon"] = "windows"
+				externalLoginProvider["text"] = "Microsoft"
+				externalLoginProvider["color"] = "orange darken-1"
+			case "azure":
+				externalLoginProvider["icon"] = "windows"
+				externalLoginProvider["text"] = "Azure"
+				externalLoginProvider["color"] = "blue"
+			case "aws", "amazon":
+				externalLoginProvider["icon"] = "amazon"
+				externalLoginProvider["text"] = "AWS"
+				externalLoginProvider["color"] = "blue-grey darken-2"
+			default:
+				externalLoginProvider["icon"] = "shield"
+				externalLoginProvider["text"] = backendRealm
+				externalLoginProvider["color"] = "grey darken-3"
+			}
+			externalLoginProviders = append(externalLoginProviders, externalLoginProvider)
+		}
+		m.logger.Debug(
+			"Provisioned authentication backend",
+			zap.String("instance_name", m.Name),
+			zap.String("backend_name", backendName),
+			zap.String("backend_type", backendMethod),
+			zap.String("backend_realm", backendRealm),
+		)
+	}
+
+	if len(loginRealms) > 0 {
+		m.loginOptions["form_required"] = "yes"
+		m.loginOptions["username_required"] = "yes"
+		m.loginOptions["password_required"] = "yes"
+		m.loginOptions["realms"] = loginRealms
+	}
+	if len(loginRealms) > 1 {
+		m.loginOptions["realm_dropdown_required"] = "yes"
+	}
+	if len(externalLoginProviders) > 0 {
+		m.loginOptions["external_providers_required"] = "yes"
+		m.loginOptions["external_providers"] = externalLoginProviders
+	}
+
+	// Cookies Validation
+	if m.Cookies == nil {
+		m.Cookies = &cookies.Cookies{}
+	}
+
+	// Setup User Registration
+	if m.UserRegistration == nil {
+		m.UserRegistration = &registration.Registration{}
+	}
+	if m.UserRegistration.Title == "" {
+		m.UserRegistration.Title = "Sign Up"
+	}
+	if m.UserRegistration.Dropbox == "" {
+		m.UserRegistration.Disabled = true
+	}
+
+	if !m.UserRegistration.Disabled {
+		m.loginOptions["registration_required"] = "yes"
+		if m.UserRegistrationDatabase == nil {
+			m.UserRegistrationDatabase = identity.NewDatabase()
+			fileInfo, err := os.Stat(m.UserRegistration.Dropbox)
+			if err != nil {
+				if os.IsNotExist(err) {
+					if err := m.UserRegistrationDatabase.SaveToFile(m.UserRegistration.Dropbox); err != nil {
+						return fmt.Errorf("%s: registration dropbox setup failed: %s", m.Name, err)
 					}
 				} else {
-					if fileInfo.IsDir() {
-						return fmt.Errorf("%s: registration dropbox is a directory", m.Name)
-					}
+					return fmt.Errorf("%s: registration dropbox metadata read failed: %s", m.Name, err)
 				}
-				if err := m.UserRegistrationDatabase.LoadFromFile(m.UserRegistration.Dropbox); err != nil {
-					return fmt.Errorf("%s: registration dropbox load failed: %s", m.Name, err)
+			} else {
+				if fileInfo.IsDir() {
+					return fmt.Errorf("%s: registration dropbox is a directory", m.Name)
 				}
 			}
+			if err := m.UserRegistrationDatabase.LoadFromFile(m.UserRegistration.Dropbox); err != nil {
+				return fmt.Errorf("%s: registration dropbox load failed: %s", m.Name, err)
+			}
 		}
+	}
 
-		m.logger.Debug(
-			"Provisioned registration endpoint",
-			zap.String("instance_name", m.Name),
-			zap.String("dropbox", m.UserRegistration.Dropbox),
+	m.logger.Debug(
+		"Provisioned registration endpoint",
+		zap.String("instance_name", m.Name),
+		zap.String("dropbox", m.UserRegistration.Dropbox),
+	)
+
+	// Setup User Interface
+	if m.UserInterface == nil {
+		m.UserInterface = &UserInterfaceParameters{}
+	}
+
+	if m.UserInterface.Templates == nil {
+		m.UserInterface.Templates = make(map[string]string)
+	}
+
+	m.uiFactory = ui.NewUserInterfaceFactory()
+	if m.UserInterface.Title == "" {
+		m.uiFactory.Title = "Sign In"
+	} else {
+		m.uiFactory.Title = m.UserInterface.Title
+	}
+
+	if m.UserInterface.LogoURL != "" {
+		m.uiFactory.LogoURL = m.UserInterface.LogoURL
+		m.uiFactory.LogoDescription = m.UserInterface.LogoDescription
+	}
+
+	m.uiFactory.ActionEndpoint = m.AuthURLPath
+
+	if len(m.UserInterface.PrivateLinks) > 0 {
+		m.uiFactory.PrivateLinks = m.UserInterface.PrivateLinks
+	}
+
+	if len(m.UserInterface.Realms) > 0 {
+		m.uiFactory.Realms = m.UserInterface.Realms
+	}
+
+	if m.UserInterface.Theme == "" {
+		m.UserInterface.Theme = defaultTheme
+	}
+	if _, exists := ui.Themes[m.UserInterface.Theme]; !exists {
+		return fmt.Errorf(
+			"%s: UI settings validation error, theme %s does not exist",
+			m.Name, m.UserInterface.Theme,
 		)
+	}
 
-		// Setup User Interface
-		if m.UserInterface == nil {
-			m.UserInterface = &UserInterfaceParameters{}
+	if m.UserInterface.PasswordRecoveryEnabled {
+		m.loginOptions["password_recovery_required"] = "yes"
+	}
+
+	m.logger.Debug(
+		"Provisioned authentication user interface parameters",
+		zap.String("instance_name", m.Name),
+		zap.String("title", m.uiFactory.Title),
+		zap.String("logo_url", m.uiFactory.LogoURL),
+		zap.String("logo_description", m.uiFactory.LogoDescription),
+		zap.Any("action_endpoint", m.uiFactory.ActionEndpoint),
+		zap.Any("private_links", m.uiFactory.PrivateLinks),
+		zap.Any("realms", m.uiFactory.Realms),
+		zap.String("theme", m.UserInterface.Theme),
+	)
+
+	// User Interface Templates
+	for k := range ui.PageTemplates {
+		tmplNameParts := strings.SplitN(k, "/", 2)
+		tmplTheme := tmplNameParts[0]
+		tmplName := tmplNameParts[1]
+		if tmplTheme != m.UserInterface.Theme {
+			continue
 		}
-
-		if m.UserInterface.Templates == nil {
-			m.UserInterface.Templates = make(map[string]string)
-		}
-
-		m.uiFactory = ui.NewUserInterfaceFactory()
-		if m.UserInterface.Title == "" {
-			m.uiFactory.Title = "Sign In"
-		} else {
-			m.uiFactory.Title = m.UserInterface.Title
-		}
-
-		if m.UserInterface.LogoURL != "" {
-			m.uiFactory.LogoURL = m.UserInterface.LogoURL
-			m.uiFactory.LogoDescription = m.UserInterface.LogoDescription
-		}
-
-		m.uiFactory.ActionEndpoint = m.AuthURLPath
-
-		if len(m.UserInterface.PrivateLinks) > 0 {
-			m.uiFactory.PrivateLinks = m.UserInterface.PrivateLinks
-		}
-
-		if len(m.UserInterface.Realms) > 0 {
-			m.uiFactory.Realms = m.UserInterface.Realms
-		}
-
-		if m.UserInterface.Theme == "" {
-			m.UserInterface.Theme = defaultTheme
-		}
-		if _, exists := ui.Themes[m.UserInterface.Theme]; !exists {
-			return fmt.Errorf(
-				"%s: UI settings validation error, theme %s does not exist",
-				m.Name, m.UserInterface.Theme,
-			)
-		}
-
-		if m.UserInterface.PasswordRecoveryEnabled {
-			m.loginOptions["password_recovery_required"] = "yes"
-		}
-
-		m.logger.Debug(
-			"Provisioned authentication user interface parameters",
-			zap.String("instance_name", m.Name),
-			zap.String("title", m.uiFactory.Title),
-			zap.String("logo_url", m.uiFactory.LogoURL),
-			zap.String("logo_description", m.uiFactory.LogoDescription),
-			zap.Any("action_endpoint", m.uiFactory.ActionEndpoint),
-			zap.Any("private_links", m.uiFactory.PrivateLinks),
-			zap.Any("realms", m.uiFactory.Realms),
-			zap.String("theme", m.UserInterface.Theme),
-		)
-
-		// User Interface Templates
-		for k := range ui.PageTemplates {
-			tmplNameParts := strings.SplitN(k, "/", 2)
-			tmplTheme := tmplNameParts[0]
-			tmplName := tmplNameParts[1]
-			if tmplTheme != m.UserInterface.Theme {
-				continue
-			}
-			if _, exists := m.UserInterface.Templates[tmplName]; !exists {
-				m.logger.Debug(
-					"Provisioning default authentication user interface templates",
-					zap.String("instance_name", m.Name),
-					zap.String("template_theme", tmplTheme),
-					zap.String("template_name", tmplName),
-				)
-				if err := m.uiFactory.AddBuiltinTemplate(k); err != nil {
-					return fmt.Errorf(
-						"%s: UI settings validation error, failed loading built-in %s template from %s theme: %s",
-						m.Name, tmplName, tmplTheme, err,
-					)
-				}
-				m.uiFactory.Templates[tmplName] = m.uiFactory.Templates[k]
-			}
-		}
-
-		for tmplName, tmplPath := range m.UserInterface.Templates {
+		if _, exists := m.UserInterface.Templates[tmplName]; !exists {
 			m.logger.Debug(
-				"Provisioning non-default authentication user interface templates",
+				"Provisioning default authentication user interface templates",
 				zap.String("instance_name", m.Name),
+				zap.String("template_theme", tmplTheme),
 				zap.String("template_name", tmplName),
-				zap.String("template_path", tmplPath),
 			)
-			if err := m.uiFactory.AddTemplate(tmplName, tmplPath); err != nil {
+			if err := m.uiFactory.AddBuiltinTemplate(k); err != nil {
 				return fmt.Errorf(
-					"%s: UI settings validation error, failed loading %s template from %s: %s",
-					m.Name, tmplName, tmplPath, err,
+					"%s: UI settings validation error, failed loading built-in %s template from %s theme: %s",
+					m.Name, tmplName, tmplTheme, err,
 				)
 			}
+			m.uiFactory.Templates[tmplName] = m.uiFactory.Templates[k]
 		}
+	}
 
-		m.TokenValidator = jwt.NewTokenValidator()
-		tokenConfig := jwt.NewCommonTokenConfig()
-		tokenConfig.TokenSecret = m.TokenProvider.TokenSecret
-		m.TokenValidator.TokenConfigs = []*jwt.CommonTokenConfig{tokenConfig}
-		if err := m.TokenValidator.ConfigureTokenBackends(); err != nil {
+	for tmplName, tmplPath := range m.UserInterface.Templates {
+		m.logger.Debug(
+			"Provisioning non-default authentication user interface templates",
+			zap.String("instance_name", m.Name),
+			zap.String("template_name", tmplName),
+			zap.String("template_path", tmplPath),
+		)
+		if err := m.uiFactory.AddTemplate(tmplName, tmplPath); err != nil {
 			return fmt.Errorf(
-				"%s: token validator backend configuration failed: %s",
-				m.Name, err,
+				"%s: UI settings validation error, failed loading %s template from %s: %s",
+				m.Name, tmplName, tmplPath, err,
 			)
 		}
-		entry := jwt.NewAccessListEntry()
-		entry.Allow()
-		if err := entry.SetClaim("roles"); err != nil {
+	}
+
+	m.TokenValidator = jwt.NewTokenValidator()
+	tokenConfig := jwt.NewCommonTokenConfig()
+	if m.TokenProvider.TokenSignMethod == "HS512" {
+		tokenConfig.TokenSecret = m.TokenProvider.TokenSecret
+	} else {
+		if err := tokenConfig.AddRSAPublicKey(signingKeyID, signingKey); err != nil {
+			return fmt.Errorf("%s: token provider failed to add key ID %s: %s", m.Name, signingKeyID, err)
+		}
+		if err := jwt.LoadEncryptionKeys(tokenConfig); err != nil {
+			return fmt.Errorf("%s: token provider error: %s", m.Name, err)
+		}
+		verifyKeys := tokenConfig.GetKeys()
+		if verifyKeys == nil {
+			return fmt.Errorf("%s: token provider has no keys", m.Name)
+		}
+		for k, v := range verifyKeys {
+			switch kt := v.(type) {
+			case *rsa.PublicKey:
+			default:
+				return fmt.Errorf("%s: token provider has unsupported key type %T for key ID %s", m.Name, kt, k)
+			}
+		}
+	}
+	m.TokenValidator.TokenConfigs = []*jwt.CommonTokenConfig{tokenConfig}
+	if err := m.TokenValidator.ConfigureTokenBackends(); err != nil {
+		return fmt.Errorf(
+			"%s: token validator backend configuration failed: %s",
+			m.Name, err,
+		)
+	}
+	entry := jwt.NewAccessListEntry()
+	entry.Allow()
+	if err := entry.SetClaim("roles"); err != nil {
+		return fmt.Errorf(
+			"%s: default access list configuration error: %s",
+			m.Name, err,
+		)
+	}
+	for _, v := range []string{"anonymous", "guest", "*"} {
+		if err := entry.AddValue(v); err != nil {
 			return fmt.Errorf(
 				"%s: default access list configuration error: %s",
 				m.Name, err,
 			)
 		}
-		for _, v := range []string{"anonymous", "guest", "*"} {
-			if err := entry.AddValue(v); err != nil {
-				return fmt.Errorf(
-					"%s: default access list configuration error: %s",
-					m.Name, err,
-				)
-			}
-		}
-		m.TokenValidator.AccessList = append(m.TokenValidator.AccessList, entry)
-		m.logger.Info(
-			"JWT token validator provisioned",
-			zap.String("instance_name", m.Name),
-			zap.Any("access_list", m.TokenValidator.AccessList),
-		)
-
-		m.TokenValidator.TokenSources = []string{"cookie", "header", "query"}
-		m.Provisioned = true
 	}
+	m.TokenValidator.AccessList = append(m.TokenValidator.AccessList, entry)
+	m.logger.Info(
+		"JWT token validator provisioned",
+		zap.String("instance_name", m.Name),
+		zap.Any("access_list", m.TokenValidator.AccessList),
+	)
+
+	m.TokenValidator.TokenSources = []string{"cookie", "header", "query"}
+	m.Provisioned = true
 	return nil
 }
 
@@ -474,7 +536,7 @@ func (p *AuthPortalPool) Provision(name string) error {
 	}
 
 	if m.TokenProvider == nil {
-		m.TokenProvider = jwt.NewTokenProviderConfig()
+		m.TokenProvider = jwt.NewCommonTokenConfig()
 	}
 
 	if m.TokenProvider.TokenName == "" {
@@ -497,6 +559,59 @@ func (p *AuthPortalPool) Provision(name string) error {
 		m.TokenProvider.TokenLifetime = primaryInstance.TokenProvider.TokenLifetime
 	}
 
+	if m.TokenProvider.TokenRSAFiles == nil {
+		m.TokenProvider.TokenRSAFiles = primaryInstance.TokenProvider.TokenRSAFiles
+	}
+
+	var signingKeyFound bool
+	var signingKeyID string
+	var signingKey *rsa.PrivateKey
+
+	if m.TokenProvider.TokenSecret != "" {
+		signingKeyFound = true
+		m.TokenProvider.TokenSignMethod = "HS512"
+	}
+
+	if !signingKeyFound && os.Getenv("JWT_TOKEN_SECRET") != "" {
+		signingKeyFound = true
+		m.TokenProvider.TokenSignMethod = "HS512"
+		m.TokenProvider.TokenSecret = os.Getenv("JWT_TOKEN_SECRET")
+	}
+
+	if !signingKeyFound && m.TokenProvider.TokenRSAFiles != nil {
+		if len(m.TokenProvider.TokenRSAFiles) > 0 {
+			if err := jwt.LoadEncryptionKeys(m.TokenProvider); err != nil {
+				return fmt.Errorf("%s: token provider error: %s", m.Name, err)
+			}
+			signingKeys := m.TokenProvider.GetKeys()
+			if signingKeys == nil {
+				return fmt.Errorf("%s: token provider has no keys", m.Name)
+			}
+			if len(signingKeys) != 1 {
+				return fmt.Errorf("%s: token provider has more than one key", m.Name)
+			}
+			for k, v := range signingKeys {
+				switch kt := v.(type) {
+				case *rsa.PrivateKey:
+					signingKeyID = k
+					signingKey = v.(*rsa.PrivateKey)
+				default:
+					return fmt.Errorf("%s: token provider has unsupported key type %T for key ID %s", m.Name, kt, k)
+				}
+			}
+			signingKeyFound = true
+			m.TokenProvider.TokenSignMethod = "RS512"
+		}
+	}
+
+	if !signingKeyFound {
+		return fmt.Errorf("%s: token_secret must be defined either "+
+			"via JWT_TOKEN_SECRET environment variable or "+
+			"via token_secret, token_rsa_file directive",
+			m.Name,
+		)
+	}
+
 	m.logger.Debug(
 		"JWT token configuration provisioned",
 		zap.String("instance_name", m.Name),
@@ -505,6 +620,7 @@ func (p *AuthPortalPool) Provision(name string) error {
 		zap.String("token_origin", m.TokenProvider.TokenOrigin),
 		zap.String("token_issuer", m.TokenProvider.TokenIssuer),
 		zap.Int("token_lifetime", m.TokenProvider.TokenLifetime),
+		zap.String("token_sign_method", m.TokenProvider.TokenSignMethod),
 	)
 
 	// Backend Validation
@@ -655,7 +771,27 @@ func (p *AuthPortalPool) Provision(name string) error {
 	// JWT Token Validator
 	m.TokenValidator = jwt.NewTokenValidator()
 	tokenConfig := jwt.NewCommonTokenConfig()
-	tokenConfig.TokenSecret = m.TokenProvider.TokenSecret
+	if m.TokenProvider.TokenSignMethod == "HS512" {
+		tokenConfig.TokenSecret = m.TokenProvider.TokenSecret
+	} else {
+		if err := tokenConfig.AddRSAPublicKey(signingKeyID, signingKey); err != nil {
+			return fmt.Errorf("%s: token provider failed to add key ID %s: %s", m.Name, signingKeyID, err)
+		}
+		if err := jwt.LoadEncryptionKeys(tokenConfig); err != nil {
+			return fmt.Errorf("%s: token provider error: %s", m.Name, err)
+		}
+		verifyKeys := tokenConfig.GetKeys()
+		if verifyKeys == nil {
+			return fmt.Errorf("%s: token provider has no keys", m.Name)
+		}
+		for k, v := range verifyKeys {
+			switch kt := v.(type) {
+			case *rsa.PublicKey:
+			default:
+				return fmt.Errorf("%s: token provider has unsupported key type %T for key ID %s", m.Name, kt, k)
+			}
+		}
+	}
 	m.TokenValidator.TokenConfigs = []*jwt.CommonTokenConfig{tokenConfig}
 	if err := m.TokenValidator.ConfigureTokenBackends(); err != nil {
 		return fmt.Errorf(

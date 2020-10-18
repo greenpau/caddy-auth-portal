@@ -1,4 +1,4 @@
-package portal
+package utils
 
 import (
 	"encoding/base64"
@@ -7,7 +7,8 @@ import (
 	"strings"
 )
 
-func parseCredentials(r *http.Request) (map[string]string, error) {
+// ParseCredentials extracts credentials from HTTP request.
+func ParseCredentials(r *http.Request) (map[string]string, error) {
 	if r.Method == "POST" {
 		return parseAuthForm(r)
 	}

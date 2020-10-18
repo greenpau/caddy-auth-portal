@@ -21,12 +21,12 @@ func init() {
 
 // Backend represents authentication provider with local backend.
 type Backend struct {
-	Name          string                   `json:"name,omitempty"`
-	Method        string                   `json:"method,omitempty"`
-	Realm         string                   `json:"realm,omitempty"`
-	Path          string                   `json:"path,omitempty"`
-	TokenProvider *jwt.TokenProviderConfig `json:"-"`
-	Authenticator *Authenticator           `json:"-"`
+	Name          string                 `json:"name,omitempty"`
+	Method        string                 `json:"method,omitempty"`
+	Realm         string                 `json:"realm,omitempty"`
+	Path          string                 `json:"path,omitempty"`
+	TokenProvider *jwt.CommonTokenConfig `json:"-"`
+	Authenticator *Authenticator         `json:"-"`
 	logger        *zap.Logger
 }
 
@@ -35,7 +35,7 @@ type Backend struct {
 func NewDatabaseBackend() *Backend {
 	b := &Backend{
 		Method:        "local",
-		TokenProvider: jwt.NewTokenProviderConfig(),
+		TokenProvider: jwt.NewCommonTokenConfig(),
 		Authenticator: globalAuthenticator,
 	}
 	return b
@@ -292,12 +292,12 @@ func (b *Backend) GetMethod() string {
 }
 
 // ConfigureTokenProvider configures TokenProvider.
-func (b *Backend) ConfigureTokenProvider(upstream *jwt.TokenProviderConfig) error {
+func (b *Backend) ConfigureTokenProvider(upstream *jwt.CommonTokenConfig) error {
 	if upstream == nil {
 		return fmt.Errorf("upstream token provider is nil")
 	}
 	if b.TokenProvider == nil {
-		b.TokenProvider = jwt.NewTokenProviderConfig()
+		b.TokenProvider = jwt.NewCommonTokenConfig()
 	}
 	if b.TokenProvider.TokenName == "" {
 		b.TokenProvider.TokenName = upstream.TokenName
