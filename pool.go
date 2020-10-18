@@ -10,6 +10,7 @@ import (
 	"github.com/greenpau/go-identity"
 	"go.uber.org/zap"
 	"os"
+	"path"
 	"strings"
 	"sync"
 )
@@ -234,7 +235,7 @@ func (p *AuthPortalPool) Register(m *AuthPortal) error {
 		}
 		if backendMethod != "local" && backendMethod != "ldap" {
 			externalLoginProvider := make(map[string]string)
-			externalLoginProvider["endpoint"] = m.AuthURLPath + "/" + backendMethod + "/" + backendRealm
+			externalLoginProvider["endpoint"] = path.Join(m.AuthURLPath, backendMethod, backendRealm)
 			externalLoginProvider["icon"] = backendMethod
 			externalLoginProvider["realm"] = backendRealm
 			switch backendRealm {

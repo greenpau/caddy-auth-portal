@@ -3,12 +3,13 @@ package handlers
 import (
 	"encoding/base64"
 	"fmt"
+	"net/http"
+	"strings"
+
 	"github.com/greenpau/caddy-auth-jwt"
 	"github.com/greenpau/caddy-auth-portal/pkg/ui"
 	"github.com/greenpau/caddy-auth-portal/pkg/utils"
 	"go.uber.org/zap"
-	"net/http"
-	"strings"
 )
 
 // ServeSettings returns authenticated user information.
@@ -26,7 +27,8 @@ func ServeSettings(w http.ResponseWriter, r *http.Request, opts map[string]inter
 	claims := opts["user_claims"].(*jwt.UserClaims)
 	uiFactory := opts["ui"].(*ui.UserInterfaceFactory)
 	view := strings.TrimPrefix(r.URL.Path, authURLPath)
-	view = strings.TrimPrefix(view, "/settings")
+	view = strings.TrimPrefix(view, "/")
+	view = strings.TrimPrefix(view, "settings")
 	view = strings.TrimPrefix(view, "/")
 	viewParts := strings.Split(view, "/")
 	view = viewParts[0]

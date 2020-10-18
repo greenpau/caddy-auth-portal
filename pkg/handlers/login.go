@@ -3,13 +3,15 @@ package handlers
 import (
 	"crypto/rsa"
 	"encoding/json"
+	"net/http"
+	"net/url"
+	"path"
+
 	"github.com/greenpau/caddy-auth-jwt"
 	"github.com/greenpau/caddy-auth-portal/pkg/cookies"
 	"github.com/greenpau/caddy-auth-portal/pkg/ui"
 	"github.com/greenpau/caddy-auth-portal/pkg/utils"
 	"go.uber.org/zap"
-	"net/http"
-	"net/url"
 )
 
 // ServeLogin returns login page or performs authentication.
@@ -118,7 +120,7 @@ func ServeLogin(w http.ResponseWriter, r *http.Request, opts map[string]interfac
 
 	// If authenticated, redirect to portal.
 	if opts["authenticated"].(bool) {
-		w.Header().Set("Location", authURLPath+"/portal")
+		w.Header().Set("Location", path.Join(authURLPath, "portal"))
 		w.WriteHeader(302)
 		return nil
 	}
