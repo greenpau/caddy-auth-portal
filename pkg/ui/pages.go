@@ -9,99 +9,19 @@ var PageTemplates = map[string]string{
     <!-- Required meta tags -->
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-    <meta name="description" content="">
-    <meta name="author" content="">
-    <link rel="shortcut icon" href="/favicon.ico" type="image/x-icon">
-    <link rel="icon" href="/favicon.ico" type="image/x-icon">
+    <meta name="description" content="Authentication Portal">
+    <meta name="author" content="Paul Greenberg github.com/greenpau">
+    <link rel="shortcut icon" href="{{ pathjoin .ActionEndpoint "/assets/images/favicon.png" }}" type="image/png">
+    <link rel="icon" href="{{ pathjoin .ActionEndpoint "/assets/images/favicon.png" }}" type="image/png">
 
-    <!-- Bootstrap CSS -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css" integrity="sha256-OweaP/Ic6rsV+lysfyS4h+LM6sRwuO3euTYfr6M124g=" crossorigin="anonymous" />
-    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" integrity="sha384-wvfXpqpZZVQGK6TAh5PVlGOfQNHSoD2xbE+QkPxCAFlNEevoEH3Sl0sibVcOQVnN" crossorigin="anonymous">
-    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@500&display=swap" rel="stylesheet">
-    <style>
-      input {
-        font-family: 'Roboto', sans-serif;
-      }
-      .app-background {
-        background-color: #155D56;
-      }
-      .app-card-container {
-        background-color: white;
-        box-shadow: 0 4px 8px 0 rgba(0,0,0,0.2);
-        transition: 0.3s;
-        margin-top: 2em;
-        padding-top: 1em !important;
-        padding-left: 2em !important;
-        padding-right: 2em !important;
-
-      }
-      .app-header {
-        font-family: 'Roboto', sans-serif;
-        padding-top: 1em !important;
-        color: #EE6E73;
-        font-size: 1.25rem;
-      }
-      .app-form, .app-control {
-        font-family: 'Roboto', sans-serif;
-        font-size: 1.25rem;
-      }
-      .app-link a:link, .app-link a:visited, .app-link a:active, .app-link a:hover {
-        font-size: 1rem;
-        text-transform: none !important;
-        display: block;
-      }
-      .app-link a:link, .app-link a:visited, .app-link a:active {
-        color: #EE6E73 !important;
-      }
-      .app-link a:hover {
-        color: #F3999D !important;
-      }
-      .app-input-row {
-        line-height: 2px !important;
-        font-family: 'Roboto', sans-serif;
-        font-size: 1rem;
-        margin-bottom: 1px;
-      }
-      p.app-input-text {
-        color: #52504f;
-      }
-      .app-input-field {
-        color: #52504f;
-        margin-bottom: 0px;
-        margin-top: 0.25rem;
-      }
-      p.app-text {
-        font-family: 'Roboto', sans-serif;
-        color: #52504f;
-        padding-top: 1em !important;
-      }
-      span.app-icon-text {
-        font-family: 'Roboto', sans-serif;
-        padding-left: 0.5rem;
-      }
-      span.app-error-text {
-        font-family: 'Roboto', sans-serif;
-      }
-      .app-icon-btn {
-        margin-bottom: 1rem;
-      }
-      .toast-error {
-        // restyle post
-      }
-      .helper-btn {
-        margin-bottom: 0.15em;
-      }
-      input:-webkit-autofill,
-      input:-webkit-autofill:hover, 
-      input:-webkit-autofill:focus, 
-      input:-webkit-autofill:active  {
-          -webkit-box-shadow: 0 0 0 30px white inset !important;
-      }
-    </style>
+    <!-- Matrialize CSS -->
+    <link rel="stylesheet" href="{{ pathjoin .ActionEndpoint "/assets/materialize-css/css/materialize.css" }}" />
+    <link rel="stylesheet" href="{{ pathjoin .ActionEndpoint "/assets/google-webfonts/roboto.css" }}" />
+    <link rel="stylesheet" href="{{ pathjoin .ActionEndpoint "/assets/line-awesome/line-awesome.css" }}" />
+    <link rel="stylesheet" href="{{ pathjoin .ActionEndpoint "/assets/css/styles.css" }}" />
   </head>
-  <body class="app-background">
-    <div class="container app-container">
+  <body class="app-body">
+    <div class="container">
       <div class="row">
         <div class="col s12 m8 offset-m2 l6 offset-l3 xl4 offset-xl4 app-card-container">
           <div class="row app-header center">
@@ -178,9 +98,9 @@ var PageTemplates = map[string]string{
                 {{ end }}
               </div>
               <div class="col s6 right-align">
-                <button type="submit" name="submit" class="btn waves-effect waves-light">
-                  <span class="app-icon-text">Login</span>
-                  <i class="material-icons left">send</i>
+                <button type="submit" name="submit" class="waves-effect waves-light btn app-btn">
+                  <i class="las la-sign-in-alt left app-btn-icon"></i>
+                  <span class="app-btn-text">Login</span>
                 </button>
               </div>
             </div>
@@ -192,8 +112,8 @@ var PageTemplates = map[string]string{
             <p class="app-text">Additional Sign In Options:</p>
             {{end}}
             {{ range .Data.login_options.external_providers }}
-            <a class="app-icon-btn btn waves-effect waves-light {{ .color }}" href="{{ .endpoint }}">
-              <i class="fa fa-{{ .icon }}"></i><span class="app-icon-text">{{ .text }}</span>
+            <a class="waves-effect waves-light {{ .color }} app-btn btn" href="{{ .endpoint }}">
+              <i class="lab la-{{ .icon }} app-btn-icon"></i><span class="app-btn-text">{{ .text }}</span>
             </a>
             {{ end }}
           </div>
@@ -202,7 +122,7 @@ var PageTemplates = map[string]string{
       </div>
     </div>
     <!-- Optional JavaScript -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js" integrity="sha256-U/cHDMTIHCeMcvehBv1xQ052bPSbJtbuiw4QA9cTKz0=" crossorigin="anonymous"></script>
+    <script src="{{ pathjoin .ActionEndpoint "/assets/materialize-css/js/materialize.js" }}"></script>
     {{ if .Message }}
     <script>
     var toastHTML = '<span class="app-error-text">{{ .Message }}</span><button class="btn-flat toast-action" onclick="M.Toast.dismissAll();">Close</button>';
@@ -223,64 +143,18 @@ var PageTemplates = map[string]string{
     <!-- Required meta tags -->
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-    <meta name="description" content="">
-    <meta name="author" content="">
-    <link rel="shortcut icon" href="/favicon.ico" type="image/x-icon">
-    <link rel="icon" href="/favicon.ico" type="image/x-icon">
-
-    <!-- Bootstrap CSS -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css" integrity="sha256-OweaP/Ic6rsV+lysfyS4h+LM6sRwuO3euTYfr6M124g=" crossorigin="anonymous" />
-    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@500&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.1/styles/atom-one-dark.min.css" integrity="sha256-GA29iW/iYj9FcuQQktvW45pRzHvZeFfgeFvA4tGVjpM=" crossorigin="anonymous" />
-    <style>
-      body {
-        font-family: 'Roboto', sans-serif;
-        font-size: 1.25rem;
-      }
-      input {
-        font-family: 'Roboto', sans-serif;
-      }
-      .app-background {
-        background-color: #155D56;
-      }
-      .app-card-container {
-        background-color: white;
-        box-shadow: 0 4px 8px 0 rgba(0,0,0,0.2);
-        transition: 0.3s;
-        margin-top: 2em;
-        padding-top: 1em !important;
-        padding-left: 2em !important;
-        padding-right: 2em !important;
-      }
-      .app-header {
-        font-family: 'Roboto', sans-serif;
-        padding-top: 1em !important;
-        color: #EE6E73;
-        font-size: 1.25rem;
-      }
-      .app-header {
-        color: #EE6E73;
-      }
-      .toast-error {
-        // restyle post
-      }
-      .navbtn {
-        font-family: 'Roboto', sans-serif;
-      }
-      .navbtn-last {
-        margin-right: 0px !important;
-      }
-      input:-webkit-autofill,
-      input:-webkit-autofill:hover, 
-      input:-webkit-autofill:focus, 
-      input:-webkit-autofill:active  {
-          -webkit-box-shadow: 0 0 0 30px white inset !important;
-      }
-    </style>
+    <meta name="description" content="Authentication Portal">
+    <meta name="author" content="Paul Greenberg github.com/greenpau">
+    <link rel="shortcut icon" href="{{ pathjoin .ActionEndpoint "/assets/images/favicon.png" }}" type="image/png">
+    <link rel="icon" href="{{ pathjoin .ActionEndpoint "/assets/images/favicon.png" }}" type="image/png">
+    <!-- Matrialize CSS -->
+    <link rel="stylesheet" href="{{ pathjoin .ActionEndpoint "/assets/materialize-css/css/materialize.css" }}" />
+    <link rel="stylesheet" href="{{ pathjoin .ActionEndpoint "/assets/google-webfonts/roboto.css" }}" />
+    <link rel="stylesheet" href="{{ pathjoin .ActionEndpoint "/assets/line-awesome/line-awesome.css" }}" />
+    <link rel="stylesheet" href="{{ pathjoin .ActionEndpoint "/assets/css/styles.css" }}" />
   </head>
-  <body class="app-background">
-    <div class="container app-container">
+  <body class="app-body">
+    <div class="container">
       <div class="row">
         <div class="col s12 m6 offset-m3 l4 offset-l4 app-card-container">
           <div class="row app-header center">
@@ -296,7 +170,7 @@ var PageTemplates = map[string]string{
             {{ end }}
           </div>
           <div class="row">
-            <p>Access the following services.</p>
+            <p class="app-text">Access the following services.</p>
             <ul class="collection">
               {{range .PrivateLinks}}
               <li class="collection-item">
@@ -307,8 +181,9 @@ var PageTemplates = map[string]string{
           </div>
           <div class="row right">
             <a href="{{ pathjoin .ActionEndpoint "/logout" }}" class="navbtn-last">
-              <button type="button" class="btn waves-effect waves-light navbtn active navbtn-last">
-                <span class="white-text"><i class="material-icons left">power_settings_new</i>Logout</span>
+              <button type="button" class="waves-effect waves-light btn navbtn active navbtn-last app-btn">
+                <i class="las la-sign-out-alt left app-btn-icon"></i>
+                <span class="app-btn-text">Logout</span>
               </button>
             </a>
           </div>
@@ -317,8 +192,7 @@ var PageTemplates = map[string]string{
     </div>
 
     <!-- Optional JavaScript -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js" integrity="sha256-U/cHDMTIHCeMcvehBv1xQ052bPSbJtbuiw4QA9cTKz0=" crossorigin="anonymous"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.1/highlight.min.js" integrity="sha256-eOgo0OtLL4cdq7RdwRUiGKLX9XsIJ7nGhWEKbohmVAQ=" crossorigin="anonymous"></script>
+    <script src="{{ pathjoin .ActionEndpoint "/assets/materialize-css/js/materialize.js" }}"></script>
     {{ if .Message }}
     <script>
     var toastHTML = '<span>{{ .Message }}</span><button class="btn-flat toast-action" onclick="M.Toast.dismissAll();">Close</button>';
@@ -339,61 +213,19 @@ var PageTemplates = map[string]string{
     <!-- Required meta tags -->
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-    <meta name="description" content="">
-    <meta name="author" content="">
-    <link rel="shortcut icon" href="/favicon.ico" type="image/x-icon">
-    <link rel="icon" href="/favicon.ico" type="image/x-icon">
-
-    <!-- Bootstrap CSS -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css" integrity="sha256-OweaP/Ic6rsV+lysfyS4h+LM6sRwuO3euTYfr6M124g=" crossorigin="anonymous" />
-    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@500&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.1/styles/atom-one-dark.min.css" integrity="sha256-GA29iW/iYj9FcuQQktvW45pRzHvZeFfgeFvA4tGVjpM=" crossorigin="anonymous" />
-    <style>
-      body {
-        font-family: 'Roboto', sans-serif;
-        font-size: 1.25rem;
-      }
-      input {
-        font-family: 'Roboto', sans-serif;
-      }
-      .app-background {
-        background-color: #155D56;
-      }
-      .app-card-container {
-        background-color: white;
-        box-shadow: 0 4px 8px 0 rgba(0,0,0,0.2);
-        transition: 0.3s;
-        margin-top: 2em;
-        padding-top: 1em !important;
-        padding-left: 2em !important;
-        padding-right: 2em !important;
-      }
-      .app-header {
-        font-family: 'Roboto', sans-serif;
-        padding-top: 1em !important;
-        color: #EE6E73;
-        font-size: 1.25rem;
-      }
-      .navbtn {
-        font-family: 'Roboto', sans-serif;
-      }
-      .navbtn-last {
-        margin-right: 0px !important;
-      }
-      .hljs {
-        font-size: 1rem;
-      }
-      input:-webkit-autofill,
-      input:-webkit-autofill:hover, 
-      input:-webkit-autofill:focus, 
-      input:-webkit-autofill:active  {
-          -webkit-box-shadow: 0 0 0 30px white inset !important;
-      }
-    </style>
+    <meta name="description" content="Authentication Portal">
+    <meta name="author" content="Paul Greenberg github.com/greenpau">
+    <link rel="shortcut icon" href="{{ pathjoin .ActionEndpoint "/assets/images/favicon.png" }}" type="image/png">
+    <link rel="icon" href="{{ pathjoin .ActionEndpoint "/assets/images/favicon.png" }}" type="image/png">
+    <!-- Matrialize CSS -->
+    <link rel="stylesheet" href="{{ pathjoin .ActionEndpoint "/assets/materialize-css/css/materialize.css" }}" />
+    <link rel="stylesheet" href="{{ pathjoin .ActionEndpoint "/assets/google-webfonts/roboto.css" }}" />
+    <link rel="stylesheet" href="{{ pathjoin .ActionEndpoint "/assets/line-awesome/line-awesome.css" }}" />
+    <link rel="stylesheet" href="{{ pathjoin .ActionEndpoint "/assets/highlight.js/css/atom-one-dark.min.css" }}" />
+    <link rel="stylesheet" href="{{ pathjoin .ActionEndpoint "/assets/css/styles.css" }}" />
   </head>
-  <body class="app-background">
-    <div class="container app-container">
+  <body class="app-body">
+    <div class="container">
       <div class="row">
         <div class="col s12 m12 l6 offset-l3 app-card-container">
           <div class="row app-header center">
@@ -409,17 +241,19 @@ var PageTemplates = map[string]string{
             {{ end }}
           </div>
           <div class="row">
-	          <pre><code class="json hljs">{{ .Data.token }}</code></pre>
+	          <pre><code class="language-json hljs">{{ .Data.token }}</code></pre>
           </div>
           <div class="row right">
             <a href="{{ pathjoin .ActionEndpoint "/portal" }}">
               <button type="button" class="btn waves-effect waves-light navbtn active">
-                <span class="white-text"><i class="material-icons left">home</i>Portal</span>
+                <i class="las la-home left app-btn-icon"></i>
+                <span class="app-btn-text">Portal</span>
               </button>
             </a>
             <a href="{{ pathjoin .ActionEndpoint "/logout" }}" class="navbtn-last">
               <button type="button" class="btn waves-effect waves-light navbtn active navbtn-last">
-                <span class="white-text"><i class="material-icons left">power_settings_new</i>Logout</span>
+                <i class="las la-sign-out-alt left app-btn-icon"></i>
+                <span class="app-btn-text">Logout</span>
               </button>
             </a>
           </div>
@@ -428,13 +262,12 @@ var PageTemplates = map[string]string{
     </div>
 
     <!-- Optional JavaScript -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js" integrity="sha256-U/cHDMTIHCeMcvehBv1xQ052bPSbJtbuiw4QA9cTKz0=" crossorigin="anonymous"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.1/highlight.min.js" integrity="sha256-eOgo0OtLL4cdq7RdwRUiGKLX9XsIJ7nGhWEKbohmVAQ=" crossorigin="anonymous"></script>
-    {{ if .Message }}
+    <script src="{{ pathjoin .ActionEndpoint "/assets/materialize-css/js/materialize.js" }}"></script>
+    <script src="{{ pathjoin .ActionEndpoint "/assets/highlight.js/js/highlight.js" }}"></script>
+    <script src="{{ pathjoin .ActionEndpoint "/assets/highlight.js/js/languages/json.min.js" }}"></script>
     <script>
     hljs.initHighlightingOnLoad();
     </script>
-    {{ end }}
   </body>
 </html>`,
 	"basic/register": `<!doctype html>
@@ -444,61 +277,21 @@ var PageTemplates = map[string]string{
     <!-- Required meta tags -->
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-    <meta name="description" content="">
-    <meta name="author" content="">
-    <link rel="shortcut icon" href="/favicon.ico" type="image/x-icon">
-    <link rel="icon" href="/favicon.ico" type="image/x-icon">
+    <meta name="description" content="Authentication Portal">
+    <meta name="author" content="Paul Greenberg github.com/greenpau">
+    <link rel="shortcut icon" href="{{ pathjoin .ActionEndpoint "/assets/images/favicon.png" }}" type="image/png">
+    <link rel="icon" href="{{ pathjoin .ActionEndpoint "/assets/images/favicon.png" }}" type="image/png">
 
-    <!-- Bootstrap CSS -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css" integrity="sha256-OweaP/Ic6rsV+lysfyS4h+LM6sRwuO3euTYfr6M124g=" crossorigin="anonymous" />
-    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@500&display=swap" rel="stylesheet">
-    <style>
-      body {
-        font-family: 'Roboto', sans-serif;
-        font-size: 1.25rem;
-      }
-      input {
-        font-family: 'Roboto', sans-serif;
-      }
-      .app-background {
-        background-color: #155D56;
-      }
-      .app-header {
-        color: #EE6E73;
-      }
-      .app-header img {
-        float: left;
-        margin-left: 5%;
-      }
-      p.app-body {
-        color: #52504f;
-        padding-top: 1em;
-      }
-      ol.app-body {
-        color: #52504f;
-        padding-right: 1em;
-      }
-      .navbtn {
-        font-family: 'Roboto', sans-serif;
-      }
-      .navbtn-last {
-        margin-right: 0px !important;
-      }
-      input:-webkit-autofill,
-      input:-webkit-autofill:hover, 
-      input:-webkit-autofill:focus, 
-      input:-webkit-autofill:active  {
-          -webkit-box-shadow: 0 0 0 30px white inset !important;
-      }
-    </style>
+		<!-- Matrialize CSS -->
+    <link rel="stylesheet" href="{{ pathjoin .ActionEndpoint "/assets/materialize-css/css/materialize.css" }}" />
+    <link rel="stylesheet" href="{{ pathjoin .ActionEndpoint "/assets/google-webfonts/roboto.css" }}" />
+    <link rel="stylesheet" href="{{ pathjoin .ActionEndpoint "/assets/line-awesome/line-awesome.css" }}" />
+    <link rel="stylesheet" href="{{ pathjoin .ActionEndpoint "/assets/css/styles.css" }}" />
   </head>
-  <body class="app-background">
-    <div class="container hide-on-med-and-up no-padding" style="height: 5vh !important;"></div>
-    <div class="container hide-on-small-only no-padding" style="height: 10vh !important;"></div>
-    <div class="container app-container">
+  <body class="app-body">
+    <div class="container">
       <div class="row">
-        <div class="col s12 m12 l6 offset-l3 app-card-container">
+        <div class="col s12 m12 l6 offset-l3">
           {{ if not .Data.registered }}
           <form action="{{ pathjoin .ActionEndpoint "/register" }}" method="POST">
           {{ end }}
@@ -551,9 +344,9 @@ var PageTemplates = map[string]string{
               </p>
               {{ end }}
               {{ else }}
-              <p class="app-body">Thank you for registering and we hope you enjoy the experience!</p>
-              <p class="app-body">Here are a few things to keep in mind:</p>
-              <ol class="app-body">
+              <p class="app-text">Thank you for registering and we hope you enjoy the experience!</p>
+              <p class="app-text">Here are a few things to keep in mind:</p>
+              <ol class="app-text">
                 <li>You should receive your confirmation email within the next 15 minutes.</li>
                 <li>If you still don't see it, please email support so we can resend it to you.</li>
               </ol>
@@ -561,13 +354,21 @@ var PageTemplates = map[string]string{
             </div>
             <div class="card-action right-align">
               {{ if not .Data.registered }}
-              <button type="submit" name="submit" class="btn waves-effect waves-light btn-large">Sign Up
-                <i class="material-icons left">send</i>
+              <a href="{{ .ActionEndpoint }}" class="navbtn-last">
+                <button type="button" class="waves-effect waves-light btn navbtn active navbtn-last app-btn">
+                  <i class="las la-undo left app-btn-icon"></i>
+                  <span class="app-btn-text">Back</span>
+                </button>
+              </a>
+              <button type="submit" name="submit" class="waves-effect waves-light btn navbtn active navbtn-last app-btn">
+                <i class="las la-chevron-circle-right app-btn-icon"></i>
+                <span class="app-btn-text">Submit</span>
               </button>
               {{ else }}
               <a href="{{ .ActionEndpoint }}" class="navbtn-last">
-                <button type="button" class="btn waves-effect waves-light navbtn active navbtn-last">
-                  <span class="white-text"><i class="material-icons left">home</i>Portal</span>
+                <button type="button" class="waves-effect waves-light btn navbtn active navbtn-last app-btn">
+                  <i class="las la-home left app-btn-icon"></i>
+                  <span class="app-btn-text">Portal</span>
                 </button>
               </a>
               {{ end }}
@@ -579,8 +380,7 @@ var PageTemplates = map[string]string{
     </div>
 
     <!-- Optional JavaScript -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js" integrity="sha256-U/cHDMTIHCeMcvehBv1xQ052bPSbJtbuiw4QA9cTKz0=" crossorigin="anonymous"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.1/highlight.min.js" integrity="sha256-eOgo0OtLL4cdq7RdwRUiGKLX9XsIJ7nGhWEKbohmVAQ=" crossorigin="anonymous"></script>
+    <script src="{{ pathjoin .ActionEndpoint "/assets/materialize-css/js/materialize.js" }}"></script>
     {{ if .Message }}
     <script>
     var toastHTML = '<span>{{ .Message }}</span><button class="btn-flat toast-action" onclick="M.Toast.dismissAll();">Close</button>';
@@ -601,53 +401,21 @@ var PageTemplates = map[string]string{
     <!-- Required meta tags -->
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-    <meta name="description" content="">
-    <meta name="author" content="">
-    <link rel="shortcut icon" href="/favicon.ico" type="image/x-icon">
-    <link rel="icon" href="/favicon.ico" type="image/x-icon">
+    <meta name="description" content="Authentication Portal">
+    <meta name="author" content="Paul Greenberg github.com/greenpau">
+    <link rel="shortcut icon" href="{{ pathjoin .ActionEndpoint "/assets/images/favicon.png" }}" type="image/png">
+    <link rel="icon" href="{{ pathjoin .ActionEndpoint "/assets/images/favicon.png" }}" type="image/png">
 
-    <!-- Bootstrap CSS -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css" integrity="sha256-OweaP/Ic6rsV+lysfyS4h+LM6sRwuO3euTYfr6M124g=" crossorigin="anonymous" />
-    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@500&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.1/styles/atom-one-dark.min.css" integrity="sha256-GA29iW/iYj9FcuQQktvW45pRzHvZeFfgeFvA4tGVjpM=" crossorigin="anonymous" />
-    <style>
-      body {
-        font-family: 'Roboto', sans-serif;
-        font-size: 1.25rem;
-      }
-      input {
-        font-family: 'Roboto', sans-serif;
-      }
-      .app-background {
-        background-color: #155D56;
-      }
-      .app-header {
-        color: #EE6E73;
-      }
-      .navbtn {
-        font-family: 'Roboto', sans-serif;
-      }
-      .navbtn-last {
-        margin-right: 0px !important;
-      }
-      .hljs {
-        font-size: 1rem;
-      }
-      input:-webkit-autofill,
-      input:-webkit-autofill:hover, 
-      input:-webkit-autofill:focus, 
-      input:-webkit-autofill:active  {
-          -webkit-box-shadow: 0 0 0 30px white inset !important;
-      }
-    </style>
+    <!-- Matrialize CSS -->
+    <link rel="stylesheet" href="{{ pathjoin .ActionEndpoint "/assets/materialize-css/css/materialize.css" }}" />
+    <link rel="stylesheet" href="{{ pathjoin .ActionEndpoint "/assets/google-webfonts/roboto.css" }}" />
+    <link rel="stylesheet" href="{{ pathjoin .ActionEndpoint "/assets/line-awesome/line-awesome.css" }}" />
+    <link rel="stylesheet" href="{{ pathjoin .ActionEndpoint "/assets/css/styles.css" }}" />
   </head>
-  <body class="app-background">
-    <div class="container hide-on-med-and-up no-padding" style="height: 5vh !important;"></div>
-    <div class="container hide-on-small-only no-padding" style="height: 10vh !important;"></div>
-    <div class="container app-container">
+  <body class="app-body">
+    <div class="container">
       <div class="row">
-        <div class="col s12 m12 l6 offset-l3 app-card-container">
+        <div class="col s12 m12 l6 offset-l3">
           <div class="card card-large app-card">
             <div class="card-content">
               <span class="card-title center-align">
@@ -660,13 +428,14 @@ var PageTemplates = map[string]string{
               </span>
             </div>
             <div class="card-action right-align">
-	      {{ if .Data.go_back_url }}
-	      <a href="{{ .Data.go_back_url }}" class="navbtn-last">
-                <button type="button" class="btn waves-effect waves-light navbtn active navbtn-last">
-                  <span class="white-text"><i class="material-icons left">keyboard_return</i>Go Back</span>
+              {{ if .Data.go_back_url }}
+              <a href="{{ .Data.go_back_url }}" class="navbtn-last">
+                <button type="button" class="btn waves-effect waves-light navbtn active navbtn-last app-btn">
+                  <i class="las la-undo left app-btn-icon"></i>
+                  <span class="app-btn-text">Go Back</span>
                 </button>
               </a>
-	      {{ end }}
+              {{ end }}
             </div>
           </div>
         </div>
@@ -674,13 +443,7 @@ var PageTemplates = map[string]string{
     </div>
 
     <!-- Optional JavaScript -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js" integrity="sha256-U/cHDMTIHCeMcvehBv1xQ052bPSbJtbuiw4QA9cTKz0=" crossorigin="anonymous"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.1/highlight.min.js" integrity="sha256-eOgo0OtLL4cdq7RdwRUiGKLX9XsIJ7nGhWEKbohmVAQ=" crossorigin="anonymous"></script>
-    {{ if .Message }}
-    <script>
-    hljs.initHighlightingOnLoad();
-    </script>
-    {{ end }}
+    <script src="{{ pathjoin .ActionEndpoint "/assets/materialize-css/js/materialize.js" }}"></script>
   </body>
 </html>`,
 	"basic/settings": `<!doctype html>
@@ -690,97 +453,43 @@ var PageTemplates = map[string]string{
     <!-- Required meta tags -->
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-    <meta name="description" content="">
-    <meta name="author" content="">
-    <link rel="shortcut icon" href="/favicon.ico" type="image/x-icon">
-    <link rel="icon" href="/favicon.ico" type="image/x-icon">
 
-    <!-- Bootstrap CSS -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css" integrity="sha256-OweaP/Ic6rsV+lysfyS4h+LM6sRwuO3euTYfr6M124g=" crossorigin="anonymous" />
-    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@500&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.1/styles/atom-one-dark.min.css" integrity="sha256-GA29iW/iYj9FcuQQktvW45pRzHvZeFfgeFvA4tGVjpM=" crossorigin="anonymous" />
-    <style>
-      body {
-        font-family: 'Roboto', sans-serif;
-        font-size: 1.25rem;
-      }
-      input {
-        font-family: 'Roboto', sans-serif;
-      }
-      .app-container {
-        background-color: white;
-        box-shadow: 0 4px 8px 0 rgba(0,0,0,0.2);
-        transition: 0.3s;
-        margin-top: 2em;
-      }
-      .app-content {
-        padding-left: 1.5em !important;
-        padding-right: 1.5em !important;
-      }
-      .app-content h1 {
-        font-size: 2rem;
-        color: #52504f;
-        margin-top: 0.2em !important;
-        margin-bottom: 0.2em !important;
-      }
-      .app-content p {
-        color: #52504f;
-      }
-      .app-background {
-        background-color: #155D56;
-      }
-      .nav-wrapper img {
-        height: 100%;
-        object-fit: contain;
-        padding: 0.5rem 0.5rem 0.5rem 1rem;
-      }
-      .brand-logo {
-        padding-left: 1rem !important;
-      }
-      .navbtn {
-        font-family: 'Roboto', sans-serif;
-      }
-      .navbtn-last {
-        margin-right: 0px !important;
-      }
-      .material-icons.navbar {
-	font-size: 1.25rem;
-	margin-top: -0.75em !important;
-      }
-      .hljs {
-        font-size: 1rem;
-      }
-      input:-webkit-autofill,
-      input:-webkit-autofill:hover, 
-      input:-webkit-autofill:focus, 
-      input:-webkit-autofill:active  {
-          -webkit-box-shadow: 0 0 0 30px white inset !important;
-      }
-    </style>
+    <meta name="description" content="Authentication Portal">
+    <meta name="author" content="Paul Greenberg github.com/greenpau">
+    <link rel="shortcut icon" href="{{ pathjoin .ActionEndpoint "/assets/images/favicon.png" }}" type="image/png">
+    <link rel="icon" href="{{ pathjoin .ActionEndpoint "/assets/images/favicon.png" }}" type="image/png">
+
+    <!-- Matrialize CSS -->
+    <link rel="stylesheet" href="{{ pathjoin .ActionEndpoint "/assets/materialize-css/css/materialize.css" }}" />
+    <link rel="stylesheet" href="{{ pathjoin .ActionEndpoint "/assets/google-webfonts/roboto.css" }}" />
+    <link rel="stylesheet" href="{{ pathjoin .ActionEndpoint "/assets/line-awesome/line-awesome.css" }}" />
+    <link rel="stylesheet" href="{{ pathjoin .ActionEndpoint "/assets/highlight.js/css/atom-one-dark.min.css" }}" />
+    <link rel="stylesheet" href="{{ pathjoin .ActionEndpoint "/assets/css/styles.css" }}" />
   </head>
-  <body class="app-background">
+  <body class="app-body">
     <div class="container app-container">
       <div class="row">
         <nav>
           <div class="nav-wrapper">
             {{ if .LogoURL }}
-	    <img src="{{ .LogoURL }}" alt="{{ .LogoDescription }}" />
-	    {{ end }}
-
-	    <a href="#" class="brand-logo">{{ .Title }}</a>
+            <img src="{{ .LogoURL }}" alt="{{ .LogoDescription }}" />
+            {{ end }}
+            <a href="#" class="brand-logo">{{ .Title }}</a>
             <ul id="nav-mobile" class="right hide-on-med-and-down">
               <li>
                 <a href="{{ pathjoin .ActionEndpoint "/portal" }}">
                   <button type="button" class="btn waves-effect waves-light navbtn active">
-                    <span class="white-text"><i class="material-icons navbar left">home</i>Portal</span>
-                  </button>
+                    <span class="app-btn-text">Portal</span>
+                    <i class="las la-home left app-btn-icon app-navbar-btn-icon"></i>
+                 </button>
                 </a>
               </li>
               <li>
                 <a href="{{ pathjoin .ActionEndpoint "/logout" }}" class="navbtn-last">
                   <button type="button" class="btn waves-effect waves-light navbtn active navbtn-last">
-                    <i class="material-icons navbar left">power_settings_new</i>Logout</button>
+                    <span class="app-btn-text">Logout</span>
+                    <i class="las la-sign-out-alt left app-btn-icon app-navbar-btn-icon"></i>
+                  </button>
                 </a>
               </li>
             </ul>
@@ -791,12 +500,14 @@ var PageTemplates = map[string]string{
         <div class="col s12 l3">
           <div class="collection">
             <a href="{{ pathjoin .ActionEndpoint "/settings/" }}" class="collection-item{{ if eq .Data.view "general" }} active{{ end }}">General</a>
-	    <a href="{{ pathjoin .ActionEndpoint "/settings/sshkeys" }}" class="collection-item{{ if eq .Data.view "sshkeys" }} active{{ end }}">SSH Keys</a>
+            <a href="{{ pathjoin .ActionEndpoint "/settings/sshkeys" }}" class="collection-item{{ if eq .Data.view "sshkeys" }} active{{ end }}">SSH Keys</a>
             <a href="{{ pathjoin .ActionEndpoint "/settings/gpgkeys" }}" class="collection-item{{ if eq .Data.view "gpgkeys" }} active{{ end }}">GPG Keys</a>
             <a href="{{ pathjoin .ActionEndpoint "/settings/apikeys" }}" class="collection-item{{ if eq .Data.view "apikeys" }} active{{ end }}">API Keys</a>
             <a href="{{ pathjoin .ActionEndpoint "/settings/mfa" }}" class="collection-item{{ if eq .Data.view "mfa" }} active{{ end }}">MFA</a>
             <a href="{{ pathjoin .ActionEndpoint "/settings/passwords" }}" class="collection-item{{ if eq .Data.view "passwords" }} active{{ end }}">Passwords</a>
             <a href="{{ pathjoin .ActionEndpoint "/settings/misc" }}" class="collection-item{{ if eq .Data.view "misc" }} active{{ end }}">Miscellaneous</a>
+            <a href="{{ pathjoin .ActionEndpoint "/portal" }}" class="hide-on-med-and-up collection-item">Portal</a>
+            <a href="{{ pathjoin .ActionEndpoint "/logout" }}" class="hide-on-med-and-up collection-item">Logout</a>
           </div>
         </div>
         <div class="col s12 l9 app-content">
@@ -815,8 +526,18 @@ var PageTemplates = map[string]string{
           {{ if eq .Data.view "mfa" }}
           <div class="row">
             <div class="col right">
-              <a class="waves-effect waves-light btn modal-trigger" href="{{ pathjoin .ActionEndpoint "/settings/mfa/add/app" }}">Add MFA App</a>
-              <a class="waves-effect waves-light btn modal-trigger" href="{{ pathjoin .ActionEndpoint "/settings/mfa/add/u2f" }}">Add U2F Key</a>
+              <a href="{{ pathjoin .ActionEndpoint "/settings/mfa/add/app" }}">
+                <button type="button" class="btn waves-effect waves-light navbtn active app-btn">
+                  <i class="las la-mobile-alt left app-btn-icon"></i>
+                  <span class="app-btn-text">Add MFA App</span>
+                </button>
+              </a>
+              <a href="{{ pathjoin .ActionEndpoint "/settings/mfa/add/u2f" }}" class="navbtn-last">
+                <button type="button" class="btn waves-effect waves-light navbtn active navbtn-last app-btn">
+                  <i class="las la-key left app-btn-icon"></i>
+                  <span class="app-btn-text">Add U2F Key</span>
+                </button>
+              </a>
             </div>
           </div>
           <div class="row">
@@ -856,8 +577,9 @@ var PageTemplates = map[string]string{
                 </div>
               </div>
               <div class="row right">
-                <button type="submit" name="submit" class="btn waves-effect waves-light">Add
-                  <i class="material-icons left">send</i>
+                <button type="submit" name="submit" class="btn waves-effect waves-light navbtn active navbtn-last app-btn">
+                  <i class="las la-plus-circle left app-btn-icon"></i>
+                  <span class="app-btn-text">Add Token</span>
                 </button>
               </div>
             </form>
@@ -887,8 +609,9 @@ var PageTemplates = map[string]string{
                 </div>
               </div>
               <div class="row right">
-                <button type="submit" name="submit" class="btn waves-effect waves-light">Add
-                  <i class="material-icons left">send</i>
+                <button type="submit" name="submit" class="btn waves-effect waves-light navbtn active navbtn-last app-btn">
+                  <i class="las la-plus-circle left app-btn-icon"></i>
+                  <span class="app-btn-text">Add Token</span>
                 </button>
               </div>
             </form>
@@ -904,10 +627,25 @@ var PageTemplates = map[string]string{
     </div>
 
     <!-- Optional JavaScript -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js" integrity="sha256-U/cHDMTIHCeMcvehBv1xQ052bPSbJtbuiw4QA9cTKz0=" crossorigin="anonymous"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.1/highlight.min.js" integrity="sha256-eOgo0OtLL4cdq7RdwRUiGKLX9XsIJ7nGhWEKbohmVAQ=" crossorigin="anonymous"></script>
+    <script src="{{ pathjoin .ActionEndpoint "/assets/materialize-css/js/materialize.js" }}"></script>
+    <script src="{{ pathjoin .ActionEndpoint "/assets/highlight.js/js/highlight.js" }}"></script>
+    <script src="{{ pathjoin .ActionEndpoint "/assets/highlight.js/js/languages/json.min.js" }}"></script>
     <script>
+    hljs.initHighlightingOnLoad();
     </script>
+
+    {{ if .Message }}
+    <script>
+    var toastHTML = '<span class="app-error-text">{{ .Message }}</span><button class="btn-flat toast-action" onclick="M.Toast.dismissAll();">Close</button>';
+    toastElement = M.toast({
+      html: toastHTML,
+      classes: 'toast-error'
+    });
+    const appContainer = document.querySelector('.app-content')
+    appContainer.prepend(toastElement.el)
+    </script>
+    {{ end }}
+
   </body>
 </html>`,
 }

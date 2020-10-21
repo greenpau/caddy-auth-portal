@@ -48,6 +48,8 @@ type Backend struct {
 	authorizationURL       string
 	tokenURL               string
 	keysURL                string
+	lastKeyFetch           time.Time
+	keyFetchAttempts       int
 	disableKeyVerification bool
 	disablePassGrantType   bool
 	disableResponseType    bool
@@ -368,7 +370,22 @@ func (b *Backend) fetchMetadataURL() error {
 	return nil
 }
 
+func (b *Backend) countFetchKeysAttempt() {
+	b.lastKeyFetch = time.Now().UTC()
+	b.keyFetchAttempts++
+	return
+}
+
 func (b *Backend) fetchKeysURL() error {
+	if b.keyFetchAttempts > 3 {
+		timeDiff := time.Now().UTC().Sub(b.lastKeyFetch).Minutes()
+		if timeDiff < 5 {
+			return errors.ErrBackendOauthJwksKeysTooManyAttempts
+		}
+		b.lastKeyFetch = time.Now().UTC()
+		b.keyFetchAttempts = 0
+	}
+	b.countFetchKeysAttempt()
 	resp, err := http.Get(b.keysURL)
 	if err != nil {
 		return err
@@ -409,6 +426,7 @@ func (b *Backend) fetchKeysURL() error {
 		b.keys[k.KeyID] = k
 		b.publicKeys[k.KeyID] = k.publicKey
 	}
+
 	return nil
 }
 

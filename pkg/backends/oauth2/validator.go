@@ -4,6 +4,7 @@ import (
 	"fmt"
 	jwtlib "github.com/dgrijalva/jwt-go"
 	"github.com/greenpau/caddy-auth-jwt"
+	"github.com/greenpau/caddy-auth-portal/pkg/errors"
 	"strings"
 	"time"
 )
@@ -27,7 +28,15 @@ func (b *Backend) validateAccessToken(state string, data map[string]interface{})
 		}
 		key, exists := b.publicKeys[keyID]
 		if !exists {
-			return nil, fmt.Errorf("the supplied kid not found in jwks public keys: %s", keyID)
+			if !b.disableKeyVerification {
+				if err := b.fetchKeysURL(); err != nil {
+					return nil, errors.ErrBackendOauthKeyFetchFailed.WithArgs(err)
+				}
+			}
+			key, exists = b.publicKeys[keyID]
+			if !exists {
+				return nil, fmt.Errorf("the supplied kid not found in jwks public keys: %s", keyID)
+			}
 		}
 		return key, nil
 	})

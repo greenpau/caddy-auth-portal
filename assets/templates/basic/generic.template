@@ -5,53 +5,21 @@
     <!-- Required meta tags -->
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-    <meta name="description" content="">
-    <meta name="author" content="">
-    <link rel="shortcut icon" href="/favicon.ico" type="image/x-icon">
-    <link rel="icon" href="/favicon.ico" type="image/x-icon">
+    <meta name="description" content="Authentication Portal">
+    <meta name="author" content="Paul Greenberg github.com/greenpau">
+    <link rel="shortcut icon" href="{{ pathjoin .ActionEndpoint "/assets/images/favicon.png" }}" type="image/png">
+    <link rel="icon" href="{{ pathjoin .ActionEndpoint "/assets/images/favicon.png" }}" type="image/png">
 
-    <!-- Bootstrap CSS -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css" integrity="sha256-OweaP/Ic6rsV+lysfyS4h+LM6sRwuO3euTYfr6M124g=" crossorigin="anonymous" />
-    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@500&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.1/styles/atom-one-dark.min.css" integrity="sha256-GA29iW/iYj9FcuQQktvW45pRzHvZeFfgeFvA4tGVjpM=" crossorigin="anonymous" />
-    <style>
-      body {
-        font-family: 'Roboto', sans-serif;
-        font-size: 1.25rem;
-      }
-      input {
-        font-family: 'Roboto', sans-serif;
-      }
-      .app-background {
-        background-color: #155D56;
-      }
-      .app-header {
-        color: #EE6E73;
-      }
-      .navbtn {
-        font-family: 'Roboto', sans-serif;
-      }
-      .navbtn-last {
-        margin-right: 0px !important;
-      }
-      .hljs {
-        font-size: 1rem;
-      }
-      input:-webkit-autofill,
-      input:-webkit-autofill:hover, 
-      input:-webkit-autofill:focus, 
-      input:-webkit-autofill:active  {
-          -webkit-box-shadow: 0 0 0 30px white inset !important;
-      }
-    </style>
+    <!-- Matrialize CSS -->
+    <link rel="stylesheet" href="{{ pathjoin .ActionEndpoint "/assets/materialize-css/css/materialize.css" }}" />
+    <link rel="stylesheet" href="{{ pathjoin .ActionEndpoint "/assets/google-webfonts/roboto.css" }}" />
+    <link rel="stylesheet" href="{{ pathjoin .ActionEndpoint "/assets/line-awesome/line-awesome.css" }}" />
+    <link rel="stylesheet" href="{{ pathjoin .ActionEndpoint "/assets/css/styles.css" }}" />
   </head>
-  <body class="app-background">
-    <div class="container hide-on-med-and-up no-padding" style="height: 5vh !important;"></div>
-    <div class="container hide-on-small-only no-padding" style="height: 10vh !important;"></div>
-    <div class="container app-container">
+  <body class="app-body">
+    <div class="container">
       <div class="row">
-        <div class="col s12 m12 l6 offset-l3 app-card-container">
+        <div class="col s12 m12 l6 offset-l3">
           <div class="card card-large app-card">
             <div class="card-content">
               <span class="card-title center-align">
@@ -64,13 +32,14 @@
               </span>
             </div>
             <div class="card-action right-align">
-	      {{ if .Data.go_back_url }}
-	      <a href="{{ .Data.go_back_url }}" class="navbtn-last">
-                <button type="button" class="btn waves-effect waves-light navbtn active navbtn-last">
-                  <span class="white-text"><i class="material-icons left">keyboard_return</i>Go Back</span>
+              {{ if .Data.go_back_url }}
+              <a href="{{ .Data.go_back_url }}" class="navbtn-last">
+                <button type="button" class="btn waves-effect waves-light navbtn active navbtn-last app-btn">
+                  <i class="las la-undo left app-btn-icon"></i>
+                  <span class="app-btn-text">Go Back</span>
                 </button>
               </a>
-	      {{ end }}
+              {{ end }}
             </div>
           </div>
         </div>
@@ -78,12 +47,6 @@
     </div>
 
     <!-- Optional JavaScript -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js" integrity="sha256-U/cHDMTIHCeMcvehBv1xQ052bPSbJtbuiw4QA9cTKz0=" crossorigin="anonymous"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.1/highlight.min.js" integrity="sha256-eOgo0OtLL4cdq7RdwRUiGKLX9XsIJ7nGhWEKbohmVAQ=" crossorigin="anonymous"></script>
-    {{ if .Message }}
-    <script>
-    hljs.initHighlightingOnLoad();
-    </script>
-    {{ end }}
+    <script src="{{ pathjoin .ActionEndpoint "/assets/materialize-css/js/materialize.js" }}"></script>
   </body>
 </html>

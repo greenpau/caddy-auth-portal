@@ -5,61 +5,21 @@
     <!-- Required meta tags -->
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-    <meta name="description" content="">
-    <meta name="author" content="">
-    <link rel="shortcut icon" href="/favicon.ico" type="image/x-icon">
-    <link rel="icon" href="/favicon.ico" type="image/x-icon">
+    <meta name="description" content="Authentication Portal">
+    <meta name="author" content="Paul Greenberg github.com/greenpau">
+    <link rel="shortcut icon" href="{{ pathjoin .ActionEndpoint "/assets/images/favicon.png" }}" type="image/png">
+    <link rel="icon" href="{{ pathjoin .ActionEndpoint "/assets/images/favicon.png" }}" type="image/png">
 
-    <!-- Bootstrap CSS -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css" integrity="sha256-OweaP/Ic6rsV+lysfyS4h+LM6sRwuO3euTYfr6M124g=" crossorigin="anonymous" />
-    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@500&display=swap" rel="stylesheet">
-    <style>
-      body {
-        font-family: 'Roboto', sans-serif;
-        font-size: 1.25rem;
-      }
-      input {
-        font-family: 'Roboto', sans-serif;
-      }
-      .app-background {
-        background-color: #155D56;
-      }
-      .app-header {
-        color: #EE6E73;
-      }
-      .app-header img {
-        float: left;
-        margin-left: 5%;
-      }
-      p.app-body {
-        color: #52504f;
-        padding-top: 1em;
-      }
-      ol.app-body {
-        color: #52504f;
-        padding-right: 1em;
-      }
-      .navbtn {
-        font-family: 'Roboto', sans-serif;
-      }
-      .navbtn-last {
-        margin-right: 0px !important;
-      }
-      input:-webkit-autofill,
-      input:-webkit-autofill:hover, 
-      input:-webkit-autofill:focus, 
-      input:-webkit-autofill:active  {
-          -webkit-box-shadow: 0 0 0 30px white inset !important;
-      }
-    </style>
+		<!-- Matrialize CSS -->
+    <link rel="stylesheet" href="{{ pathjoin .ActionEndpoint "/assets/materialize-css/css/materialize.css" }}" />
+    <link rel="stylesheet" href="{{ pathjoin .ActionEndpoint "/assets/google-webfonts/roboto.css" }}" />
+    <link rel="stylesheet" href="{{ pathjoin .ActionEndpoint "/assets/line-awesome/line-awesome.css" }}" />
+    <link rel="stylesheet" href="{{ pathjoin .ActionEndpoint "/assets/css/styles.css" }}" />
   </head>
-  <body class="app-background">
-    <div class="container hide-on-med-and-up no-padding" style="height: 5vh !important;"></div>
-    <div class="container hide-on-small-only no-padding" style="height: 10vh !important;"></div>
-    <div class="container app-container">
+  <body class="app-body">
+    <div class="container">
       <div class="row">
-        <div class="col s12 m12 l6 offset-l3 app-card-container">
+        <div class="col s12 m12 l6 offset-l3">
           {{ if not .Data.registered }}
           <form action="{{ pathjoin .ActionEndpoint "/register" }}" method="POST">
           {{ end }}
@@ -112,9 +72,9 @@
               </p>
               {{ end }}
               {{ else }}
-              <p class="app-body">Thank you for registering and we hope you enjoy the experience!</p>
-              <p class="app-body">Here are a few things to keep in mind:</p>
-              <ol class="app-body">
+              <p class="app-text">Thank you for registering and we hope you enjoy the experience!</p>
+              <p class="app-text">Here are a few things to keep in mind:</p>
+              <ol class="app-text">
                 <li>You should receive your confirmation email within the next 15 minutes.</li>
                 <li>If you still don't see it, please email support so we can resend it to you.</li>
               </ol>
@@ -122,13 +82,21 @@
             </div>
             <div class="card-action right-align">
               {{ if not .Data.registered }}
-              <button type="submit" name="submit" class="btn waves-effect waves-light btn-large">Sign Up
-                <i class="material-icons left">send</i>
+              <a href="{{ .ActionEndpoint }}" class="navbtn-last">
+                <button type="button" class="waves-effect waves-light btn navbtn active navbtn-last app-btn">
+                  <i class="las la-undo left app-btn-icon"></i>
+                  <span class="app-btn-text">Back</span>
+                </button>
+              </a>
+              <button type="submit" name="submit" class="waves-effect waves-light btn navbtn active navbtn-last app-btn">
+                <i class="las la-chevron-circle-right app-btn-icon"></i>
+                <span class="app-btn-text">Submit</span>
               </button>
               {{ else }}
               <a href="{{ .ActionEndpoint }}" class="navbtn-last">
-                <button type="button" class="btn waves-effect waves-light navbtn active navbtn-last">
-                  <span class="white-text"><i class="material-icons left">home</i>Portal</span>
+                <button type="button" class="waves-effect waves-light btn navbtn active navbtn-last app-btn">
+                  <i class="las la-home left app-btn-icon"></i>
+                  <span class="app-btn-text">Portal</span>
                 </button>
               </a>
               {{ end }}
@@ -140,8 +108,7 @@
     </div>
 
     <!-- Optional JavaScript -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js" integrity="sha256-U/cHDMTIHCeMcvehBv1xQ052bPSbJtbuiw4QA9cTKz0=" crossorigin="anonymous"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.18.1/highlight.min.js" integrity="sha256-eOgo0OtLL4cdq7RdwRUiGKLX9XsIJ7nGhWEKbohmVAQ=" crossorigin="anonymous"></script>
+    <script src="{{ pathjoin .ActionEndpoint "/assets/materialize-css/js/materialize.js" }}"></script>
     {{ if .Message }}
     <script>
     var toastHTML = '<span>{{ .Message }}</span><button class="btn-flat toast-action" onclick="M.Toast.dismissAll();">Close</button>';

@@ -80,11 +80,12 @@ type UserInterfaceArgs struct {
 // NewUserInterfaceFactory return an instance of a user interface factory.
 func NewUserInterfaceFactory() *UserInterfaceFactory {
 	return &UserInterfaceFactory{
-		//TemplatePrefix: "caddy_auth_",
-		Templates:    make(map[string]*UserInterfaceTemplate),
-		PublicLinks:  []UserInterfaceLink{},
-		PrivateLinks: []UserInterfaceLink{},
-		Realms:       []UserRealm{},
+		LogoURL:         "assets/images/logo.svg",
+		LogoDescription: "Authentication Portal",
+		Templates:       make(map[string]*UserInterfaceTemplate),
+		PublicLinks:     []UserInterfaceLink{},
+		PrivateLinks:    []UserInterfaceLink{},
+		Realms:          []UserRealm{},
 	}
 }
 

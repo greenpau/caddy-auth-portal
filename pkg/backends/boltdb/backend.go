@@ -13,12 +13,12 @@ import (
 
 // Backend represents authentication provider with BoltDB backend.
 type Backend struct {
-	Name          string                   `json:"name,omitempty"`
-	Method        string                   `json:"method,omitempty"`
-	Realm         string                   `json:"realm,omitempty"`
-	Path          string                   `json:"path,omitempty"`
+	Name          string                 `json:"name,omitempty"`
+	Method        string                 `json:"method,omitempty"`
+	Realm         string                 `json:"realm,omitempty"`
+	Path          string                 `json:"path,omitempty"`
 	TokenProvider *jwt.CommonTokenConfig `json:"jwt,omitempty"`
-	Authenticator *Authenticator           `json:"-"`
+	Authenticator *Authenticator         `json:"-"`
 	logger        *zap.Logger
 }
 

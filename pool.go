@@ -268,11 +268,11 @@ func (p *AuthPortalPool) Register(m *AuthPortal) error {
 				externalLoginProvider["text"] = "Azure"
 				externalLoginProvider["color"] = "blue"
 			case "aws", "amazon":
-				externalLoginProvider["icon"] = "amazon"
+				externalLoginProvider["icon"] = "aws"
 				externalLoginProvider["text"] = "AWS"
 				externalLoginProvider["color"] = "blue-grey darken-2"
 			default:
-				externalLoginProvider["icon"] = "shield"
+				externalLoginProvider["icon"] = "codepen"
 				externalLoginProvider["text"] = backendRealm
 				externalLoginProvider["color"] = "grey darken-3"
 			}
@@ -366,6 +366,8 @@ func (p *AuthPortalPool) Register(m *AuthPortal) error {
 	if m.UserInterface.LogoURL != "" {
 		m.uiFactory.LogoURL = m.UserInterface.LogoURL
 		m.uiFactory.LogoDescription = m.UserInterface.LogoDescription
+	} else {
+		m.uiFactory.LogoURL = path.Join(m.AuthURLPath, m.uiFactory.LogoURL)
 	}
 
 	m.uiFactory.ActionEndpoint = m.AuthURLPath

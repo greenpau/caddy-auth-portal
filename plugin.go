@@ -189,6 +189,7 @@ func (m AuthPortal) ServeHTTP(w http.ResponseWriter, r *http.Request, _ caddyhtt
 		opts["flow"] = "logout"
 		return handlers.ServeSessionLogoff(w, r, opts)
 	case strings.HasPrefix(urlPath, "assets"):
+		opts["url_path"] = urlPath
 		opts["flow"] = "assets"
 		return handlers.ServeStaticAssets(w, r, opts)
 	case strings.HasPrefix(urlPath, "whoami"):

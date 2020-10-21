@@ -45,4 +45,6 @@ const (
 	ErrBackendOauthGetAccessTokenFailed         StandardError = "failed obtaining OAuth 2.0 access token, error: %s"
 
 	ErrBackendAuthorizationServerResponseFieldNotFound StandardError = "authorization server response has no %s field"
+
+	ErrBackendOauthJwksKeysTooManyAttempts StandardError = "too many attemps to fetch jwks keys"
 )

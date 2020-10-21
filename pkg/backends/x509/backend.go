@@ -19,11 +19,11 @@ func init() {
 
 // Backend represents authentication provider with X.509 backend.
 type Backend struct {
-	Name          string                   `json:"name,omitempty"`
-	Method        string                   `json:"method,omitempty"`
-	Realm         string                   `json:"realm,omitempty"`
+	Name          string                 `json:"name,omitempty"`
+	Method        string                 `json:"method,omitempty"`
+	Realm         string                 `json:"realm,omitempty"`
 	TokenProvider *jwt.CommonTokenConfig `json:"-"`
-	Authenticator *Authenticator           `json:"-"`
+	Authenticator *Authenticator         `json:"-"`
 	logger        *zap.Logger
 }
 
