@@ -617,7 +617,35 @@ var PageTemplates = map[string]string{
             </form>
           {{ end }}
           {{ if eq .Data.view "passwords" }}
-            <p>The {{ .Data.view }} view is under construction.</p>
+            <form action="{{ pathjoin .ActionEndpoint "/api/user/password/edit" }}" method="POST">
+              <div class="row">
+                <h1>Password Management</h1>
+                <div class="row">
+                  <div class="col s12 m6 l6">
+                    <p>If you want to change your password, please provide your current password and 
+                    </p>
+                    <div class="input-field">
+                      <input id="secret1" name="secret1" type="password" required />
+                      <label for="secret1">Current Password</label>
+                    </div>
+                    <div class="input-field">
+                      <input id="secret2" name="secret2" type="password" required />
+                      <label for="secret2">New Password</label>
+                    </div>
+                    <div class="input-field">
+                      <input id="secret3" name="secret3" type="password" required />
+                      <label for="secret3">Confirm New Password</label>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="row right">
+                <button type="submit" name="submit" class="btn waves-effect waves-light navbtn active navbtn-last app-btn">
+                  <i class="las la-paper-plane left app-btn-icon"></i>
+                  <span class="app-btn-text">Change Password</span>
+                </button>
+              </div>
+            </form>
           {{ end }}
           {{ if eq .Data.view "misc" }}
             <p>The {{ .Data.view }} view is under construction.</p>

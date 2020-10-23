@@ -47,35 +47,37 @@
               "handle": [
                 {
                   "handler": "auth_portal",
-                  "primary": true,
-                  "auth_url_path": "/auth",
-                  "backends": [
-                    {
-                      "name": "local_backend",
-                      "method": "local",
-                      "path": "assets/backends/local/users.json",
-                      "realm": "local"
-                    }
-                  ],
-                  "jwt": {
-                    "token_secret": "383aca9a-1c39-4d7a-b4d8-67ba4718dd3f",
-                    "token_issuer": "7a50e023-2c6e-4a5e-913e-23ecd0e2b940"
-                  },
-                  "ui": {
-                    "logo_url": "https://caddyserver.com/resources/images/caddy-circle-lock.svg",
-                    "logo_description": "Caddy",
-                    "allow_role_selection": false,
-                    "auto_redirect_url": "",
-                    "private_links": [
+                  "portal": {
+                    "primary": true,
+                    "auth_url_path": "/auth",
+                    "backends": [
                       {
-                        "title": "Prometheus",
-                        "link": "/prometheus"
-                      },
-                      {
-                        "title": "Alertmanager",
-                        "link": "/alertmanager"
+                        "name": "local_backend",
+                        "method": "local",
+                        "path": "assets/backends/local/users.json",
+                        "realm": "local"
                       }
-                    ]
+                    ],
+                    "jwt": {
+                      "token_secret": "383aca9a-1c39-4d7a-b4d8-67ba4718dd3f",
+                      "token_issuer": "7a50e023-2c6e-4a5e-913e-23ecd0e2b940"
+                    },
+                    "ui": {
+                      "logo_url": "https://caddyserver.com/resources/images/caddy-circle-lock.svg",
+                      "logo_description": "Caddy",
+                      "allow_role_selection": false,
+                      "auto_redirect_url": "",
+                      "private_links": [
+                        {
+                          "title": "Prometheus",
+                          "link": "/prometheus"
+                        },
+                        {
+                          "title": "Alertmanager",
+                          "link": "/alertmanager"
+                        }
+                      ]
+                    }
                   }
                 }
               ],

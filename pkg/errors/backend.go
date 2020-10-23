@@ -2,6 +2,9 @@ package errors
 
 // Backend errors.
 const (
+	ErrBackendConfigureOptionNotFound StandardError = "backend configuration option %s not found"
+	ErrBackendConfigureOptionNilValue StandardError = "backend configuration option %s has nil value"
+
 	ErrBackendOauthAuthorizationStateNotFound StandardError = "OAuth 2.0 authorization state not found"
 	ErrBackendRealmNotFound                   StandardError = "no realm found for provider %s"
 	ErrBackendClientIDNotFound                StandardError = "no client_id found for provider %s"

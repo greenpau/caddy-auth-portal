@@ -21,7 +21,9 @@ import (
 	"strings"
 
 	"github.com/greenpau/caddy-auth-jwt"
+	"github.com/greenpau/caddy-auth-portal/pkg/backends"
 	"github.com/greenpau/caddy-auth-portal/pkg/cookies"
+	"github.com/greenpau/caddy-auth-portal/pkg/core"
 	"github.com/greenpau/caddy-auth-portal/pkg/registration"
 	"github.com/greenpau/caddy-auth-portal/pkg/ui"
 	"github.com/greenpau/caddy-auth-portal/pkg/utils"
@@ -78,16 +80,16 @@ func init() {
 //     }
 //
 func parseCaddyfileAuthPortal(h httpcaddyfile.Helper) ([]httpcaddyfile.ConfigValue, error) {
-	portal := AuthPortal{
+	portal := core.AuthPortal{
 		PrimaryInstance: true,
 		Context:         "default",
 		AuthURLPath:     "/auth",
-		UserInterface: &UserInterfaceParameters{
+		UserInterface: &ui.UserInterfaceParameters{
 			Templates: make(map[string]string),
 		},
 		UserRegistration: &registration.Registration{},
 		Cookies:          &cookies.Cookies{},
-		Backends:         []Backend{},
+		Backends:         []backends.Backend{},
 	}
 
 	// logger := utils.NewLogger()
@@ -129,7 +131,7 @@ func parseCaddyfileAuthPortal(h httpcaddyfile.Helper) ([]httpcaddyfile.ConfigVal
 				if err != nil {
 					return nil, h.Errf("auth backend %s directive failed to compile to JSON: %s", rootDirective, err.Error())
 				}
-				backend := Backend{}
+				backend := backends.Backend{}
 				if err := backend.UnmarshalJSON(backendJSON); err != nil {
 					return nil, h.Errf("auth backend %s directive failed to compile to JSON: %s", rootDirective, err.Error())
 				}
@@ -313,7 +315,7 @@ func parseCaddyfileAuthPortal(h httpcaddyfile.Helper) ([]httpcaddyfile.ConfigVal
 						if err != nil {
 							return nil, h.Errf("auth backend %s subdirective failed to compile to JSON: %s", backendName, err.Error())
 						}
-						backend := &Backend{}
+						backend := &backends.Backend{}
 						if err := backend.UnmarshalJSON(backendJSON); err != nil {
 							return nil, h.Errf("auth backend %s subdirective failed to compile backend from JSON: %s", backendName, err.Error())
 						}
@@ -499,8 +501,18 @@ func parseCaddyfileAuthPortal(h httpcaddyfile.Helper) ([]httpcaddyfile.ConfigVal
 	pathMatcher := caddy.ModuleMap{
 		"path": h.JSON(caddyhttp.MatchPath{portal.AuthURLPath + "*"}),
 	}
+
 	route := caddyhttp.Route{
-		HandlersRaw: []json.RawMessage{caddyconfig.JSONModuleObject(portal, "handler", "auth_portal", nil)},
+		HandlersRaw: []json.RawMessage{
+			caddyconfig.JSONModuleObject(
+				AuthMiddleware{
+					Portal: &portal,
+				},
+				"handler",
+				"auth_portal",
+				nil,
+			),
+		},
 	}
 	subroute := new(caddyhttp.Subroute)
 	subroute.Routes = append([]caddyhttp.Route{route}, subroute.Routes...)
