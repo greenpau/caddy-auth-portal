@@ -26,6 +26,7 @@ import (
 	"github.com/greenpau/caddy-auth-portal/pkg/ui"
 	"github.com/greenpau/caddy-auth-portal/pkg/utils"
 	"go.uber.org/zap"
+	"time"
 )
 
 // ServeLogin returns login page or performs authentication.
@@ -64,6 +65,7 @@ func ServeLogin(w http.ResponseWriter, r *http.Request, opts map[string]interfac
 	if opts["authenticated"].(bool) && !authorized {
 		claims := opts["user_claims"].(*jwt.UserClaims)
 		claims.Issuer = utils.GetCurrentURL(r)
+		claims.IssuedAt = time.Now().Unix()
 		var userToken string
 		var tokenError error
 		switch tokenProvider.TokenSignMethod {

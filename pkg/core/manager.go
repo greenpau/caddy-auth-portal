@@ -465,6 +465,7 @@ func (m *AuthPortalManager) Register(p *AuthPortal) error {
 
 	p.TokenValidator = jwt.NewTokenValidator()
 	tokenConfig := jwt.NewCommonTokenConfig()
+	tokenConfig.TokenName = p.TokenProvider.TokenName
 	if p.TokenProvider.TokenSignMethod == "HS512" {
 		tokenConfig.TokenSecret = p.TokenProvider.TokenSecret
 	} else {
@@ -517,6 +518,8 @@ func (m *AuthPortalManager) Register(p *AuthPortal) error {
 	)
 
 	p.TokenValidator.TokenSources = []string{"cookie", "header", "query"}
+
+	p.TokenValidator.SetTokenName(p.TokenProvider.TokenName)
 	p.Provisioned = true
 	return nil
 }
@@ -795,6 +798,7 @@ func (m *AuthPortalManager) Provision(name string) error {
 	// JWT Token Validator
 	p.TokenValidator = jwt.NewTokenValidator()
 	tokenConfig := jwt.NewCommonTokenConfig()
+	tokenConfig.TokenName = p.TokenProvider.TokenName
 	if p.TokenProvider.TokenSignMethod == "HS512" {
 		tokenConfig.TokenSecret = p.TokenProvider.TokenSecret
 	} else {
@@ -850,6 +854,8 @@ func (m *AuthPortalManager) Provision(name string) error {
 	)
 
 	p.TokenValidator.TokenSources = []string{"cookie", "header", "query"}
+
+	p.TokenValidator.SetTokenName(p.TokenProvider.TokenName)
 
 	// Wrap up
 	p.Provisioned = true

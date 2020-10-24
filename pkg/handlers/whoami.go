@@ -20,6 +20,7 @@ import (
 	"github.com/greenpau/caddy-auth-portal/pkg/ui"
 	"go.uber.org/zap"
 	"net/http"
+	"time"
 )
 
 // ServeWhoami returns authenticated user information.
@@ -57,6 +58,13 @@ func ServeWhoami(w http.ResponseWriter, r *http.Request, opts map[string]interfa
 	resp.Title = "User Identity"
 	tokenMap := claims.AsMap()
 	tokenMap["authenticated"] = true
+	if claims.ExpiresAt > 0 {
+		tokenMap["expires_at_utc"] = time.Unix(claims.ExpiresAt, 0).Format(time.UnixDate)
+	}
+	if claims.IssuedAt > 0 {
+		tokenMap["issued_at_utc"] = time.Unix(claims.IssuedAt, 0).Format(time.UnixDate)
+	}
+
 	prettyTokenMap, err := json.MarshalIndent(tokenMap, "", "  ")
 	if err != nil {
 		log.Error("Failed token map rendering", zap.String("request_id", reqID), zap.String("error", err.Error()))

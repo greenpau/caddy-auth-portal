@@ -232,9 +232,6 @@ func (b *Backend) ConfigureTokenProvider(upstream *jwt.CommonTokenConfig) error 
 	if b.TokenProvider == nil {
 		b.TokenProvider = jwt.NewCommonTokenConfig()
 	}
-	if b.TokenProvider.TokenName == "" {
-		b.TokenProvider.TokenName = upstream.TokenName
-	}
 	if b.TokenProvider.TokenSecret == "" {
 		b.TokenProvider.TokenSecret = upstream.TokenSecret
 	}
@@ -244,9 +241,8 @@ func (b *Backend) ConfigureTokenProvider(upstream *jwt.CommonTokenConfig) error 
 	if b.TokenProvider.TokenOrigin == "" {
 		b.TokenProvider.TokenOrigin = upstream.TokenOrigin
 	}
-	if b.TokenProvider.TokenLifetime == 0 {
-		b.TokenProvider.TokenLifetime = upstream.TokenLifetime
-	}
+	b.TokenProvider.TokenLifetime = upstream.TokenLifetime
+	b.TokenProvider.TokenName = upstream.TokenName
 	return nil
 }
 
