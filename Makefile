@@ -14,6 +14,7 @@ endif
 CADDY_VERSION="v2.2.0"
 
 all:
+	@addlicense -c "Paul Greenberg greenpau@outlook.com" -y 2020 pkg/*.go
 	@echo "Version: $(PLUGIN_VERSION), Branch: $(GIT_BRANCH), Revision: $(GIT_COMMIT)"
 	@echo "Build on $(BUILD_DATE) by $(BUILD_USER)"
 	@./assets/scripts/generate_ui.sh
@@ -79,6 +80,7 @@ dep:
 
 release:
 	@echo "Making release"
+	@addlicense -c "Paul Greenberg greenpau@outlook.com" -y 2020 pkg/*/*/*.go pkg/*/*.go *.go
 	@go mod tidy
 	@go mod verify
 	@if [ $(GIT_BRANCH) != "main" ]; then echo "cannot release to non-main branch $(GIT_BRANCH)" && false; fi
