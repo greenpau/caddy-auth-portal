@@ -241,7 +241,9 @@ func (p *AuthPortal) ServeHTTP(w http.ResponseWriter, r *http.Request, upstreamO
 			}
 			if v, exists := resp["redirect_url"]; exists {
 				// Redirect to external provider
-				http.Redirect(w, r, v.(string), http.StatusPermanentRedirect)
+				w.Header().Set("Cache-Control", "no-store")
+				w.Header().Set("Pragma", "no-cache")
+				http.Redirect(w, r, v.(string), http.StatusFound)
 				return nil
 			}
 			if _, exists := resp["claims"]; !exists {
