@@ -45,6 +45,7 @@ type Backend struct {
 	ClientID     string `json:"client_id,omitempty"`
 	ClientSecret string `json:"client_secret,omitempty"`
 	ServerID     string `json:"server_id,omitempty"`
+	AppSecret    string `json:"app_secret,omitempty"`
 
 	Scopes []string `json:"scopes,omitempty"`
 
@@ -68,6 +69,7 @@ type Backend struct {
 	disablePassGrantType   bool
 	disableResponseType    bool
 	disableNonce           bool
+	disableScope           bool
 	enableAcceptHeader     bool
 	enableBodyDecoder      bool
 	requiredTokenFields    map[string]interface{}
@@ -143,6 +145,21 @@ func (b *Backend) ConfigureAuthenticator() error {
 		b.disableResponseType = true
 		b.disableNonce = true
 		b.enableAcceptHeader = true
+		b.requiredTokenFields = map[string]interface{}{
+			"access_token": true,
+		}
+	case "facebook":
+		if b.BaseAuthURL == "" {
+			b.BaseAuthURL = "https://www.facebook.com/v8.0/dialog/"
+		}
+		b.authorizationURL = "https://www.facebook.com/v8.0/dialog/oauth"
+		b.tokenURL = "https://graph.facebook.com/v8.0/oauth/access_token"
+		b.disableKeyVerification = true
+		b.disablePassGrantType = true
+		b.disableResponseType = true
+		b.disableNonce = true
+		b.enableAcceptHeader = true
+		b.disableScope = true
 		b.requiredTokenFields = map[string]interface{}{
 			"access_token": true,
 		}
@@ -234,7 +251,14 @@ func (b *Backend) Authenticate(opts map[string]interface{}) (map[string]interfac
 				return resp, errors.ErrBackendOauthAuthorizationStateNotFound
 			}
 			reqRedirectURI := utils.GetCurrentBaseURL(r) + reqPath + "/authorization-code-callback"
-			accessToken, err := b.fetchAccessToken(reqRedirectURI, reqParamsState, reqParamsCode)
+			var accessToken map[string]interface{}
+			var err error
+			switch b.Provider {
+			case "facebook":
+				accessToken, err = b.fetchFacebookAccessToken(reqRedirectURI, reqParamsState, reqParamsCode)
+			default:
+				accessToken, err = b.fetchAccessToken(reqRedirectURI, reqParamsState, reqParamsCode)
+			}
 			if err != nil {
 				return resp, errors.ErrBackendOauthFetchAccessTokenFailed.WithArgs(err)
 			}
@@ -246,7 +270,7 @@ func (b *Backend) Authenticate(opts map[string]interface{}) (map[string]interfac
 
 			var claims *jwt.UserClaims
 			switch b.Provider {
-			case "github":
+			case "github", "facebook":
 				claims, err = b.fetchClaims(accessToken)
 				if err != nil {
 					return resp, errors.ErrBackendOauthFetchClaimsFailed.WithArgs(err)
@@ -281,7 +305,9 @@ func (b *Backend) Authenticate(opts map[string]interface{}) (map[string]interfac
 		// Server Side-Replay Protection
 		params.Set("nonce", nonce)
 	}
-	params.Set("scope", strings.Join(b.Scopes, " "))
+	if !b.disableScope {
+		params.Set("scope", strings.Join(b.Scopes, " "))
+	}
 	params.Set("redirect_uri", utils.GetCurrentBaseURL(r)+reqPath+"/authorization-code-callback")
 	if !b.disableResponseType {
 		params.Set("response_type", "code")
@@ -497,8 +523,14 @@ func (b *Backend) fetchAccessToken(redirectURI, state, code string) (map[string]
 		if v, exists := data["error_description"]; exists {
 			return nil, errors.ErrBackendOauthGetAccessTokenFailedDetailed.WithArgs(data["error"].(string), v.(string))
 		}
-		return nil, errors.ErrBackendOauthGetAccessTokenFailed.WithArgs(data["error"].(string))
+		switch data["error"].(type) {
+		case string:
+			return nil, errors.ErrBackendOauthGetAccessTokenFailed.WithArgs(data["error"].(string))
+		default:
+			return nil, errors.ErrBackendOauthGetAccessTokenFailed.WithArgs(data["error"])
+		}
 	}
+
 	for k := range b.requiredTokenFields {
 		if _, exists := data[k]; !exists {
 			return nil, errors.ErrBackendAuthorizationServerResponseFieldNotFound.WithArgs(k)
@@ -589,4 +621,71 @@ func newBrowser() (*http.Client, error) {
 		Timeout:   time.Second * 10,
 		Transport: tr,
 	}, nil
+}
+
+func (b *Backend) fetchFacebookAccessToken(redirectURI, state, code string) (map[string]interface{}, error) {
+	params := url.Values{}
+	params.Set("client_id", b.ClientID)
+	params.Set("client_secret", b.ClientSecret)
+	params.Set("code", code)
+	params.Set("redirect_uri", redirectURI)
+
+	cli := &http.Client{
+		Timeout: time.Second * 10,
+	}
+
+	cli, err := newBrowser()
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("GET", b.tokenURL, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	req.URL.RawQuery = params.Encode()
+
+	// Adjust !!!
+	if b.enableAcceptHeader {
+		req.Header.Set("Accept", "application/json")
+	}
+
+	resp, err := cli.Do(req)
+	if err != nil {
+		return nil, err
+	}
+
+	respBody, err := ioutil.ReadAll(resp.Body)
+	resp.Body.Close()
+	if err != nil {
+		return nil, err
+	}
+	b.logger.Debug(
+		"OAuth 2.0 access token response received",
+		zap.Any("body", respBody),
+	)
+
+	data := make(map[string]interface{})
+	if err := json.Unmarshal(respBody, &data); err != nil {
+		return nil, err
+	}
+	if _, exists := data["error"]; exists {
+		if v, exists := data["error_description"]; exists {
+			return nil, errors.ErrBackendOauthGetAccessTokenFailedDetailed.WithArgs(data["error"].(string), v.(string))
+		}
+		switch data["error"].(type) {
+		case string:
+			return nil, errors.ErrBackendOauthGetAccessTokenFailed.WithArgs(data["error"].(string))
+		default:
+			return nil, errors.ErrBackendOauthGetAccessTokenFailed.WithArgs(data["error"])
+		}
+	}
+
+	for k := range b.requiredTokenFields {
+		if _, exists := data[k]; !exists {
+			return nil, errors.ErrBackendAuthorizationServerResponseFieldNotFound.WithArgs(k)
+		}
+	}
+	return data, nil
 }

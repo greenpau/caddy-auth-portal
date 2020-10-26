@@ -77,9 +77,11 @@ dep:
 	@go get -u github.com/caddyserver/xcaddy/cmd/xcaddy
 	@go get -u github.com/greenpau/versioned/cmd/versioned
 
-release:
-	@echo "Making release"
+license:
 	@addlicense -c "Paul Greenberg greenpau@outlook.com" -y 2020 pkg/*/*/*.go pkg/*/*.go *.go
+
+release: license
+	@echo "Making release"
 	@go mod tidy
 	@go mod verify
 	@if [ $(GIT_BRANCH) != "main" ]; then echo "cannot release to non-main branch $(GIT_BRANCH)" && false; fi
