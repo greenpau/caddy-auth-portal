@@ -56,7 +56,7 @@
             <a href="{{ pathjoin .ActionEndpoint "/settings/gpgkeys" }}" class="collection-item{{ if eq .Data.view "gpgkeys" }} active{{ end }}">GPG Keys</a>
             <a href="{{ pathjoin .ActionEndpoint "/settings/apikeys" }}" class="collection-item{{ if eq .Data.view "apikeys" }} active{{ end }}">API Keys</a>
             <a href="{{ pathjoin .ActionEndpoint "/settings/mfa" }}" class="collection-item{{ if eq .Data.view "mfa" }} active{{ end }}">MFA</a>
-            <a href="{{ pathjoin .ActionEndpoint "/settings/passwords" }}" class="collection-item{{ if eq .Data.view "passwords" }} active{{ end }}">Passwords</a>
+            <a href="{{ pathjoin .ActionEndpoint "/settings/password" }}" class="collection-item{{ if eq .Data.view "password" }} active{{ end }}">Password</a>
             <a href="{{ pathjoin .ActionEndpoint "/settings/misc" }}" class="collection-item{{ if eq .Data.view "misc" }} active{{ end }}">Miscellaneous</a>
             <a href="{{ pathjoin .ActionEndpoint "/portal" }}" class="hide-on-med-and-up collection-item">Portal</a>
             <a href="{{ pathjoin .ActionEndpoint "/logout" }}" class="hide-on-med-and-up collection-item">Logout</a>
@@ -168,8 +168,8 @@
               </div>
             </form>
           {{ end }}
-          {{ if eq .Data.view "passwords" }}
-            <form action="{{ pathjoin .ActionEndpoint "/api/user/password/edit" }}" method="POST">
+          {{ if eq .Data.view "password" }}
+            <form action="{{ pathjoin .ActionEndpoint "/settings/password/edit" }}" method="POST">
               <div class="row">
                 <h1>Password Management</h1>
                 <div class="row">
@@ -199,6 +199,21 @@
               </div>
             </form>
           {{ end }}
+          {{ if eq .Data.view "password-edit" }}
+            {{ if eq .Data.status "success" }}
+              <h1>Password Has Been Changed</h1>
+              <p>Please log out and log back in.</p>
+            {{ else }}
+              <h1>Password Change Failed</h1>
+              <p>Reason: {{ .Data.status_reason }} </p>
+              <a href="{{ pathjoin .ActionEndpoint "/settings/password" }}">
+                <button type="button" class="btn waves-effect waves-light navbtn active">
+                  <i class="las la-undo-alt left app-btn-icon"></i>
+                  <span class="app-btn-text">Try Again</span>
+                </button>
+              </a>
+            {{ end }}
+          {{ end }}
           {{ if eq .Data.view "misc" }}
             <p>The {{ .Data.view }} view is under construction.</p>
           {{ end }}
@@ -221,7 +236,7 @@
       html: toastHTML,
       classes: 'toast-error'
     });
-    const appContainer = document.querySelector('.app-content')
+    const appContainer = document.querySelector('.app-container')
     appContainer.prepend(toastElement.el)
     </script>
     {{ end }}

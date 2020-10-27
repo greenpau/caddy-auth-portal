@@ -93,12 +93,16 @@ func (c *SessionCache) Delete(entryID string) error {
 }
 
 // Get returns cached data entry.
-func (c *SessionCache) Get(entryID string) interface{} {
+func (c *SessionCache) Get(entryID string) map[string]interface{} {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
 	data, exists := c.Entries[entryID]
 	if !exists {
 		return nil
 	}
-	return data
+	switch data.(type) {
+	case map[string]interface{}:
+		return data.(map[string]interface{})
+	}
+	return nil
 }

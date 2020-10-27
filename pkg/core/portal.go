@@ -201,6 +201,39 @@ func (p *AuthPortal) ServeHTTP(w http.ResponseWriter, r *http.Request, upstreamO
 		return handlers.ServeWhoami(w, r, opts)
 	case strings.HasPrefix(urlPath, "settings"):
 		opts["flow"] = "settings"
+		if opts["authenticated"].(bool) {
+			claims := opts["user_claims"].(*jwt.UserClaims)
+			if bknd := sessionCache.Get(claims.ID); bknd != nil {
+				bkndOpts := make(map[string]string)
+				for _, k := range []string{"backend_method", "backend_name", "backend_realm"} {
+					if _, exists := bknd[k]; !exists {
+						bkndOpts = nil
+						break
+					}
+					bkndOpts[k] = bknd[k].(string)
+				}
+				if len(bkndOpts) > 0 {
+					for _, backend := range p.Backends {
+						if backend.GetRealm() != bkndOpts["backend_realm"] {
+							continue
+						}
+						if backend.GetName() != bkndOpts["backend_name"] {
+							continue
+						}
+						if backend.GetMethod() != bkndOpts["backend_method"] {
+							continue
+						}
+						opts["backend"] = &backend
+						break
+					}
+				}
+			}
+			if _, exists := opts["backend"]; !exists {
+				opts["flow"] = "logout"
+				opts["redirect_url"] = r.RequestURI
+				return handlers.ServeSessionLogoff(w, r, opts)
+			}
+		}
 		return handlers.ServeSettings(w, r, opts)
 	case strings.HasPrefix(urlPath, "portal"):
 		opts["flow"] = "portal"
@@ -261,12 +294,10 @@ func (p *AuthPortal) ServeHTTP(w http.ResponseWriter, r *http.Request, upstreamO
 			}
 
 			claims := resp["claims"].(*jwt.UserClaims)
+			claims.ID = reqID
 			claims.Issuer = utils.GetCurrentURL(r)
 			if p.EnableSourceIPTracking {
 				claims.Address = utils.GetSourceAddress(r)
-			}
-			if claims.ID == "" {
-				claims.ID = reqID
 			}
 			sessionCache.Add(claims.ID, map[string]interface{}{
 				"claims":         claims,
@@ -314,12 +345,10 @@ func (p *AuthPortal) ServeHTTP(w http.ResponseWriter, r *http.Request, upstreamO
 							)
 						} else {
 							claims := resp["claims"].(*jwt.UserClaims)
+							claims.ID = reqID
 							claims.Issuer = utils.GetCurrentURL(r)
 							if p.EnableSourceIPTracking {
 								claims.Address = utils.GetSourceAddress(r)
-							}
-							if claims.ID == "" {
-								claims.ID = reqID
 							}
 							sessionCache.Add(claims.ID, map[string]interface{}{
 								"claims":         claims,

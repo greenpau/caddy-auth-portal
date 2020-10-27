@@ -21,6 +21,7 @@ import (
 	"strings"
 
 	"github.com/greenpau/caddy-auth-jwt"
+	"github.com/greenpau/caddy-auth-portal/pkg/backends"
 	"github.com/greenpau/caddy-auth-portal/pkg/ui"
 	"github.com/greenpau/caddy-auth-portal/pkg/utils"
 	"go.uber.org/zap"
@@ -30,6 +31,7 @@ import (
 func ServeSettings(w http.ResponseWriter, r *http.Request, opts map[string]interface{}) error {
 	var codeURI string
 	var codeErr error
+	var backend *backends.Backend
 	authURLPath := opts["auth_url_path"].(string)
 	if !opts["authenticated"].(bool) {
 		w.Header().Set("Location", authURLPath+"?redirect_url="+r.RequestURI)
@@ -40,6 +42,9 @@ func ServeSettings(w http.ResponseWriter, r *http.Request, opts map[string]inter
 	log := opts["logger"].(*zap.Logger)
 	claims := opts["user_claims"].(*jwt.UserClaims)
 	uiFactory := opts["ui"].(*ui.UserInterfaceFactory)
+	if _, exists := opts["backend"]; exists {
+		backend = opts["backend"].(*backends.Backend)
+	}
 	view := strings.TrimPrefix(r.URL.Path, authURLPath)
 	view = strings.TrimPrefix(view, "/")
 	view = strings.TrimPrefix(view, "settings")
@@ -49,6 +54,10 @@ func ServeSettings(w http.ResponseWriter, r *http.Request, opts map[string]inter
 	if view == "" {
 		view = "general"
 	}
+
+	// Display main authentication portal page
+	resp := uiFactory.GetArgs()
+	resp.Title = "Settings"
 
 	switch view {
 	case "mfa":
@@ -83,26 +92,50 @@ func ServeSettings(w http.ResponseWriter, r *http.Request, opts map[string]inter
 							w.Write([]byte(`Internal Server Error`))
 							return codeErr
 						}
-						opts["code_uri"] = codeURI
-						opts["code_uri_encoded"] = base64.StdEncoding.EncodeToString([]byte(codeURI))
+						resp.Data["code_uri"] = codeURI
+						resp.Data["code_uri_encoded"] = base64.StdEncoding.EncodeToString([]byte(codeURI))
 					}
 				}
 				view = strings.Join(viewParts, "-")
 			}
 		}
-	}
-
-	// claims := opts["user_claims"].(*jwt.UserClaims)
-
-	// Display main authentication portal page
-	resp := uiFactory.GetArgs()
-	resp.Title = "Settings"
-	resp.Data["view"] = view
-	for _, k := range []string{"code_uri", "code_uri_encoded"} {
-		if _, exists := opts[k]; exists {
-			resp.Data[k] = opts[k]
+	case "password":
+		if len(viewParts) > 1 {
+			switch viewParts[1] {
+			case "edit":
+				if r.Method == "POST" {
+					resp.Data["status"] = "failure"
+					if backend != nil {
+						if secrets, err := validatePasswordChangeForm(r); err != nil {
+							resp.Data["status"] = "failure"
+							resp.Data["status_reason"] = "Bad Request"
+						} else {
+							operation := make(map[string]interface{})
+							operation["name"] = "password_change"
+							for k, v := range secrets {
+								operation[k] = v
+							}
+							if err := backend.Do(operation); err != nil {
+								resp.Data["status_reason"] = fmt.Sprintf("%s", err)
+							} else {
+								resp.Data["status"] = "success"
+								resp.Data["status_reason"] = "Password has been changed"
+							}
+						}
+					} else {
+						resp.Data["status_reason"] = "Authentication backend not found"
+					}
+					view = strings.Join(viewParts, "-")
+				} else {
+					view = viewParts[0]
+				}
+			default:
+				view = strings.Join(viewParts, "-")
+			}
 		}
 	}
+
+	resp.Data["view"] = view
 
 	content, err := uiFactory.Render("settings", resp)
 	if err != nil {
@@ -116,4 +149,34 @@ func ServeSettings(w http.ResponseWriter, r *http.Request, opts map[string]inter
 	w.WriteHeader(200)
 	w.Write(content.Bytes())
 	return nil
+}
+
+func validatePasswordChangeForm(r *http.Request) (map[string]string, error) {
+	if r.Header.Get("Content-Type") != "application/x-www-form-urlencoded" {
+		return nil, fmt.Errorf("Unsupported content type")
+	}
+	if err := r.ParseForm(); err != nil {
+		return nil, fmt.Errorf("Failed parsing submitted form")
+	}
+	for _, k := range []string{"secret1", "secret2", "secret3"} {
+		if r.PostFormValue(k) == "" {
+			return nil, fmt.Errorf("Required form field not found")
+		}
+	}
+	if r.PostFormValue("secret1") == "" {
+		return nil, fmt.Errorf("Current password is empty")
+	}
+	if r.PostFormValue("secret2") == "" {
+		return nil, fmt.Errorf("New password is empty")
+	}
+	if r.PostFormValue("secret2") != r.PostFormValue("secret3") {
+		return nil, fmt.Errorf("New password mismatch")
+	}
+	if r.PostFormValue("secret1") == r.PostFormValue("secret2") {
+		return nil, fmt.Errorf("New password matches current password")
+	}
+	resp := make(map[string]string)
+	resp["current_password"] = r.PostFormValue("secret1")
+	resp["new_password"] = r.PostFormValue("secret2")
+	return resp, nil
 }

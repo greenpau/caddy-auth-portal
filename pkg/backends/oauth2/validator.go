@@ -77,8 +77,7 @@ func (b *Backend) validateAccessToken(state string, data map[string]interface{})
 
 	// Create new claims
 	claims := &jwt.UserClaims{
-		ID:        state,
-		Origin:    b.TokenProvider.TokenOrigin,
+		Origin:    b.TokenProvider.TokenOrigin + "/" + state,
 		ExpiresAt: time.Now().Add(time.Duration(b.TokenProvider.TokenLifetime) * time.Second).Unix(),
 		IssuedAt:  time.Now().Unix(),
 		NotBefore: time.Now().Add(10 * time.Minute * -1).Unix(),

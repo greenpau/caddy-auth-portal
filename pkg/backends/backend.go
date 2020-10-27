@@ -45,6 +45,7 @@ type BackendDriver interface {
 	ConfigureTokenProvider(*jwt.CommonTokenConfig) error
 	ConfigureAuthenticator() error
 	Validate() error
+	Do(map[string]interface{}) error
 }
 
 // GetRealm returns realm associated with an authentication provider.
@@ -82,6 +83,17 @@ func (b *Backend) Configure(opts map[string]interface{}) error {
 		return err
 	}
 	return nil
+}
+
+// Do performs the requested operation.
+func (b *Backend) Do(opts map[string]interface{}) error {
+	if len(opts) == 0 {
+		return fmt.Errorf("no input found")
+	}
+	if _, exists := opts["name"]; !exists {
+		return fmt.Errorf("no operation name found")
+	}
+	return b.driver.Do(opts)
 }
 
 // Authenticate performs authentication with an authentication provider.

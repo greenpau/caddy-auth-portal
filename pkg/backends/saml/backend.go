@@ -343,6 +343,7 @@ func (b *Backend) Authenticate(opts map[string]interface{}) (map[string]interfac
 		claims.ExpiresAt = time.Now().Add(time.Duration(b.TokenProvider.TokenLifetime) * time.Second).Unix()
 	}
 
+	claims.IssuedAt = time.Now().Unix()
 	resp["claims"] = claims
 	return resp, nil
 }
@@ -404,4 +405,9 @@ func (b *Backend) ConfigureLogger(logger *zap.Logger) error {
 // GetMethod returns the authentication method associated with this backend.
 func (b *Backend) GetMethod() string {
 	return b.Method
+}
+
+// Do performs the requested operation.
+func (b *Backend) Do(opts map[string]interface{}) error {
+	return fmt.Errorf("unsupported operation")
 }

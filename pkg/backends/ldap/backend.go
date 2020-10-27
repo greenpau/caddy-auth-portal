@@ -730,3 +730,8 @@ func (b *Backend) ConfigureLogger(logger *zap.Logger) error {
 func (b *Backend) GetMethod() string {
 	return b.Method
 }
+
+// Do performs the requested operation.
+func (b *Backend) Do(opts map[string]interface{}) error {
+	return fmt.Errorf("unsupported operation")
+}
