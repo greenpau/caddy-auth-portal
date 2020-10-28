@@ -135,6 +135,50 @@ func ServeSettings(w http.ResponseWriter, r *http.Request, opts map[string]inter
 				view = strings.Join(viewParts, "-")
 			}
 		}
+	case "sshkeys", "gpgkeys", "apikeys":
+		if len(viewParts) > 1 {
+			switch viewParts[1] {
+			case "add":
+				if r.Method == "POST" {
+					resp.Data["status"] = "failure"
+					if backend != nil {
+						if keys, err := validateKeyInputForm(r); err != nil {
+							resp.Data["status"] = "failure"
+							resp.Data["status_reason"] = "Bad Request"
+						} else {
+							operation := make(map[string]interface{})
+							switch view {
+							case "sshkeys":
+								operation["name"] = "add_ssh_key"
+							case "gpgkeys":
+								operation["name"] = "add_gpg_key"
+							case "apikeys":
+								operation["name"] = "add_api_key"
+							}
+							for k, v := range keys {
+								operation[k] = v
+							}
+							if err := backend.Do(operation); err != nil {
+								resp.Data["status_reason"] = fmt.Sprintf("%s", err)
+							} else {
+								resp.Data["status"] = "success"
+								switch view {
+								case "sshkeys":
+									resp.Data["status_reason"] = "Public SSH key has been added"
+								case "gpgkeys":
+									resp.Data["status_reason"] = "GPG key has been added"
+								case "apikeys":
+									resp.Data["status_reason"] = "API key has been added"
+								}
+							}
+						}
+					} else {
+						resp.Data["status_reason"] = "Authentication backend not found"
+					}
+				}
+			}
+			view = strings.Join(viewParts, "-")
+		}
 	}
 
 	resp.Data["view"] = view
@@ -180,5 +224,25 @@ func validatePasswordChangeForm(r *http.Request) (map[string]string, error) {
 	resp := make(map[string]string)
 	resp["current_password"] = r.PostFormValue("secret1")
 	resp["new_password"] = r.PostFormValue("secret2")
+	return resp, nil
+}
+
+func validateKeyInputForm(r *http.Request) (map[string]string, error) {
+	if r.Header.Get("Content-Type") != "application/x-www-form-urlencoded" {
+		return nil, fmt.Errorf("Unsupported content type")
+	}
+	if err := r.ParseForm(); err != nil {
+		return nil, fmt.Errorf("Failed parsing submitted form")
+	}
+	for _, k := range []string{"key1"} {
+		if r.PostFormValue(k) == "" {
+			return nil, fmt.Errorf("Required form field not found")
+		}
+	}
+	if r.PostFormValue("key1") == "" {
+		return nil, fmt.Errorf("Input is empty")
+	}
+	resp := make(map[string]string)
+	resp["key"] = r.PostFormValue("key1")
 	return resp, nil
 }

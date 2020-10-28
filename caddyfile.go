@@ -120,6 +120,7 @@ func parseCaddyfileAuthPortal(h httpcaddyfile.Helper) ([]httpcaddyfile.ConfigVal
 					return nil, h.Errf("auth backend %s directive has no value", rootDirective)
 				}
 				backendProps := make(map[string]interface{})
+				backendProps["name"] = "local_backend"
 				backendProps["method"] = "local"
 				backendProps["path"] = args[0]
 				if len(args) > 1 {

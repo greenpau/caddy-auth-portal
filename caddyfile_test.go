@@ -136,3 +136,30 @@ func TestSamlCaddyfile(t *testing.T) {
 	t.Logf("%v", resp)
 	time.Sleep(1 * time.Second)
 }
+
+func TestShortLocalCaddyfile(t *testing.T) {
+	scheme := "https"
+	host := "127.0.0.1"
+	securePort := "8443"
+	authPath := "auth"
+	hostPort := host + ":" + securePort
+	baseURL := scheme + "://" + hostPort
+	tester := caddytest.NewTester(t)
+	configFile := "assets/conf/local/Caddyfile.short"
+	configContent, err := ioutil.ReadFile(configFile)
+	if err != nil {
+		t.Fatalf("Failed to load configuration file %s: %s", configFile, err)
+	}
+	rawConfig := string(configContent)
+	tester.InitServer(rawConfig, "caddyfile")
+	tester.AssertGetResponse(baseURL+"/version", 200, "1.0.0")
+	req, _ := http.NewRequest(
+		"POST",
+		baseURL+"/"+authPath,
+		strings.NewReader("username=webadmin&password=password123&realm=local"),
+	)
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	resp := tester.AssertResponseCode(req, 200)
+	t.Logf("%v", resp)
+	time.Sleep(1 * time.Second)
+}
