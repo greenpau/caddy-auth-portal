@@ -692,5 +692,10 @@ func (b *Backend) fetchFacebookAccessToken(redirectURI, state, code string) (map
 
 // Do performs the requested operation.
 func (b *Backend) Do(opts map[string]interface{}) error {
-	return fmt.Errorf("unsupported operation")
+	op := opts["name"].(string)
+	switch op {
+	case "password_change":
+		return fmt.Errorf("Password change operation is not available")
+	}
+	return fmt.Errorf("Unsupported backend operation")
 }
