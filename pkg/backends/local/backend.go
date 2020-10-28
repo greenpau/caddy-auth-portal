@@ -198,7 +198,15 @@ func (sa *Authenticator) AuthenticateUser(userInput, password string) (*jwt.User
 	return claims, 200, nil
 }
 
-// ConfigureAuthenticator configures backend for .
+// ChangePassword changes password for a user.
+func (sa *Authenticator) ChangePassword(opts map[string]interface{}) error {
+	sa.mux.Lock()
+	defer sa.mux.Unlock()
+	opts["file_path"] = sa.path
+	return sa.db.ChangeUserPassword(opts)
+}
+
+// ConfigureAuthenticator configures backend.
 func (b *Backend) ConfigureAuthenticator() error {
 	if b.Authenticator == nil {
 		b.Authenticator = NewAuthenticator()
@@ -341,7 +349,18 @@ func (b *Backend) Do(opts map[string]interface{}) error {
 	op := opts["name"].(string)
 	switch op {
 	case "password_change":
-		return fmt.Errorf("Password change operation is not available")
+	default:
+		return fmt.Errorf("Unsupported backend operation")
 	}
-	return fmt.Errorf("Unsupported backend operation")
+	if b.Authenticator == nil {
+		return fmt.Errorf("Internal Server Error, Authentication backend is unavailable")
+	}
+
+	switch op {
+	case "password_change":
+		if err := b.Authenticator.ChangePassword(opts); err != nil {
+			return err
+		}
+	}
+	return nil
 }

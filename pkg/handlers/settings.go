@@ -112,6 +112,8 @@ func ServeSettings(w http.ResponseWriter, r *http.Request, opts map[string]inter
 						} else {
 							operation := make(map[string]interface{})
 							operation["name"] = "password_change"
+							operation["username"] = claims.Subject
+							operation["email"] = claims.Email
 							for k, v := range secrets {
 								operation[k] = v
 							}
