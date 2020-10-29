@@ -1,4 +1,4 @@
-.PHONY: test ctest covdir coverage docs linter qtest clean dep release logo
+.PHONY: test ctest covdir coverage docs linter qtest clean dep release logo templates info license
 PLUGIN_NAME="caddy-auth-portal"
 PLUGIN_VERSION:=$(shell cat VERSION | head -1)
 GIT_COMMIT:=$(shell git describe --dirty --always)
@@ -13,10 +13,9 @@ ifdef TEST
 endif
 CADDY_VERSION="v2.2.0"
 
-all:
-	@echo "Version: $(PLUGIN_VERSION), Branch: $(GIT_BRANCH), Revision: $(GIT_COMMIT)"
-	@echo "Build on $(BUILD_DATE) by $(BUILD_USER)"
-	@./assets/scripts/generate_ui.sh
+all: build
+
+build: info templates license
 	@mkdir -p bin/
 	@rm -rf ./bin/caddy
 	@rm -rf ../xcaddy-$(PLUGIN_NAME)/*
@@ -26,6 +25,13 @@ all:
 		--with github.com/greenpau/caddy-auth-jwt@latest=$(BUILD_DIR)/../caddy-auth-jwt \
 		--with github.com/greenpau/caddy-trace@latest=$(BUILD_DIR)/../caddy-trace
 	@#bin/caddy run -environ -config assets/conf/local/config.json
+
+info:
+	@echo "Version: $(PLUGIN_VERSION), Branch: $(GIT_BRANCH), Revision: $(GIT_COMMIT)"
+	@echo "Build on $(BUILD_DATE) by $(BUILD_USER)"
+
+templates:
+	@./assets/scripts/generate_ui.sh
 
 linter:
 	@echo "Running lint checks"
@@ -76,6 +82,7 @@ dep:
 	@go get -u github.com/kyoh86/richgo
 	@go get -u github.com/caddyserver/xcaddy/cmd/xcaddy
 	@go get -u github.com/greenpau/versioned/cmd/versioned
+	@go get -u github.com/google/addlicense
 
 license:
 	@addlicense -c "Paul Greenberg greenpau@outlook.com" -y 2020 pkg/*/*/*.go pkg/*/*.go *.go
