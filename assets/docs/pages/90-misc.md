@@ -45,3 +45,89 @@ metadata from the backend which authenticated a particular session.
 This cache is used to assess whether a claim holder is able using
 certain portal's capabilities, e.g. add public SSH/GPG key, configure
 MFA tokens, change password, etc.
+
+[:arrow_up: Back to Top](#table-of-contents)
+
+### Caddyfile Shortcuts
+
+The following snippet with either `jwt_token_file` or `jwt_token_rsa_file`
+Caddyfile directive:
+
+```
+    auth_portal {
+      jwt_token_file 1 /etc/caddy/auth/jwt/jwt_privatekey.pem
+      jwt_token_rsa_file 2 /etc/caddy/auth/jwt/jwt_privatekey.pem
+      ...
+    }
+```
+
+Replaces:
+
+```
+    auth_portal {
+      jwt {
+        token_rsa_file 1 /etc/caddy/auth/jwt/jwt_privatekey.pem
+      }
+      ...
+    }
+```
+
+The following snippet with `jwt_token_name` Caddyfile directive:
+
+```
+    auth_portal {
+      jwt_token_name access_token
+      ...
+    }
+```
+
+Replaces:
+
+```
+    auth_portal {
+      jwt {
+        token_name access_token
+      }
+      ...
+    }
+```
+
+The following snippet with `jwt_token_secret` Caddyfile directive:
+
+```
+    auth_portal {
+      jwt_token_secret bcc8fd6e-8e45-493e-a146-f178ac676841
+      ...
+    }
+```
+
+Replaces:
+
+```
+    auth_portal {
+      jwt {
+        token_secret bcc8fd6e-8e45-493e-a146-f178ac676841
+      }
+      ...
+    }
+```
+
+The following snippet with `jwt_token_lifetime` Caddyfile directive:
+
+```
+    auth_portal {
+      jwt_token_lifetime 3600
+      ...
+    }
+```
+
+Replaces:
+
+```
+    auth_portal {
+      jwt {
+        token_lifetime 3600
+      }
+      ...
+    }
+```

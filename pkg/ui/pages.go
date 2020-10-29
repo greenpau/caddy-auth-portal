@@ -553,8 +553,8 @@ var PageTemplates = map[string]string{
                 <div class="col">
                   <h1>Add SSH Key</h1>
                   <p>Please paste your public SSH key here.</p>
-                  <div class="input-field">
-                    <textarea id="key1" name="key1" class="hljs"></textarea>
+                  <div class="input-field shell-input">
+                    <textarea id="key1" name="key1" class="hljs shell-input-area"></textarea>
                   </div>
                   <button type="submit" name="submit" class="btn waves-effect waves-light navbtn active navbtn-last app-btn">
                     <i class="las la-plus-circle left app-btn-icon"></i>

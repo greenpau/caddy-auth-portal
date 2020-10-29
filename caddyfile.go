@@ -323,6 +323,59 @@ func parseCaddyfileAuthPortal(h httpcaddyfile.Helper) ([]httpcaddyfile.ConfigVal
 						portal.Backends = append(portal.Backends, *backend)
 					}
 				}
+			case "jwt_token_file", "jwt_token_rsa_file":
+				args := h.RemainingArgs()
+				if len(args) == 0 {
+					return nil, h.Errf("auth backend %s directive has no value", rootDirective)
+				}
+				if len(args) != 2 {
+					return nil, h.Errf("%s argument values are unsupported %v", rootDirective, args)
+				}
+				if portal.TokenProvider == nil {
+					portal.TokenProvider = jwt.NewCommonTokenConfig()
+				}
+				portal.TokenProvider.TokenRSAFiles = make(map[string]string)
+				portal.TokenProvider.TokenRSAFiles[args[0]] = args[1]
+			case "jwt_token_name":
+				args := h.RemainingArgs()
+				if len(args) == 0 {
+					return nil, h.Errf("auth backend %s directive has no value", rootDirective)
+				}
+				if len(args) != 1 {
+					return nil, h.Errf("%s argument values are unsupported %v", rootDirective, args)
+				}
+				if portal.TokenProvider == nil {
+					portal.TokenProvider = jwt.NewCommonTokenConfig()
+				}
+				portal.TokenProvider.TokenName = args[0]
+			case "jwt_token_secret":
+				args := h.RemainingArgs()
+				if len(args) == 0 {
+					return nil, h.Errf("auth backend %s directive has no value", rootDirective)
+				}
+				if len(args) != 1 {
+					return nil, h.Errf("%s argument values are unsupported %v", rootDirective, args)
+				}
+				if portal.TokenProvider == nil {
+					portal.TokenProvider = jwt.NewCommonTokenConfig()
+				}
+				portal.TokenProvider.TokenSecret = args[0]
+			case "jwt_token_lifetime":
+				args := h.RemainingArgs()
+				if len(args) == 0 {
+					return nil, h.Errf("auth backend %s directive has no value", rootDirective)
+				}
+				if len(args) != 1 {
+					return nil, h.Errf("%s argument values are unsupported %v", rootDirective, args)
+				}
+				if portal.TokenProvider == nil {
+					portal.TokenProvider = jwt.NewCommonTokenConfig()
+				}
+				lifetime, err := strconv.Atoi(h.Val())
+				if err != nil {
+					return nil, h.Errf("%s argument value conversion failed: %s", rootDirective, err)
+				}
+				portal.TokenProvider.TokenLifetime = lifetime
 			case "jwt":
 				if portal.TokenProvider == nil {
 					portal.TokenProvider = jwt.NewCommonTokenConfig()
