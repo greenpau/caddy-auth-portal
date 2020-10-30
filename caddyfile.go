@@ -58,6 +58,7 @@ func init() {
 //	       token_secret <value>
 //	       token_issuer <value>
 //         token_lifetime <seconds>
+//         token_sign_method <HS256|HS384|HS512|RS256|RS384|RS512>
 //	     }
 //	     ui {
 //	       login_template <file_path>
@@ -360,6 +361,18 @@ func parseCaddyfileAuthPortal(h httpcaddyfile.Helper) ([]httpcaddyfile.ConfigVal
 					portal.TokenProvider = jwt.NewCommonTokenConfig()
 				}
 				portal.TokenProvider.TokenSecret = args[0]
+			case "jwt_token_sign_method":
+				args := h.RemainingArgs()
+				if len(args) == 0 {
+					return nil, h.Errf("auth backend %s directive has no value", rootDirective)
+				}
+				if len(args) != 1 {
+					return nil, h.Errf("%s argument values are unsupported %v", rootDirective, args)
+				}
+				if portal.TokenProvider == nil {
+					portal.TokenProvider = jwt.NewCommonTokenConfig()
+				}
+				portal.TokenProvider.TokenSignMethod = args[0]
 			case "jwt_token_lifetime":
 				args := h.RemainingArgs()
 				if len(args) == 0 {
@@ -415,6 +428,11 @@ func parseCaddyfileAuthPortal(h httpcaddyfile.Helper) ([]httpcaddyfile.ConfigVal
 							return nil, h.Errf("%s %s subdirective value conversion failed: %s", rootDirective, subDirective, err)
 						}
 						portal.TokenProvider.TokenLifetime = lifetime
+					case "token_sign_method":
+						if !h.NextArg() {
+							return nil, h.Errf("%s %s subdirective has no value", rootDirective, subDirective)
+						}
+						portal.TokenProvider.TokenSignMethod = h.Val()
 					default:
 						return nil, h.Errf("unknown subdirective for %s: %s", rootDirective, subDirective)
 					}

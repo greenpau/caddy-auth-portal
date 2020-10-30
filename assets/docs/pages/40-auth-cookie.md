@@ -70,6 +70,31 @@ Generating RSA private key, 2048 bit long modulus (2 primes)
 e is 65537 (0x010001)
 ```
 
+#### JWT Signing Method
+
+By default, the plugin uses HS512 (shared secret) and RS512 (public/private keys) for
+the signing of JWT tokens. User `token_sign_method` to change the algorithm, e.g.
+
+```
+      jwt {
+        ...
+        token_secret 0e2fdcf8-6868-41a7-884b-7308795fc286
+        token_sign_method HS256
+        ...
+      }
+```
+
+or:
+
+```
+      jwt {
+        ...
+        token_rsa_file Hz789bc303f0db /etc/gatekeeper/auth/jwt/sign_key.pem
+        token_sign_method RS256
+        ...
+      }
+```
+
 [:arrow_up: Back to Top](#table-of-contents)
 
 <!--- end of section -->

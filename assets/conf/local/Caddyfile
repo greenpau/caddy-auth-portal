@@ -69,6 +69,7 @@
         token_secret 0e2fdcf8-6868-41a7-884b-7308795fc286
         token_issuer e1008f2d-ccfa-4e62-bbe6-c202ec2988cc
         token_lifetime 3600
+        token_sign_method HS256
       }
       ui {
         theme basic

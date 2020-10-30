@@ -69,9 +69,9 @@ func ServeLogin(w http.ResponseWriter, r *http.Request, opts map[string]interfac
 		var userToken string
 		var tokenError error
 		switch tokenProvider.TokenSignMethod {
-		case "HS512":
+		case "HS512", "HS384", "HS256":
 			userToken, tokenError = claims.GetToken(tokenProvider.TokenSignMethod, []byte(tokenProvider.TokenSecret))
-		case "RS512":
+		case "RS512", "RS384", "RS256":
 			var privKey *rsa.PrivateKey
 			var keyID string
 			privKey, keyID, tokenError = tokenProvider.GetPrivateKey()

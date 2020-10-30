@@ -106,12 +106,16 @@ func (m *AuthPortalManager) Register(p *AuthPortal) error {
 
 	if p.TokenProvider.TokenSecret != "" {
 		signingKeyFound = true
-		p.TokenProvider.TokenSignMethod = "HS512"
+		if p.TokenProvider.TokenSignMethod == "" {
+			p.TokenProvider.TokenSignMethod = "HS512"
+		}
 	}
 
 	if !signingKeyFound && os.Getenv("JWT_TOKEN_SECRET") != "" {
 		signingKeyFound = true
-		p.TokenProvider.TokenSignMethod = "HS512"
+		if p.TokenProvider.TokenSignMethod == "" {
+			p.TokenProvider.TokenSignMethod = "HS512"
+		}
 		p.TokenProvider.TokenSecret = os.Getenv("JWT_TOKEN_SECRET")
 	}
 
@@ -137,7 +141,9 @@ func (m *AuthPortalManager) Register(p *AuthPortal) error {
 				}
 			}
 			signingKeyFound = true
-			p.TokenProvider.TokenSignMethod = "RS512"
+			if p.TokenProvider.TokenSignMethod == "" {
+				p.TokenProvider.TokenSignMethod = "RS512"
+			}
 		}
 	}
 
@@ -148,6 +154,8 @@ func (m *AuthPortalManager) Register(p *AuthPortal) error {
 			p.Name,
 		)
 	}
+
+	p.TokenProvider.TokenSignMethod = strings.ToUpper(p.TokenProvider.TokenSignMethod)
 
 	if p.TokenProvider.TokenIssuer == "" {
 		p.logger.Warn(
@@ -466,9 +474,11 @@ func (m *AuthPortalManager) Register(p *AuthPortal) error {
 	p.TokenValidator = jwt.NewTokenValidator()
 	tokenConfig := jwt.NewCommonTokenConfig()
 	tokenConfig.TokenName = p.TokenProvider.TokenName
-	if p.TokenProvider.TokenSignMethod == "HS512" {
+
+	switch p.TokenProvider.TokenSignMethod {
+	case "HS512", "HS384", "HS256":
 		tokenConfig.TokenSecret = p.TokenProvider.TokenSecret
-	} else {
+	default:
 		if err := tokenConfig.AddRSAPublicKey(signingKeyID, signingKey); err != nil {
 			return fmt.Errorf("%s: token provider failed to add key ID %s: %s", p.Name, signingKeyID, err)
 		}
@@ -592,12 +602,16 @@ func (m *AuthPortalManager) Provision(name string) error {
 
 	if p.TokenProvider.TokenSecret != "" {
 		signingKeyFound = true
-		p.TokenProvider.TokenSignMethod = "HS512"
+		if p.TokenProvider.TokenSignMethod == "" {
+			p.TokenProvider.TokenSignMethod = "HS512"
+		}
 	}
 
 	if !signingKeyFound && os.Getenv("JWT_TOKEN_SECRET") != "" {
 		signingKeyFound = true
-		p.TokenProvider.TokenSignMethod = "HS512"
+		if p.TokenProvider.TokenSignMethod == "" {
+			p.TokenProvider.TokenSignMethod = "HS512"
+		}
 		p.TokenProvider.TokenSecret = os.Getenv("JWT_TOKEN_SECRET")
 	}
 
@@ -623,7 +637,9 @@ func (m *AuthPortalManager) Provision(name string) error {
 				}
 			}
 			signingKeyFound = true
-			p.TokenProvider.TokenSignMethod = "RS512"
+			if p.TokenProvider.TokenSignMethod == "" {
+				p.TokenProvider.TokenSignMethod = "RS512"
+			}
 		}
 	}
 
@@ -634,6 +650,8 @@ func (m *AuthPortalManager) Provision(name string) error {
 			p.Name,
 		)
 	}
+
+	p.TokenProvider.TokenSignMethod = strings.ToUpper(p.TokenProvider.TokenSignMethod)
 
 	p.logger.Debug(
 		"JWT token configuration provisioned",
@@ -799,9 +817,11 @@ func (m *AuthPortalManager) Provision(name string) error {
 	p.TokenValidator = jwt.NewTokenValidator()
 	tokenConfig := jwt.NewCommonTokenConfig()
 	tokenConfig.TokenName = p.TokenProvider.TokenName
-	if p.TokenProvider.TokenSignMethod == "HS512" {
+
+	switch p.TokenProvider.TokenSignMethod {
+	case "HS512", "HS384", "HS256":
 		tokenConfig.TokenSecret = p.TokenProvider.TokenSecret
-	} else {
+	default:
 		if err := tokenConfig.AddRSAPublicKey(signingKeyID, signingKey); err != nil {
 			return fmt.Errorf("%s: token provider failed to add key ID %s: %s", p.Name, signingKeyID, err)
 		}
@@ -820,6 +840,7 @@ func (m *AuthPortalManager) Provision(name string) error {
 			}
 		}
 	}
+
 	p.TokenValidator.TokenConfigs = []*jwt.CommonTokenConfig{tokenConfig}
 	if err := p.TokenValidator.ConfigureTokenBackends(); err != nil {
 		return fmt.Errorf(
