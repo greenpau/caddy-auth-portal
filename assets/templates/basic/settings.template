@@ -68,7 +68,7 @@
           {{ end }}
           {{ if eq .Data.view "sshkeys" }}
           <div class="row">
-            <div class="col right">
+            <div class="col s12 right">
               <a href="{{ pathjoin .ActionEndpoint "/settings/sshkeys/add" }}">
                 <button type="button" class="btn waves-effect waves-light navbtn active app-btn">
                   <i class="las la-key left app-btn-icon"></i>
@@ -88,23 +88,46 @@
           {{ if eq .Data.view "sshkeys-add" }}
             <form action="{{ pathjoin .ActionEndpoint "/settings/sshkeys/add" }}" method="POST">
               <div class="row">
-                <div class="col">
+                <div class="col s12">
                   <h1>Add SSH Key</h1>
                   <p>Please paste your public SSH key here.</p>
-                  <div class="input-field shell-input">
-                    <textarea id="key1" name="key1" class="hljs shell-input-area"></textarea>
+                  <div class="input-field shell-textarea-wrapper">
+                      <textarea id="key1" name="key1" class="hljs shell-textarea"></textarea>
                   </div>
+                  <div class="right">
                   <button type="submit" name="submit" class="btn waves-effect waves-light navbtn active navbtn-last app-btn">
                     <i class="las la-plus-circle left app-btn-icon"></i>
                     <span class="app-btn-text">Add SSH Key</span>
                   </button>
+                  </div>
                 </div>
               </div>
             </form>
           {{ end }}
+          {{ if eq .Data.view "sshkeys-add-status" }}
+            {{ if eq .Data.status "success" }}
+              <h1>Public SSH Key Has Been Added</h1>
+              <p>{{ .Data.status_reason }}</p>
+              <a href="{{ pathjoin .ActionEndpoint "/settings/sshkeys" }}">
+                <button type="button" class="btn waves-effect waves-light navbtn active">
+                  <i class="las la-undo-alt left app-btn-icon"></i>
+                  <span class="app-btn-text">Go Back</span>
+                </button>
+              </a>
+            {{ else }}
+              <h1>Failed Adding Public SSH Key</h1>
+              <p>Reason: {{ .Data.status_reason }} </p>
+              <a href="{{ pathjoin .ActionEndpoint "/settings/sshkeys/add" }}">
+                <button type="button" class="btn waves-effect waves-light navbtn active">
+                  <i class="las la-undo-alt left app-btn-icon"></i>
+                  <span class="app-btn-text">Try Again</span>
+                </button>
+              </a>
+            {{ end }}
+          {{ end }}
           {{ if eq .Data.view "gpgkeys" }}
           <div class="row">
-            <div class="col right">
+            <div class="col s12 right">
               <a href="{{ pathjoin .ActionEndpoint "/settings/gpgkeys/add" }}">
                 <button type="button" class="btn waves-effect waves-light navbtn active app-btn">
                   <i class="las la-key left app-btn-icon"></i>
@@ -121,9 +144,49 @@
             {{ end }}
           </div>
           {{ end }}
+          {{ if eq .Data.view "gpgkeys-add" }}
+            <form action="{{ pathjoin .ActionEndpoint "/settings/gpgkeys/add" }}" method="POST">
+              <div class="row">
+                <div class="col s12">
+                  <h1>Add GPG Key</h1>
+                  <p>Please paste your public GPG key here.</p>
+                  <div class="input-field shell-textarea-wrapper">
+                      <textarea id="key1" name="key1" class="hljs shell-textarea"></textarea>
+                  </div>
+                  <div class="right">
+                  <button type="submit" name="submit" class="btn waves-effect waves-light navbtn active navbtn-last app-btn">
+                    <i class="las la-plus-circle left app-btn-icon"></i>
+                    <span class="app-btn-text">Add GPG Key</span>
+                  </button>
+                  </div>
+                </div>
+              </div>
+            </form>
+          {{ end }}
+          {{ if eq .Data.view "gpgkeys-add-status" }}
+            {{ if eq .Data.status "success" }}
+              <h1>Public GPG Key Has Been Added</h1>
+              <p>{{ .Data.status_reason }}</p>
+              <a href="{{ pathjoin .ActionEndpoint "/settings/gpgkeys" }}">
+                <button type="button" class="btn waves-effect waves-light navbtn active">
+                  <i class="las la-undo-alt left app-btn-icon"></i>
+                  <span class="app-btn-text">Go Back</span>
+                </button>
+              </a>
+            {{ else }}
+              <h1>Failed Adding Public GPG Key</h1>
+              <p>Reason: {{ .Data.status_reason }} </p>
+              <a href="{{ pathjoin .ActionEndpoint "/settings/gpgkeys/add" }}">
+                <button type="button" class="btn waves-effect waves-light navbtn active">
+                  <i class="las la-undo-alt left app-btn-icon"></i>
+                  <span class="app-btn-text">Try Again</span>
+                </button>
+              </a>
+            {{ end }}
+          {{ end }}
           {{ if eq .Data.view "apikeys" }}
           <div class="row">
-            <div class="col right">
+            <div class="col s12">
               <a href="{{ pathjoin .ActionEndpoint "/settings/apikeys/add" }}">
                 <button type="button" class="btn waves-effect waves-light navbtn active app-btn">
                   <i class="las la-key left app-btn-icon"></i>
@@ -142,7 +205,7 @@
           {{ end }}
           {{ if eq .Data.view "mfa" }}
           <div class="row">
-            <div class="col right">
+            <div class="col 12 right">
               <a href="{{ pathjoin .ActionEndpoint "/settings/mfa/add/app" }}">
                 <button type="button" class="btn waves-effect waves-light navbtn active app-btn">
                   <i class="las la-mobile-alt left app-btn-icon"></i>

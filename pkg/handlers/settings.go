@@ -175,9 +175,13 @@ func ServeSettings(w http.ResponseWriter, r *http.Request, opts map[string]inter
 					} else {
 						resp.Data["status_reason"] = "Authentication backend not found"
 					}
+					view = strings.Join(viewParts, "-") + "-status"
+				} else {
+					view = strings.Join(viewParts, "-")
 				}
+			default:
+				view = strings.Join(viewParts, "-")
 			}
-			view = strings.Join(viewParts, "-")
 		}
 	}
 
