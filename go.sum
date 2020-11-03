@@ -299,8 +299,6 @@ github.com/gorilla/websocket v1.4.0/go.mod h1:E7qHFY5m1UJ88s3WnNqhKjPHQ0heANvMoA
 github.com/gorilla/websocket v1.4.1/go.mod h1:YR8l580nyteQvAITg2hZ9XVh4b55+EU/adAjf1fMHhE=
 github.com/gostaticanalysis/analysisutil v0.0.0-20190318220348-4088753ea4d3/go.mod h1:eEOZF4jCKGi+aprrirO9e7WKB3beBRtWgqGunKl6pKE=
 github.com/gostaticanalysis/analysisutil v0.0.3/go.mod h1:eEOZF4jCKGi+aprrirO9e7WKB3beBRtWgqGunKl6pKE=
-github.com/greenpau/caddy-auth-jwt v1.1.6 h1:usb4cJeBoHpbM7dPWkwqvmYLqLeldvLTRQjF1ieWEcY=
-github.com/greenpau/caddy-auth-jwt v1.1.6/go.mod h1:enReDKuMvgF9KI8fen7xUhTsdPLmSHql1kbSPxpSlmg=
 github.com/greenpau/caddy-auth-jwt v1.1.7 h1:Xkq+v3q0HGGoSQMORZXuLLXHPSgxQGmbfObtP/hdjW8=
 github.com/greenpau/caddy-auth-jwt v1.1.7/go.mod h1:enReDKuMvgF9KI8fen7xUhTsdPLmSHql1kbSPxpSlmg=
 github.com/greenpau/go-identity v1.0.6 h1:wGBLBd2wMWbR5OOtDwJlzEVpct2lT6+y+58DZizNh6A=
