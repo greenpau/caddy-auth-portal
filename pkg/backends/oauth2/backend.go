@@ -19,7 +19,8 @@ import (
 	//"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"github.com/greenpau/caddy-auth-jwt"
+	jwtclaims "github.com/greenpau/caddy-auth-jwt/pkg/claims"
+	jwtconfig "github.com/greenpau/caddy-auth-jwt/pkg/config"
 	"github.com/greenpau/caddy-auth-portal/pkg/errors"
 	"github.com/greenpau/caddy-auth-portal/pkg/utils"
 	"github.com/satori/go.uuid"
@@ -76,7 +77,7 @@ type Backend struct {
 	// Stores cached state IDs
 	state *stateManager
 
-	TokenProvider *jwt.CommonTokenConfig `json:"-"`
+	TokenProvider *jwtconfig.CommonTokenConfig `json:"-"`
 	logger        *zap.Logger
 }
 
@@ -85,7 +86,7 @@ type Backend struct {
 func NewDatabaseBackend() *Backend {
 	b := &Backend{
 		Method:        "oauth2",
-		TokenProvider: jwt.NewCommonTokenConfig(),
+		TokenProvider: jwtconfig.NewCommonTokenConfig(),
 		state:         newStateManager(),
 		keys:          make(map[string]*JwksKey),
 		publicKeys:    make(map[string]*rsa.PublicKey),
@@ -268,7 +269,7 @@ func (b *Backend) Authenticate(opts map[string]interface{}) (map[string]interfac
 				zap.Any("token", accessToken),
 			)
 
-			var claims *jwt.UserClaims
+			var claims *jwtclaims.UserClaims
 			switch b.Provider {
 			case "github", "facebook":
 				claims, err = b.fetchClaims(accessToken)
@@ -347,12 +348,12 @@ func (b *Backend) GetName() string {
 }
 
 // ConfigureTokenProvider configures TokenProvider.
-func (b *Backend) ConfigureTokenProvider(upstream *jwt.CommonTokenConfig) error {
+func (b *Backend) ConfigureTokenProvider(upstream *jwtconfig.CommonTokenConfig) error {
 	if upstream == nil {
 		return errors.ErrBackendTokenProviderNotFound
 	}
 	if b.TokenProvider == nil {
-		b.TokenProvider = jwt.NewCommonTokenConfig()
+		b.TokenProvider = jwtconfig.NewCommonTokenConfig()
 	}
 	if b.TokenProvider.TokenSecret == "" {
 		b.TokenProvider.TokenSecret = upstream.TokenSecret
@@ -539,7 +540,7 @@ func (b *Backend) fetchAccessToken(redirectURI, state, code string) (map[string]
 	return data, nil
 }
 
-func (b *Backend) supplementClaims(claims *jwt.UserClaims) {
+func (b *Backend) supplementClaims(claims *jwtclaims.UserClaims) {
 	if len(b.UserRoleMapList) < 1 {
 		return
 	}

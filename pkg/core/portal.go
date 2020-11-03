@@ -22,6 +22,9 @@ import (
 	"time"
 
 	"github.com/greenpau/caddy-auth-jwt"
+	jwtclaims "github.com/greenpau/caddy-auth-jwt/pkg/claims"
+	jwtconfig "github.com/greenpau/caddy-auth-jwt/pkg/config"
+
 	"github.com/greenpau/caddy-auth-portal/pkg/backends"
 	"github.com/greenpau/caddy-auth-portal/pkg/cache"
 	"github.com/greenpau/caddy-auth-portal/pkg/cookies"
@@ -52,20 +55,20 @@ func init() {
 // AuthPortal implements Form-Based, Basic, Local, LDAP,
 // OpenID Connect, OAuth 2.0, SAML Authentication.
 type AuthPortal struct {
-	Name                     string                      `json:"-"`
-	Provisioned              bool                        `json:"-"`
-	ProvisionFailed          bool                        `json:"-"`
-	PrimaryInstance          bool                        `json:"primary,omitempty"`
-	Context                  string                      `json:"context,omitempty"`
-	AuthURLPath              string                      `json:"auth_url_path,omitempty"`
-	UserInterface            *ui.UserInterfaceParameters `json:"ui,omitempty"`
-	UserRegistration         *registration.Registration  `json:"registration,omitempty"`
-	UserRegistrationDatabase *identity.Database          `json:"-"`
-	Cookies                  *cookies.Cookies            `json:"cookies,omitempty"`
-	Backends                 []backends.Backend          `json:"backends,omitempty"`
-	TokenProvider            *jwt.CommonTokenConfig      `json:"jwt,omitempty"`
-	EnableSourceIPTracking   bool                        `json:"source_ip_tracking,omitempty"`
-	TokenValidator           *jwt.TokenValidator         `json:"-"`
+	Name                     string                       `json:"-"`
+	Provisioned              bool                         `json:"-"`
+	ProvisionFailed          bool                         `json:"-"`
+	PrimaryInstance          bool                         `json:"primary,omitempty"`
+	Context                  string                       `json:"context,omitempty"`
+	AuthURLPath              string                       `json:"auth_url_path,omitempty"`
+	UserInterface            *ui.UserInterfaceParameters  `json:"ui,omitempty"`
+	UserRegistration         *registration.Registration   `json:"registration,omitempty"`
+	UserRegistrationDatabase *identity.Database           `json:"-"`
+	Cookies                  *cookies.Cookies             `json:"cookies,omitempty"`
+	Backends                 []backends.Backend           `json:"backends,omitempty"`
+	TokenProvider            *jwtconfig.CommonTokenConfig `json:"jwt,omitempty"`
+	EnableSourceIPTracking   bool                         `json:"source_ip_tracking,omitempty"`
+	TokenValidator           *jwt.TokenValidator          `json:"-"`
 	logger                   *zap.Logger
 	uiFactory                *ui.UserInterfaceFactory
 	startedAt                time.Time
@@ -202,7 +205,7 @@ func (p *AuthPortal) ServeHTTP(w http.ResponseWriter, r *http.Request, upstreamO
 	case strings.HasPrefix(urlPath, "settings"):
 		opts["flow"] = "settings"
 		if opts["authenticated"].(bool) {
-			claims := opts["user_claims"].(*jwt.UserClaims)
+			claims := opts["user_claims"].(*jwtclaims.UserClaims)
 			if bknd := sessionCache.Get(claims.ID); bknd != nil {
 				bkndOpts := make(map[string]string)
 				for _, k := range []string{"backend_method", "backend_name", "backend_realm"} {
@@ -293,7 +296,7 @@ func (p *AuthPortal) ServeHTTP(w http.ResponseWriter, r *http.Request, upstreamO
 				return handlers.ServeGeneric(w, r, opts)
 			}
 
-			claims := resp["claims"].(*jwt.UserClaims)
+			claims := resp["claims"].(*jwtclaims.UserClaims)
 			claims.ID = reqID
 			claims.Issuer = utils.GetCurrentURL(r)
 			if p.EnableSourceIPTracking {
@@ -344,7 +347,7 @@ func (p *AuthPortal) ServeHTTP(w http.ResponseWriter, r *http.Request, upstreamO
 								zap.String("error", err.Error()),
 							)
 						} else {
-							claims := resp["claims"].(*jwt.UserClaims)
+							claims := resp["claims"].(*jwtclaims.UserClaims)
 							claims.ID = reqID
 							claims.Issuer = utils.GetCurrentURL(r)
 							if p.EnableSourceIPTracking {

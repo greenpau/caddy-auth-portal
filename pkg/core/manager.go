@@ -18,6 +18,8 @@ import (
 	"crypto/rsa"
 	"fmt"
 	"github.com/greenpau/caddy-auth-jwt"
+	jwtacl "github.com/greenpau/caddy-auth-jwt/pkg/acl"
+	jwtconfig "github.com/greenpau/caddy-auth-jwt/pkg/config"
 	"github.com/greenpau/caddy-auth-portal/pkg/cookies"
 	"github.com/greenpau/caddy-auth-portal/pkg/registration"
 	"github.com/greenpau/caddy-auth-portal/pkg/ui"
@@ -472,7 +474,7 @@ func (m *AuthPortalManager) Register(p *AuthPortal) error {
 	}
 
 	p.TokenValidator = jwt.NewTokenValidator()
-	tokenConfig := jwt.NewCommonTokenConfig()
+	tokenConfig := jwtconfig.NewCommonTokenConfig()
 	tokenConfig.TokenName = p.TokenProvider.TokenName
 
 	switch p.TokenProvider.TokenSignMethod {
@@ -497,14 +499,14 @@ func (m *AuthPortalManager) Register(p *AuthPortal) error {
 			}
 		}
 	}
-	p.TokenValidator.TokenConfigs = []*jwt.CommonTokenConfig{tokenConfig}
+	p.TokenValidator.TokenConfigs = []*jwtconfig.CommonTokenConfig{tokenConfig}
 	if err := p.TokenValidator.ConfigureTokenBackends(); err != nil {
 		return fmt.Errorf(
 			"%s: token validator backend configuration failed: %s",
 			p.Name, err,
 		)
 	}
-	entry := jwt.NewAccessListEntry()
+	entry := jwtacl.NewAccessListEntry()
 	entry.Allow()
 	if err := entry.SetClaim("roles"); err != nil {
 		return fmt.Errorf(
@@ -569,7 +571,7 @@ func (m *AuthPortalManager) Provision(name string) error {
 	}
 
 	if p.TokenProvider == nil {
-		p.TokenProvider = jwt.NewCommonTokenConfig()
+		p.TokenProvider = jwtconfig.NewCommonTokenConfig()
 	}
 
 	if p.TokenProvider.TokenName == "" {
@@ -815,7 +817,7 @@ func (m *AuthPortalManager) Provision(name string) error {
 
 	// JWT Token Validator
 	p.TokenValidator = jwt.NewTokenValidator()
-	tokenConfig := jwt.NewCommonTokenConfig()
+	tokenConfig := jwtconfig.NewCommonTokenConfig()
 	tokenConfig.TokenName = p.TokenProvider.TokenName
 
 	switch p.TokenProvider.TokenSignMethod {
@@ -841,7 +843,7 @@ func (m *AuthPortalManager) Provision(name string) error {
 		}
 	}
 
-	p.TokenValidator.TokenConfigs = []*jwt.CommonTokenConfig{tokenConfig}
+	p.TokenValidator.TokenConfigs = []*jwtconfig.CommonTokenConfig{tokenConfig}
 	if err := p.TokenValidator.ConfigureTokenBackends(); err != nil {
 		return fmt.Errorf(
 			"%s: token validator backend configuration failed: %s",
@@ -850,7 +852,7 @@ func (m *AuthPortalManager) Provision(name string) error {
 	}
 
 	// JWT Access List
-	entry := jwt.NewAccessListEntry()
+	entry := jwtacl.NewAccessListEntry()
 	entry.Allow()
 	if err := entry.SetClaim("roles"); err != nil {
 		return fmt.Errorf(

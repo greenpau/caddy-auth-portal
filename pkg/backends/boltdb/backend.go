@@ -18,7 +18,8 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"github.com/greenpau/caddy-auth-jwt"
+	jwtclaims "github.com/greenpau/caddy-auth-jwt/pkg/claims"
+	jwtconfig "github.com/greenpau/caddy-auth-jwt/pkg/config"
 	"go.uber.org/zap"
 	"os"
 	"sync"
@@ -27,12 +28,12 @@ import (
 
 // Backend represents authentication provider with BoltDB backend.
 type Backend struct {
-	Name          string                 `json:"name,omitempty"`
-	Method        string                 `json:"method,omitempty"`
-	Realm         string                 `json:"realm,omitempty"`
-	Path          string                 `json:"path,omitempty"`
-	TokenProvider *jwt.CommonTokenConfig `json:"jwt,omitempty"`
-	Authenticator *Authenticator         `json:"-"`
+	Name          string                       `json:"name,omitempty"`
+	Method        string                       `json:"method,omitempty"`
+	Realm         string                       `json:"realm,omitempty"`
+	Path          string                       `json:"path,omitempty"`
+	TokenProvider *jwtconfig.CommonTokenConfig `json:"jwt,omitempty"`
+	Authenticator *Authenticator               `json:"-"`
 	logger        *zap.Logger
 }
 
@@ -41,7 +42,7 @@ type Backend struct {
 func NewDatabaseBackend() *Backend {
 	b := &Backend{
 		Method:        "boltdb",
-		TokenProvider: jwt.NewCommonTokenConfig(),
+		TokenProvider: jwtconfig.NewCommonTokenConfig(),
 		Authenticator: NewAuthenticator(),
 	}
 	return b
@@ -94,7 +95,7 @@ func (sa *Authenticator) Configure() error {
 
 // AuthenticateUser checks the database for the presence of a username
 // and password and returns user claims.
-func (sa *Authenticator) AuthenticateUser(username, password string) (*jwt.UserClaims, int, error) {
+func (sa *Authenticator) AuthenticateUser(username, password string) (*jwtclaims.UserClaims, int, error) {
 	sa.mux.Lock()
 	defer sa.mux.Unlock()
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
@@ -116,7 +117,7 @@ func (sa *Authenticator) AuthenticateUser(username, password string) (*jwt.UserC
 		sa.logger.Info("user identity found", zap.String("username", username), zap.Int("user_id", userID))
 	}
 
-	claims := &jwt.UserClaims{}
+	claims := &jwtclaims.UserClaims{}
 	claims.Subject = username
 	claims.Email = username
 	// claims.Name = "Greenberg, Paul"
@@ -225,12 +226,12 @@ func (b *Backend) GetName() string {
 }
 
 // ConfigureTokenProvider configures TokenProvider.
-func (b *Backend) ConfigureTokenProvider(upstream *jwt.CommonTokenConfig) error {
+func (b *Backend) ConfigureTokenProvider(upstream *jwtconfig.CommonTokenConfig) error {
 	if upstream == nil {
 		return fmt.Errorf("upstream token provider is nil")
 	}
 	if b.TokenProvider == nil {
-		b.TokenProvider = jwt.NewCommonTokenConfig()
+		b.TokenProvider = jwtconfig.NewCommonTokenConfig()
 	}
 	if b.TokenProvider.TokenSecret == "" {
 		b.TokenProvider.TokenSecret = upstream.TokenSecret

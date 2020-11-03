@@ -20,7 +20,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/greenpau/caddy-auth-jwt"
+	jwtclaims "github.com/greenpau/caddy-auth-jwt/pkg/claims"
 	"github.com/greenpau/caddy-auth-portal/pkg/backends"
 	"github.com/greenpau/caddy-auth-portal/pkg/ui"
 	"github.com/greenpau/caddy-auth-portal/pkg/utils"
@@ -40,7 +40,7 @@ func ServeSettings(w http.ResponseWriter, r *http.Request, opts map[string]inter
 	}
 	reqID := opts["request_id"].(string)
 	log := opts["logger"].(*zap.Logger)
-	claims := opts["user_claims"].(*jwt.UserClaims)
+	claims := opts["user_claims"].(*jwtclaims.UserClaims)
 	uiFactory := opts["ui"].(*ui.UserInterfaceFactory)
 	if _, exists := opts["backend"]; exists {
 		backend = opts["backend"].(*backends.Backend)

@@ -16,7 +16,8 @@ package handlers
 
 import (
 	"encoding/json"
-	"github.com/greenpau/caddy-auth-jwt"
+	jwtclaims "github.com/greenpau/caddy-auth-jwt/pkg/claims"
+
 	"github.com/greenpau/caddy-auth-portal/pkg/ui"
 	"go.uber.org/zap"
 	"net/http"
@@ -36,7 +37,7 @@ func ServeWhoami(w http.ResponseWriter, r *http.Request, opts map[string]interfa
 		return nil
 	}
 
-	claims := opts["user_claims"].(*jwt.UserClaims)
+	claims := opts["user_claims"].(*jwtclaims.UserClaims)
 	// If the requested content type is JSON, then output authenticated message
 	if opts["content_type"].(string) == "application/json" {
 		payload, err := json.Marshal(claims)

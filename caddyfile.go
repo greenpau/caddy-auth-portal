@@ -20,7 +20,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/greenpau/caddy-auth-jwt"
+	jwtconfig "github.com/greenpau/caddy-auth-jwt/pkg/config"
+
 	"github.com/greenpau/caddy-auth-portal/pkg/backends"
 	"github.com/greenpau/caddy-auth-portal/pkg/cookies"
 	"github.com/greenpau/caddy-auth-portal/pkg/core"
@@ -333,7 +334,7 @@ func parseCaddyfileAuthPortal(h httpcaddyfile.Helper) ([]httpcaddyfile.ConfigVal
 					return nil, h.Errf("%s argument values are unsupported %v", rootDirective, args)
 				}
 				if portal.TokenProvider == nil {
-					portal.TokenProvider = jwt.NewCommonTokenConfig()
+					portal.TokenProvider = jwtconfig.NewCommonTokenConfig()
 				}
 				portal.TokenProvider.TokenRSAFiles = make(map[string]string)
 				portal.TokenProvider.TokenRSAFiles[args[0]] = args[1]
@@ -346,7 +347,7 @@ func parseCaddyfileAuthPortal(h httpcaddyfile.Helper) ([]httpcaddyfile.ConfigVal
 					return nil, h.Errf("%s argument values are unsupported %v", rootDirective, args)
 				}
 				if portal.TokenProvider == nil {
-					portal.TokenProvider = jwt.NewCommonTokenConfig()
+					portal.TokenProvider = jwtconfig.NewCommonTokenConfig()
 				}
 				portal.TokenProvider.TokenName = args[0]
 			case "jwt_token_secret":
@@ -358,7 +359,7 @@ func parseCaddyfileAuthPortal(h httpcaddyfile.Helper) ([]httpcaddyfile.ConfigVal
 					return nil, h.Errf("%s argument values are unsupported %v", rootDirective, args)
 				}
 				if portal.TokenProvider == nil {
-					portal.TokenProvider = jwt.NewCommonTokenConfig()
+					portal.TokenProvider = jwtconfig.NewCommonTokenConfig()
 				}
 				portal.TokenProvider.TokenSecret = args[0]
 			case "jwt_token_sign_method":
@@ -370,7 +371,7 @@ func parseCaddyfileAuthPortal(h httpcaddyfile.Helper) ([]httpcaddyfile.ConfigVal
 					return nil, h.Errf("%s argument values are unsupported %v", rootDirective, args)
 				}
 				if portal.TokenProvider == nil {
-					portal.TokenProvider = jwt.NewCommonTokenConfig()
+					portal.TokenProvider = jwtconfig.NewCommonTokenConfig()
 				}
 				portal.TokenProvider.TokenSignMethod = args[0]
 			case "jwt_token_lifetime":
@@ -382,7 +383,7 @@ func parseCaddyfileAuthPortal(h httpcaddyfile.Helper) ([]httpcaddyfile.ConfigVal
 					return nil, h.Errf("%s argument values are unsupported %v", rootDirective, args)
 				}
 				if portal.TokenProvider == nil {
-					portal.TokenProvider = jwt.NewCommonTokenConfig()
+					portal.TokenProvider = jwtconfig.NewCommonTokenConfig()
 				}
 				lifetime, err := strconv.Atoi(h.Val())
 				if err != nil {
@@ -391,7 +392,7 @@ func parseCaddyfileAuthPortal(h httpcaddyfile.Helper) ([]httpcaddyfile.ConfigVal
 				portal.TokenProvider.TokenLifetime = lifetime
 			case "jwt":
 				if portal.TokenProvider == nil {
-					portal.TokenProvider = jwt.NewCommonTokenConfig()
+					portal.TokenProvider = jwtconfig.NewCommonTokenConfig()
 				}
 				for nesting := h.Nesting(); h.NextBlock(nesting); {
 					subDirective := h.Val()
@@ -564,7 +565,7 @@ func parseCaddyfileAuthPortal(h httpcaddyfile.Helper) ([]httpcaddyfile.ConfigVal
 	}
 
 	if portal.TokenProvider == nil {
-		portal.TokenProvider = jwt.NewCommonTokenConfig()
+		portal.TokenProvider = jwtconfig.NewCommonTokenConfig()
 		portal.TokenProvider.TokenSecret = utils.GetRandomStringFromRange(32, 64)
 	}
 

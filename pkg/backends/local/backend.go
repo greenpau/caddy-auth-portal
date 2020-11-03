@@ -16,7 +16,9 @@ package local
 
 import (
 	"fmt"
-	"github.com/greenpau/caddy-auth-jwt"
+	jwtclaims "github.com/greenpau/caddy-auth-jwt/pkg/claims"
+	jwtconfig "github.com/greenpau/caddy-auth-jwt/pkg/config"
+
 	"github.com/greenpau/go-identity"
 	"github.com/satori/go.uuid"
 	"go.uber.org/zap"
@@ -35,12 +37,12 @@ func init() {
 
 // Backend represents authentication provider with local backend.
 type Backend struct {
-	Name          string                 `json:"name,omitempty"`
-	Method        string                 `json:"method,omitempty"`
-	Realm         string                 `json:"realm,omitempty"`
-	Path          string                 `json:"path,omitempty"`
-	TokenProvider *jwt.CommonTokenConfig `json:"-"`
-	Authenticator *Authenticator         `json:"-"`
+	Name          string                       `json:"name,omitempty"`
+	Method        string                       `json:"method,omitempty"`
+	Realm         string                       `json:"realm,omitempty"`
+	Path          string                       `json:"path,omitempty"`
+	TokenProvider *jwtconfig.CommonTokenConfig `json:"-"`
+	Authenticator *Authenticator               `json:"-"`
 	logger        *zap.Logger
 }
 
@@ -49,7 +51,7 @@ type Backend struct {
 func NewDatabaseBackend() *Backend {
 	b := &Backend{
 		Method:        "local",
-		TokenProvider: jwt.NewCommonTokenConfig(),
+		TokenProvider: jwtconfig.NewCommonTokenConfig(),
 		Authenticator: globalAuthenticator,
 	}
 	return b
@@ -143,7 +145,7 @@ func (sa *Authenticator) Configure() error {
 
 // AuthenticateUser checks the database for the presence of a username/email
 // and password and returns user claims.
-func (sa *Authenticator) AuthenticateUser(userInput, password string) (*jwt.UserClaims, int, error) {
+func (sa *Authenticator) AuthenticateUser(userInput, password string) (*jwtclaims.UserClaims, int, error) {
 	var user *identity.User
 	var err error
 	sa.mux.Lock()
@@ -171,7 +173,7 @@ func (sa *Authenticator) AuthenticateUser(userInput, password string) (*jwt.User
 		return nil, 500, fmt.Errorf("user claims is nil")
 	}
 
-	claims, err := jwt.NewUserClaimsFromMap(userMap)
+	claims, err := jwtclaims.NewUserClaimsFromMap(userMap)
 	if err != nil {
 		return nil, 500, fmt.Errorf("failed to parse user claims: %s", err)
 	}
@@ -314,12 +316,12 @@ func (b *Backend) GetMethod() string {
 }
 
 // ConfigureTokenProvider configures TokenProvider.
-func (b *Backend) ConfigureTokenProvider(upstream *jwt.CommonTokenConfig) error {
+func (b *Backend) ConfigureTokenProvider(upstream *jwtconfig.CommonTokenConfig) error {
 	if upstream == nil {
 		return fmt.Errorf("upstream token provider is nil")
 	}
 	if b.TokenProvider == nil {
-		b.TokenProvider = jwt.NewCommonTokenConfig()
+		b.TokenProvider = jwtconfig.NewCommonTokenConfig()
 	}
 	if b.TokenProvider.TokenSecret == "" {
 		b.TokenProvider.TokenSecret = upstream.TokenSecret

@@ -17,13 +17,13 @@ package oauth2
 import (
 	"fmt"
 	jwtlib "github.com/dgrijalva/jwt-go"
-	"github.com/greenpau/caddy-auth-jwt"
+	jwtclaims "github.com/greenpau/caddy-auth-jwt/pkg/claims"
 	"github.com/greenpau/caddy-auth-portal/pkg/errors"
 	"strings"
 	"time"
 )
 
-func (b *Backend) validateAccessToken(state string, data map[string]interface{}) (*jwt.UserClaims, error) {
+func (b *Backend) validateAccessToken(state string, data map[string]interface{}) (*jwtclaims.UserClaims, error) {
 	for _, k := range []string{"id_token"} {
 		if _, exists := data[k]; !exists {
 			return nil, fmt.Errorf("token response has no %s field", k)
@@ -76,7 +76,7 @@ func (b *Backend) validateAccessToken(state string, data map[string]interface{})
 	}
 
 	// Create new claims
-	claims := &jwt.UserClaims{
+	claims := &jwtclaims.UserClaims{
 		Origin:    b.TokenProvider.TokenOrigin + "/" + state,
 		ExpiresAt: time.Now().Add(time.Duration(b.TokenProvider.TokenLifetime) * time.Second).Unix(),
 		IssuedAt:  time.Now().Unix(),

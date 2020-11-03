@@ -15,7 +15,7 @@
 package cache
 
 import (
-	"github.com/greenpau/caddy-auth-jwt"
+	jwtclaims "github.com/greenpau/caddy-auth-jwt/pkg/claims"
 	//"log"
 	"sync"
 	"time"
@@ -61,7 +61,7 @@ func manageSessionCache(cache *SessionCache) {
 				dataset := data.(map[string]interface{})
 				//log.Printf("cached entry data: %v", dataset)
 				if v, exists := dataset["claims"]; exists {
-					claims := v.(*jwt.UserClaims)
+					claims := v.(*jwtclaims.UserClaims)
 					//log.Printf("entering cache claims: %v", claims)
 					if err := claims.Valid(); err != nil {
 						delete(cache.Entries, entryID)

@@ -18,7 +18,8 @@ import (
 	"fmt"
 	"sync"
 
-	jwt "github.com/greenpau/caddy-auth-jwt"
+	jwtconfig "github.com/greenpau/caddy-auth-jwt/pkg/config"
+
 	"go.uber.org/zap"
 )
 
@@ -33,11 +34,11 @@ func init() {
 
 // Backend represents authentication provider with X.509 backend.
 type Backend struct {
-	Name          string                 `json:"name,omitempty"`
-	Method        string                 `json:"method,omitempty"`
-	Realm         string                 `json:"realm,omitempty"`
-	TokenProvider *jwt.CommonTokenConfig `json:"-"`
-	Authenticator *Authenticator         `json:"-"`
+	Name          string                       `json:"name,omitempty"`
+	Method        string                       `json:"method,omitempty"`
+	Realm         string                       `json:"realm,omitempty"`
+	TokenProvider *jwtconfig.CommonTokenConfig `json:"-"`
+	Authenticator *Authenticator               `json:"-"`
 	logger        *zap.Logger
 }
 
@@ -46,7 +47,7 @@ type Backend struct {
 func NewDatabaseBackend() *Backend {
 	b := &Backend{
 		Method:        "x509",
-		TokenProvider: jwt.NewCommonTokenConfig(),
+		TokenProvider: jwtconfig.NewCommonTokenConfig(),
 		Authenticator: globalAuthenticator,
 	}
 	return b
@@ -140,12 +141,12 @@ func (b *Backend) GetName() string {
 }
 
 // ConfigureTokenProvider configures TokenProvider.
-func (b *Backend) ConfigureTokenProvider(upstream *jwt.CommonTokenConfig) error {
+func (b *Backend) ConfigureTokenProvider(upstream *jwtconfig.CommonTokenConfig) error {
 	if upstream == nil {
 		return fmt.Errorf("upstream token provider is nil")
 	}
 	if b.TokenProvider == nil {
-		b.TokenProvider = jwt.NewCommonTokenConfig()
+		b.TokenProvider = jwtconfig.NewCommonTokenConfig()
 	}
 	if b.TokenProvider.TokenSecret == "" {
 		b.TokenProvider.TokenSecret = upstream.TokenSecret
