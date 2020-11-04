@@ -40,10 +40,10 @@ linter:
 	@echo "PASS: golint"
 
 test: covdir linter docs
-	@go test $(VERBOSE) -coverprofile=.coverage/coverage.out ./*.go
+	@go test $(VERBOSE) -coverprofile=.coverage/coverage.out ./...
 
 ctest: covdir linter
-	@time richgo test $(VERBOSE) $(TEST) -coverprofile=.coverage/coverage.out ./*.go
+	@time richgo test $(VERBOSE) $(TEST) -coverprofile=.coverage/coverage.out ./...
 
 covdir:
 	@echo "Creating .coverage/ directory"
@@ -51,7 +51,7 @@ covdir:
 
 coverage:
 	@go tool cover -html=.coverage/coverage.out -o .coverage/coverage.html
-	@go test -covermode=count -coverprofile=.coverage/coverage.out ./*.go
+	@go test -covermode=count -coverprofile=.coverage/coverage.out ./...
 	@go tool cover -func=.coverage/coverage.out | grep -v "100.0"
 
 docs:
@@ -68,12 +68,13 @@ clean:
 
 qtest:
 	@echo "Perform quick tests ..."
-	@time richgo test  $(VERBOSE) -coverprofile=.coverage/coverage.out -run TestLocalConfig ./*.go
+	@#time richgo test  $(VERBOSE) -coverprofile=.coverage/coverage.out -run TestLocalConfig ./*.go
 	@#time richgo test $(VERBOSE) -coverprofile=.coverage/coverage.out -run TestLocalCaddyfile ./*.go
 	@#go test $(VERBOSE) -coverprofile=.coverage/coverage.out -run TestLdapConfig ./*.go
 	@#go test $(VERBOSE) -coverprofile=.coverage/coverage.out -run TestLdapCaddyfile ./*.go
 	@#go test $(VERBOSE) -coverprofile=.coverage/coverage.out -run TestSamlCaddyfile ./*.go
 	@#time richgo test $(VERBOSE) -coverprofile=.coverage/coverage.out -run TestGetSourceAddress ./*.go
+	@time richgo test $(VERBOSE) -coverprofile=.coverage/coverage.out -run TestNewUserInterface ./pkg/ui/*.go
 
 dep:
 	@echo "Making dependencies check ..."

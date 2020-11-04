@@ -129,7 +129,7 @@ func NewUserInterfaceTemplate(s, tp string) (*UserInterfaceTemplate, error) {
 		// Assuming the template is a file system template
 		content, err := ioutil.ReadFile(tp)
 		if err != nil {
-			return nil, fmt.Errorf("tailed to load %s template from %s: %s", s, tp, err)
+			return nil, fmt.Errorf("failed to load %s template from %s: %s", s, tp, err)
 		}
 		templateBody = string(content)
 	}

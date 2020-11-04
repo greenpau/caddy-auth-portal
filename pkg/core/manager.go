@@ -17,9 +17,9 @@ package core
 import (
 	"crypto/rsa"
 	"fmt"
-	"github.com/greenpau/caddy-auth-jwt"
 	jwtacl "github.com/greenpau/caddy-auth-jwt/pkg/acl"
 	jwtconfig "github.com/greenpau/caddy-auth-jwt/pkg/config"
+	jwtvalidator "github.com/greenpau/caddy-auth-jwt/pkg/validator"
 	"github.com/greenpau/caddy-auth-portal/pkg/cookies"
 	"github.com/greenpau/caddy-auth-portal/pkg/registration"
 	"github.com/greenpau/caddy-auth-portal/pkg/ui"
@@ -123,7 +123,7 @@ func (m *AuthPortalManager) Register(p *AuthPortal) error {
 
 	if !signingKeyFound && p.TokenProvider.TokenRSAFiles != nil {
 		if len(p.TokenProvider.TokenRSAFiles) > 0 {
-			if err := jwt.LoadEncryptionKeys(p.TokenProvider); err != nil {
+			if err := jwtvalidator.LoadEncryptionKeys(p.TokenProvider); err != nil {
 				return fmt.Errorf("%s: token provider error: %s", p.Name, err)
 			}
 			signingKeys := p.TokenProvider.GetKeys()
@@ -473,7 +473,7 @@ func (m *AuthPortalManager) Register(p *AuthPortal) error {
 		}
 	}
 
-	p.TokenValidator = jwt.NewTokenValidator()
+	p.TokenValidator = jwtvalidator.NewTokenValidator()
 	tokenConfig := jwtconfig.NewCommonTokenConfig()
 	tokenConfig.TokenName = p.TokenProvider.TokenName
 
@@ -484,7 +484,7 @@ func (m *AuthPortalManager) Register(p *AuthPortal) error {
 		if err := tokenConfig.AddRSAPublicKey(signingKeyID, signingKey); err != nil {
 			return fmt.Errorf("%s: token provider failed to add key ID %s: %s", p.Name, signingKeyID, err)
 		}
-		if err := jwt.LoadEncryptionKeys(tokenConfig); err != nil {
+		if err := jwtvalidator.LoadEncryptionKeys(tokenConfig); err != nil {
 			return fmt.Errorf("%s: token provider error: %s", p.Name, err)
 		}
 		verifyKeys := tokenConfig.GetKeys()
@@ -619,7 +619,7 @@ func (m *AuthPortalManager) Provision(name string) error {
 
 	if !signingKeyFound && p.TokenProvider.TokenRSAFiles != nil {
 		if len(p.TokenProvider.TokenRSAFiles) > 0 {
-			if err := jwt.LoadEncryptionKeys(p.TokenProvider); err != nil {
+			if err := jwtvalidator.LoadEncryptionKeys(p.TokenProvider); err != nil {
 				return fmt.Errorf("%s: token provider error: %s", p.Name, err)
 			}
 			signingKeys := p.TokenProvider.GetKeys()
@@ -816,7 +816,7 @@ func (m *AuthPortalManager) Provision(name string) error {
 	}
 
 	// JWT Token Validator
-	p.TokenValidator = jwt.NewTokenValidator()
+	p.TokenValidator = jwtvalidator.NewTokenValidator()
 	tokenConfig := jwtconfig.NewCommonTokenConfig()
 	tokenConfig.TokenName = p.TokenProvider.TokenName
 
@@ -827,7 +827,7 @@ func (m *AuthPortalManager) Provision(name string) error {
 		if err := tokenConfig.AddRSAPublicKey(signingKeyID, signingKey); err != nil {
 			return fmt.Errorf("%s: token provider failed to add key ID %s: %s", p.Name, signingKeyID, err)
 		}
-		if err := jwt.LoadEncryptionKeys(tokenConfig); err != nil {
+		if err := jwtvalidator.LoadEncryptionKeys(tokenConfig); err != nil {
 			return fmt.Errorf("%s: token provider error: %s", p.Name, err)
 		}
 		verifyKeys := tokenConfig.GetKeys()

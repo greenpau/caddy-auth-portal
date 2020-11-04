@@ -17,6 +17,7 @@ package portal
 import (
 	"encoding/json"
 	"github.com/caddyserver/caddy/v2/caddytest"
+	_ "github.com/greenpau/caddy-auth-jwt"
 	"io/ioutil"
 	"net/http"
 	"net/url"

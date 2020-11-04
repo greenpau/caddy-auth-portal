@@ -21,9 +21,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/greenpau/caddy-auth-jwt"
 	jwtclaims "github.com/greenpau/caddy-auth-jwt/pkg/claims"
 	jwtconfig "github.com/greenpau/caddy-auth-jwt/pkg/config"
+	jwtvalidator "github.com/greenpau/caddy-auth-jwt/pkg/validator"
 
 	"github.com/greenpau/caddy-auth-portal/pkg/backends"
 	"github.com/greenpau/caddy-auth-portal/pkg/cache"
@@ -68,7 +68,7 @@ type AuthPortal struct {
 	Backends                 []backends.Backend           `json:"backends,omitempty"`
 	TokenProvider            *jwtconfig.CommonTokenConfig `json:"jwt,omitempty"`
 	EnableSourceIPTracking   bool                         `json:"source_ip_tracking,omitempty"`
-	TokenValidator           *jwt.TokenValidator          `json:"-"`
+	TokenValidator           *jwtvalidator.TokenValidator `json:"-"`
 	logger                   *zap.Logger
 	uiFactory                *ui.UserInterfaceFactory
 	startedAt                time.Time

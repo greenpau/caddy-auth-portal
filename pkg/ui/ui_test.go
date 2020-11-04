@@ -48,17 +48,40 @@ func TestNewUserInterface(t *testing.T) {
 	}
 
 	t.Log("Adding a template from file system")
-	if err := f.AddTemplate("login", "assets/templates/basic/login.template"); err != nil {
+	if err := f.AddTemplate("login", "../../assets/templates/basic/login.template"); err != nil {
 		t.Fatalf("Expected success, but got error: %s, %v", err, f.Templates)
 	}
 
+	loginRealm := make(map[string]string)
+	loginRealm["realm"] = "local"
+	loginRealm["label"] = strings.ToTitle("Local")
+	loginRealm["default"] = "yes"
+
+	var loginRealms []map[string]string
+	loginRealms = append(loginRealms, loginRealm)
+
+	loginOptions := make(map[string]interface{})
+	loginOptions["form_required"] = "yes"
+	loginOptions["realm_dropdown_required"] = "no"
+	loginOptions["username_required"] = "yes"
+	loginOptions["password_required"] = "yes"
+	loginOptions["external_providers_required"] = "no"
+	loginOptions["registration_required"] = "no"
+	loginOptions["password_recovery_required"] = "no"
+	loginOptions["realms"] = loginRealms
+
 	t.Log("Rendering templates")
 	args := f.GetArgs()
+	args.Data["login_options"] = loginOptions
+
 	var t1, t2 *bytes.Buffer
 	var err error
 	if t1, err = f.Render("basic/login", args); err != nil {
 		t.Fatalf("Expected success, but got error: %s", err)
 	}
+
+	args = f.GetArgs()
+	args.Data["login_options"] = loginOptions
 	if t2, err = f.Render("login", args); err != nil {
 		t.Fatalf("Expected success, but got error: %s", err)
 	}
