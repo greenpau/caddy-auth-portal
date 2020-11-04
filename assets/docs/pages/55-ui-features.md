@@ -54,4 +54,19 @@ code and the acceptable of terms and conditions:
 
 [:arrow_up: Back to Top](#table-of-contents)
 
+### Custom CSS Styles
+
+The following Caddyfile directive adds a custom CSS stylesheet to the
+plugin's pages:
+
+```
+      ui {
+        ...
+        custom_css_path path/to/styles.css
+        ...
+      }
+```
+
+[:arrow_up: Back to Top](#table-of-contents)
+
 <!--- end of section -->

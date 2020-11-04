@@ -73,6 +73,7 @@ func ServePortal(w http.ResponseWriter, r *http.Request, opts map[string]interfa
 	// Display main authentication portal page
 	resp := ui.GetArgs()
 	resp.Title = "Welcome"
+
 	content, err := ui.Render("portal", resp)
 	if err != nil {
 		log.Error("Failed HTML response rendering", zap.String("request_id", reqID), zap.String("error", err.Error()))

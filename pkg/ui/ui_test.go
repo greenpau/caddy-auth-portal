@@ -70,9 +70,13 @@ func TestNewUserInterface(t *testing.T) {
 	loginOptions["password_recovery_required"] = "no"
 	loginOptions["realms"] = loginRealms
 
+	uiOptions := make(map[string]interface{})
+	uiOptions["custom_css_required"] = "no"
+
 	t.Log("Rendering templates")
 	args := f.GetArgs()
 	args.Data["login_options"] = loginOptions
+	args.Data["ui_options"] = uiOptions
 
 	var t1, t2 *bytes.Buffer
 	var err error
@@ -82,6 +86,7 @@ func TestNewUserInterface(t *testing.T) {
 
 	args = f.GetArgs()
 	args.Data["login_options"] = loginOptions
+	args.Data["ui_options"] = uiOptions
 	if t2, err = f.Render("login", args); err != nil {
 		t.Fatalf("Expected success, but got error: %s", err)
 	}

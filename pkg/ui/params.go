@@ -27,4 +27,5 @@ type UserInterfaceParameters struct {
 	AutoRedirectURL         string              `json:"auto_redirect_url"`
 	Realms                  []UserRealm         `json:"realms"`
 	PasswordRecoveryEnabled bool                `json:"password_recovery_enabled"`
+	CustomCSSPath           string              `json:"custom_css_path,omitempty"`
 }

@@ -159,8 +159,10 @@ func (p *AuthPortal) ServeHTTP(w http.ResponseWriter, r *http.Request, upstreamO
 		q := r.URL.Query()
 		foundQueryOptions := false
 		if redirectURL, exists := q["redirect_url"]; exists {
-			w.Header().Set("Set-Cookie", redirectToToken+"="+redirectURL[0]+";"+p.Cookies.GetAttributes())
-			foundQueryOptions = true
+			if !strings.HasSuffix(redirectURL[0], ".css") && !strings.HasSuffix(redirectURL[0], ".js") {
+				w.Header().Set("Set-Cookie", redirectToToken+"="+redirectURL[0]+";"+p.Cookies.GetAttributes())
+				foundQueryOptions = true
+			}
 		}
 		if !strings.HasPrefix(urlPath, "saml") && !strings.HasPrefix(urlPath, "x509") && !strings.HasPrefix(urlPath, "oauth2") {
 			if foundQueryOptions {

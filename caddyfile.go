@@ -66,6 +66,7 @@ func init() {
 //	       portal_template <file_path>
 //	       logo_url <file_path|url_path>
 //	       logo_description <value>
+//         custom_css_path <path}url>
 //	     }
 //
 //       cookie_domain <name>
@@ -488,6 +489,11 @@ func parseCaddyfileAuthPortal(h httpcaddyfile.Helper) ([]httpcaddyfile.ConfigVal
 									Link:  args[0],
 								})
 							}
+						case "custom_css", "custom_css_path":
+							if !h.NextArg() {
+								return nil, h.Errf("%s %s subdirective has no value", rootDirective, subDirective)
+							}
+							portal.UserInterface.CustomCSSPath = h.Val()
 						default:
 							return nil, h.Errf("unsupported subdirective for %s: %s", rootDirective, subDirective)
 						}

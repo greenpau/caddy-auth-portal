@@ -156,7 +156,6 @@ func ServeLogin(w http.ResponseWriter, r *http.Request, opts map[string]interfac
 	}
 
 	resp.Data["login_options"] = opts["login_options"]
-
 	content, err := uiFactory.Render("login", resp)
 	if err != nil {
 		log.Error("Failed HTML response rendering", zap.String("request_id", reqID), zap.String("error", err.Error()))

@@ -38,6 +38,7 @@ Please ask questions either here or via LinkedIn. I am happy to help you! @green
 * [User Interface Features](#user-interface-features)
   * [Auto-Redirect URL](#auto-redirect-url)
   * [User Registration](#user-registration)
+  * [Custom CSS Styles](#custom-css-styles)
 * [Local Authentication Backend](#local-authentication-backend)
   * [Configuration Primer](#configuration-primer)
   * [Identity Store](#identity-store)
@@ -562,7 +563,23 @@ code and the acceptable of terms and conditions:
 
 [:arrow_up: Back to Top](#table-of-contents)
 
+### Custom CSS Styles
+
+The following Caddyfile directive adds a custom CSS stylesheet to the
+plugin's pages:
+
+```
+      ui {
+        ...
+        custom_css_path path/to/styles.css
+        ...
+      }
+```
+
+[:arrow_up: Back to Top](#table-of-contents)
+
 <!--- end of section -->
+
 ## Local Authentication Backend
 
 ### Configuration Primer

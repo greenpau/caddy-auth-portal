@@ -87,7 +87,6 @@ func ServeGeneric(w http.ResponseWriter, r *http.Request, opts map[string]interf
 	// Display main authentication portal page
 	resp := ui.GetArgs()
 	resp.Title = title
-	resp.Data = make(map[string]interface{})
 	resp.Data["go_back_url"] = authURLPath
 	if opts["authenticated"].(bool) {
 		resp.Data["authenticated"] = true

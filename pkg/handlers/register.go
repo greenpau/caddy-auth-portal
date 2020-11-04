@@ -191,7 +191,6 @@ func ServeRegister(w http.ResponseWriter, r *http.Request, opts map[string]inter
 
 	// Display registration page
 	resp := uiFactory.GetArgs()
-	resp.Data = make(map[string]interface{})
 	if registration.Title == "" {
 		resp.Title = "Sign Up"
 	} else {

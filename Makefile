@@ -39,10 +39,10 @@ linter:
 	@for f in `find ./pkg -type f -name '*.go'`; do echo $$f; go fmt $$f; golint -set_exit_status $$f; done
 	@echo "PASS: golint"
 
-test: covdir linter docs
+test: templates covdir linter docs
 	@go test $(VERBOSE) -coverprofile=.coverage/coverage.out ./...
 
-ctest: covdir linter
+ctest: templates covdir linter
 	@time richgo test $(VERBOSE) $(TEST) -coverprofile=.coverage/coverage.out ./...
 
 covdir:

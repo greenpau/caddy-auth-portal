@@ -390,6 +390,10 @@ func (m *AuthPortalManager) Register(p *AuthPortal) error {
 		p.uiFactory.Title = p.UserInterface.Title
 	}
 
+	if p.UserInterface.CustomCSSPath != "" {
+		p.uiFactory.CustomCSSPath = p.UserInterface.CustomCSSPath
+	}
+
 	if p.UserInterface.LogoURL != "" {
 		p.uiFactory.LogoURL = p.UserInterface.LogoURL
 		p.uiFactory.LogoDescription = p.UserInterface.LogoDescription
@@ -726,6 +730,10 @@ func (m *AuthPortalManager) Provision(name string) error {
 		p.uiFactory.Title = primaryInstance.uiFactory.Title
 	} else {
 		p.uiFactory.Title = p.UserInterface.Title
+	}
+
+	if p.UserInterface.CustomCSSPath != "" {
+		p.uiFactory.CustomCSSPath = primaryInstance.uiFactory.CustomCSSPath
 	}
 
 	if p.UserInterface.LogoURL == "" {
