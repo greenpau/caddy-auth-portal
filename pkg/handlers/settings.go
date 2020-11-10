@@ -135,7 +135,7 @@ func ServeSettings(w http.ResponseWriter, r *http.Request, opts map[string]inter
 				view = strings.Join(viewParts, "-")
 			}
 		}
-	case "sshkeys", "gpgkeys", "apikeys":
+	case "sshkeys", "gpgkeys":
 		if len(viewParts) > 1 {
 			switch viewParts[1] {
 			case "add":
@@ -152,8 +152,6 @@ func ServeSettings(w http.ResponseWriter, r *http.Request, opts map[string]inter
 								operation["name"] = "add_ssh_key"
 							case "gpgkeys":
 								operation["name"] = "add_gpg_key"
-							case "apikeys":
-								operation["name"] = "add_api_key"
 							}
 							for k, v := range keys {
 								operation[k] = v
@@ -167,9 +165,41 @@ func ServeSettings(w http.ResponseWriter, r *http.Request, opts map[string]inter
 									resp.Data["status_reason"] = "Public SSH key has been added"
 								case "gpgkeys":
 									resp.Data["status_reason"] = "GPG key has been added"
-								case "apikeys":
-									resp.Data["status_reason"] = "API key has been added"
 								}
+							}
+						}
+					} else {
+						resp.Data["status_reason"] = "Authentication backend not found"
+					}
+					view = strings.Join(viewParts, "-") + "-status"
+				} else {
+					view = strings.Join(viewParts, "-")
+				}
+			default:
+				view = strings.Join(viewParts, "-")
+			}
+		}
+	case "apikeys":
+		if len(viewParts) > 1 {
+			switch viewParts[1] {
+			case "add":
+				if r.Method == "POST" {
+					resp.Data["status"] = "failure"
+					if backend != nil {
+						if keys, err := validateKeyInputForm(r); err != nil {
+							resp.Data["status"] = "failure"
+							resp.Data["status_reason"] = "Bad Request"
+						} else {
+							operation := make(map[string]interface{})
+							operation["name"] = "add_api_key"
+							for k, v := range keys {
+								operation[k] = v
+							}
+							if err := backend.Do(operation); err != nil {
+								resp.Data["status_reason"] = fmt.Sprintf("%s", err)
+							} else {
+								resp.Data["status"] = "success"
+								resp.Data["status_reason"] = "API key has been added"
 							}
 						}
 					} else {

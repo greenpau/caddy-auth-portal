@@ -208,6 +208,14 @@ func (sa *Authenticator) ChangePassword(opts map[string]interface{}) error {
 	return sa.db.ChangeUserPassword(opts)
 }
 
+// AddSSHKey adds SSH key for a user.
+func (sa *Authenticator) AddSSHKey(opts map[string]interface{}) error {
+	sa.mux.Lock()
+	defer sa.mux.Unlock()
+	opts["file_path"] = sa.path
+	return sa.db.AddUserSSHKey(opts)
+}
+
 // ConfigureAuthenticator configures backend.
 func (b *Backend) ConfigureAuthenticator() error {
 	if b.Authenticator == nil {
@@ -351,6 +359,9 @@ func (b *Backend) Do(opts map[string]interface{}) error {
 	op := opts["name"].(string)
 	switch op {
 	case "password_change":
+	case "add_ssh_key":
+	// case "add_gpg_key"
+	// case "add_api_key"
 	default:
 		return fmt.Errorf("Unsupported backend operation")
 	}
@@ -361,6 +372,10 @@ func (b *Backend) Do(opts map[string]interface{}) error {
 	switch op {
 	case "password_change":
 		if err := b.Authenticator.ChangePassword(opts); err != nil {
+			return err
+		}
+	case "add_ssh_key":
+		if err := b.Authenticator.AddSSHKey(opts); err != nil {
 			return err
 		}
 	}

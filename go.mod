@@ -7,8 +7,8 @@ require (
 	github.com/crewjam/saml v0.4.1
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/go-ldap/ldap v3.0.3+incompatible
-	github.com/greenpau/caddy-auth-jwt v1.1.8
-	github.com/greenpau/go-identity v1.0.6
+	github.com/greenpau/caddy-auth-jwt v1.1.9
+	github.com/greenpau/go-identity v1.0.8
 	github.com/satori/go.uuid v1.2.0
 	github.com/skip2/go-qrcode v0.0.0-20200617195104-da1b6568686e
 	go.uber.org/zap v1.15.0
