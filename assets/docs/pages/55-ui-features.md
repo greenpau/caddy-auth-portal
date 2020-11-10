@@ -57,7 +57,7 @@ code and the acceptable of terms and conditions:
 ### Custom CSS Styles
 
 The following Caddyfile directive adds a custom CSS stylesheet to the
-plugin's pages:
+plugin's pages. The stylesheet is available under `auth/assets/css/custom.css`
 
 ```
       ui {
@@ -66,6 +66,24 @@ plugin's pages:
         ...
       }
 ```
+
+[:arrow_up: Back to Top](#table-of-contents)
+
+### Custom Javascript
+
+The following Caddyfile directive adds a custom javascript file to the
+plugin's pages. The script is available under `auth/assets/js/custom.js`
+
+```
+      ui {
+        ...
+        custom_js_path path/to/script.js
+        ...
+      }
+```
+
+This directive is usefule for adding Google Analytics or other
+minor javascript code.
 
 [:arrow_up: Back to Top](#table-of-contents)
 

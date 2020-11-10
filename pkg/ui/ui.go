@@ -49,6 +49,7 @@ type UserInterfaceFactory struct {
 	// user credentials will be passed to via POST.
 	ActionEndpoint string `json:"-"`
 	CustomCSSPath  string `json:"custom_css_path,omitempty"`
+	CustomJsPath   string `json:"custom_js_path,omitempty"`
 }
 
 // UserInterfaceTemplate represents a user interface instance, e.g. a single
@@ -90,7 +91,8 @@ type UserInterfaceArgs struct {
 	RegistrationEnabled     bool
 	PasswordRecoveryEnabled bool
 	MfaEnabled              bool
-	CustomCSSPath           string `json:"custom_css_path,omitempty"`
+	CustomCSSEnabled        bool
+	CustomJsEnabled         bool
 }
 
 // NewUserInterfaceFactory return an instance of a user interface factory.
@@ -162,14 +164,20 @@ func (f *UserInterfaceFactory) GetArgs() *UserInterfaceArgs {
 		RegistrationEnabled:     f.RegistrationEnabled,
 		PasswordRecoveryEnabled: f.PasswordRecoveryEnabled,
 		MfaEnabled:              f.MfaEnabled,
-		CustomCSSPath:           f.CustomCSSPath,
 	}
 	uiOptions := make(map[string]interface{})
-	uiOptions["custom_css_path"] = f.CustomCSSPath
 	if f.CustomCSSPath != "" {
+		args.CustomCSSEnabled = true
 		uiOptions["custom_css_required"] = "yes"
 	} else {
 		uiOptions["custom_css_required"] = "no"
+	}
+
+	if f.CustomJsPath != "" {
+		args.CustomJsEnabled = true
+		uiOptions["custom_js_required"] = "yes"
+	} else {
+		uiOptions["custom_js_required"] = "no"
 	}
 	args.Data["ui_options"] = uiOptions
 	return args

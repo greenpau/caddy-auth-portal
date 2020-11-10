@@ -19,6 +19,7 @@ import (
 	"encoding/base64"
 	"fmt"
 	"io"
+	"io/ioutil"
 )
 
 // StaticAssets is an instance of StaticAssetLibrary.
@@ -71,4 +72,27 @@ func (sal *StaticAssetLibrary) GetAsset(path string) (*StaticAsset, error) {
 		return item, nil
 	}
 	return nil, fmt.Errorf("static asset %s not found", path)
+}
+
+// AddAsset adds asset to StaticAssetLibrary
+func (sal *StaticAssetLibrary) AddAsset(path, contentType, fsPath string) error {
+	rawContent, err := ioutil.ReadFile(fsPath)
+	if err != nil {
+		return fmt.Errorf("failed to load asset file %s: %s", fsPath, err)
+	}
+	item := &StaticAsset{
+		Path:           path,
+		ContentType:    contentType,
+		EncodedContent: base64.StdEncoding.EncodeToString(rawContent),
+	}
+	s, err := base64.StdEncoding.DecodeString(item.EncodedContent)
+	if err != nil {
+		return fmt.Errorf("static asset %s decoding error: %s", path, err)
+	}
+	item.Content = string(s)
+	h := sha1.New()
+	io.WriteString(h, item.Content)
+	item.Checksum = base64.URLEncoding.EncodeToString(h.Sum(nil))
+	sal.items[path] = item
+	return nil
 }

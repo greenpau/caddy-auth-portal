@@ -28,4 +28,5 @@ type UserInterfaceParameters struct {
 	Realms                  []UserRealm         `json:"realms"`
 	PasswordRecoveryEnabled bool                `json:"password_recovery_enabled"`
 	CustomCSSPath           string              `json:"custom_css_path,omitempty"`
+	CustomJsPath            string              `json:"custom_js_path,omitempty"`
 }

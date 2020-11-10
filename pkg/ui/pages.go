@@ -1,17 +1,3 @@
-// Copyright 2020 Paul Greenberg greenpau@outlook.com
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//      http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-
 package ui
 
 // PageTemplates stores UI templates.
@@ -34,7 +20,7 @@ var PageTemplates = map[string]string{
     <link rel="stylesheet" href="{{ pathjoin .ActionEndpoint "/assets/line-awesome/line-awesome.css" }}" />
     <link rel="stylesheet" href="{{ pathjoin .ActionEndpoint "/assets/css/styles.css" }}" />
     {{ if eq .Data.ui_options.custom_css_required "yes" }}
-    <link rel="stylesheet" href="{{ .Data.ui_options.custom_css_path }}" />
+    <link rel="stylesheet" href="{{ pathjoin .ActionEndpoint "/assets/css/custom.css" }}" />
     {{ end }}
   </head>
   <body class="app-body">
@@ -140,6 +126,9 @@ var PageTemplates = map[string]string{
     </div>
     <!-- Optional JavaScript -->
     <script src="{{ pathjoin .ActionEndpoint "/assets/materialize-css/js/materialize.js" }}"></script>
+    {{ if eq .Data.ui_options.custom_js_required "yes" }}
+    <script src="{{ pathjoin .ActionEndpoint "/assets/js/custom.js" }}"></script>
+    {{ end }}
     {{ if .Message }}
     <script>
     var toastHTML = '<span class="app-error-text">{{ .Message }}</span><button class="btn-flat toast-action" onclick="M.Toast.dismissAll();">Close</button>';
@@ -169,6 +158,9 @@ var PageTemplates = map[string]string{
     <link rel="stylesheet" href="{{ pathjoin .ActionEndpoint "/assets/google-webfonts/roboto.css" }}" />
     <link rel="stylesheet" href="{{ pathjoin .ActionEndpoint "/assets/line-awesome/line-awesome.css" }}" />
     <link rel="stylesheet" href="{{ pathjoin .ActionEndpoint "/assets/css/styles.css" }}" />
+    {{ if eq .Data.ui_options.custom_css_required "yes" }}
+    <link rel="stylesheet" href="{{ pathjoin .ActionEndpoint "/assets/css/custom.css" }}" />
+    {{ end }}
   </head>
   <body class="app-body">
     <div class="container">
@@ -210,6 +202,9 @@ var PageTemplates = map[string]string{
 
     <!-- Optional JavaScript -->
     <script src="{{ pathjoin .ActionEndpoint "/assets/materialize-css/js/materialize.js" }}"></script>
+    {{ if eq .Data.ui_options.custom_js_required "yes" }}
+    <script src="{{ pathjoin .ActionEndpoint "/assets/js/custom.js" }}"></script>
+    {{ end }}
     {{ if .Message }}
     <script>
     var toastHTML = '<span>{{ .Message }}</span><button class="btn-flat toast-action" onclick="M.Toast.dismissAll();">Close</button>';
@@ -240,6 +235,9 @@ var PageTemplates = map[string]string{
     <link rel="stylesheet" href="{{ pathjoin .ActionEndpoint "/assets/line-awesome/line-awesome.css" }}" />
     <link rel="stylesheet" href="{{ pathjoin .ActionEndpoint "/assets/highlight.js/css/atom-one-dark.min.css" }}" />
     <link rel="stylesheet" href="{{ pathjoin .ActionEndpoint "/assets/css/styles.css" }}" />
+    {{ if eq .Data.ui_options.custom_css_required "yes" }}
+    <link rel="stylesheet" href="{{ pathjoin .ActionEndpoint "/assets/css/custom.css" }}" />
+    {{ end }}
   </head>
   <body class="app-body">
     <div class="container">
@@ -282,6 +280,9 @@ var PageTemplates = map[string]string{
     <script src="{{ pathjoin .ActionEndpoint "/assets/materialize-css/js/materialize.js" }}"></script>
     <script src="{{ pathjoin .ActionEndpoint "/assets/highlight.js/js/highlight.js" }}"></script>
     <script src="{{ pathjoin .ActionEndpoint "/assets/highlight.js/js/languages/json.min.js" }}"></script>
+    {{ if eq .Data.ui_options.custom_js_required "yes" }}
+    <script src="{{ pathjoin .ActionEndpoint "/assets/js/custom.js" }}"></script>
+    {{ end }}
     <script>
     hljs.initHighlightingOnLoad();
     </script>
@@ -304,6 +305,9 @@ var PageTemplates = map[string]string{
     <link rel="stylesheet" href="{{ pathjoin .ActionEndpoint "/assets/google-webfonts/roboto.css" }}" />
     <link rel="stylesheet" href="{{ pathjoin .ActionEndpoint "/assets/line-awesome/line-awesome.css" }}" />
     <link rel="stylesheet" href="{{ pathjoin .ActionEndpoint "/assets/css/styles.css" }}" />
+    {{ if eq .Data.ui_options.custom_css_required "yes" }}
+    <link rel="stylesheet" href="{{ pathjoin .ActionEndpoint "/assets/css/custom.css" }}" />
+    {{ end }}
   </head>
   <body class="app-body">
     <div class="container">
@@ -398,6 +402,9 @@ var PageTemplates = map[string]string{
 
     <!-- Optional JavaScript -->
     <script src="{{ pathjoin .ActionEndpoint "/assets/materialize-css/js/materialize.js" }}"></script>
+    {{ if eq .Data.ui_options.custom_js_required "yes" }}
+    <script src="{{ pathjoin .ActionEndpoint "/assets/js/custom.js" }}"></script>
+    {{ end }}
     {{ if .Message }}
     <script>
     var toastHTML = '<span>{{ .Message }}</span><button class="btn-flat toast-action" onclick="M.Toast.dismissAll();">Close</button>';
@@ -429,7 +436,7 @@ var PageTemplates = map[string]string{
     <link rel="stylesheet" href="{{ pathjoin .ActionEndpoint "/assets/line-awesome/line-awesome.css" }}" />
     <link rel="stylesheet" href="{{ pathjoin .ActionEndpoint "/assets/css/styles.css" }}" />
     {{ if eq .Data.ui_options.custom_css_required "yes" }}
-    <link rel="stylesheet" href="{{ .Data.ui_options.custom_css_path }}" />
+    <link rel="stylesheet" href="{{ pathjoin .ActionEndpoint "/assets/css/custom.css" }}" />
     {{ end }}
   </head>
   <body class="app-body">
@@ -464,6 +471,9 @@ var PageTemplates = map[string]string{
 
     <!-- Optional JavaScript -->
     <script src="{{ pathjoin .ActionEndpoint "/assets/materialize-css/js/materialize.js" }}"></script>
+    {{ if eq .Data.ui_options.custom_js_required "yes" }}
+    <script src="{{ pathjoin .ActionEndpoint "/assets/js/custom.js" }}"></script>
+    {{ end }}
   </body>
 </html>`,
 	"basic/settings": `<!doctype html>
@@ -485,6 +495,9 @@ var PageTemplates = map[string]string{
     <link rel="stylesheet" href="{{ pathjoin .ActionEndpoint "/assets/line-awesome/line-awesome.css" }}" />
     <link rel="stylesheet" href="{{ pathjoin .ActionEndpoint "/assets/highlight.js/css/atom-one-dark.min.css" }}" />
     <link rel="stylesheet" href="{{ pathjoin .ActionEndpoint "/assets/css/styles.css" }}" />
+    {{ if eq .Data.ui_options.custom_css_required "yes" }}
+    <link rel="stylesheet" href="{{ pathjoin .ActionEndpoint "/assets/css/custom.css" }}" />
+    {{ end }}
   </head>
   <body class="app-body">
     <div class="container app-container">
@@ -821,6 +834,9 @@ var PageTemplates = map[string]string{
     <script src="{{ pathjoin .ActionEndpoint "/assets/materialize-css/js/materialize.js" }}"></script>
     <script src="{{ pathjoin .ActionEndpoint "/assets/highlight.js/js/highlight.js" }}"></script>
     <script src="{{ pathjoin .ActionEndpoint "/assets/highlight.js/js/languages/json.min.js" }}"></script>
+    {{ if eq .Data.ui_options.custom_js_required "yes" }}
+    <script src="{{ pathjoin .ActionEndpoint "/assets/js/custom.js" }}"></script>
+    {{ end }}
     <script>
     hljs.initHighlightingOnLoad();
     </script>

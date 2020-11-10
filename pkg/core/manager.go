@@ -392,6 +392,16 @@ func (m *AuthPortalManager) Register(p *AuthPortal) error {
 
 	if p.UserInterface.CustomCSSPath != "" {
 		p.uiFactory.CustomCSSPath = p.UserInterface.CustomCSSPath
+		if err := ui.StaticAssets.AddAsset("assets/css/custom.css", "text/css", p.UserInterface.CustomCSSPath); err != nil {
+			return fmt.Errorf("%s: custom css: %s", p.Name, err)
+		}
+	}
+
+	if p.UserInterface.CustomJsPath != "" {
+		p.uiFactory.CustomJsPath = p.UserInterface.CustomJsPath
+		if err := ui.StaticAssets.AddAsset("assets/js/custom.js", "application/javascript", p.UserInterface.CustomJsPath); err != nil {
+			return fmt.Errorf("%s: custom js: %s", p.Name, err)
+		}
 	}
 
 	if p.UserInterface.LogoURL != "" {
@@ -732,8 +742,12 @@ func (m *AuthPortalManager) Provision(name string) error {
 		p.uiFactory.Title = p.UserInterface.Title
 	}
 
-	if p.UserInterface.CustomCSSPath != "" {
+	if p.UserInterface.CustomCSSPath == "" {
 		p.uiFactory.CustomCSSPath = primaryInstance.uiFactory.CustomCSSPath
+	}
+
+	if p.UserInterface.CustomJsPath == "" {
+		p.uiFactory.CustomJsPath = primaryInstance.uiFactory.CustomJsPath
 	}
 
 	if p.UserInterface.LogoURL == "" {

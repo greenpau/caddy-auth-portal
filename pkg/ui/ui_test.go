@@ -72,6 +72,7 @@ func TestNewUserInterface(t *testing.T) {
 
 	uiOptions := make(map[string]interface{})
 	uiOptions["custom_css_required"] = "no"
+	uiOptions["custom_js_required"] = "no"
 
 	t.Log("Rendering templates")
 	args := f.GetArgs()
