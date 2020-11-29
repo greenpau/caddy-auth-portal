@@ -1,6 +1,6 @@
 ---
 name: General Issue
-about: Open a general issue
+about: Please star this repo to show appreciation for the work!
 title: ''
 labels: ''
 assignees: ''
