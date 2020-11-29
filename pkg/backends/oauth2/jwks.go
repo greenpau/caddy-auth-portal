@@ -43,9 +43,7 @@ func (k *JwksKey) Validate() error {
 		return fmt.Errorf("key id is empty")
 	}
 	switch k.Algorithm {
-	case "RS256", "RS384", "RS512":
-	case "":
-		return fmt.Errorf("key algorithm is empty for %s", k.KeyID)
+	case "RS256", "RS384", "RS512", "":
 	default:
 		return fmt.Errorf("unsupported key algorithm %s for %s", k.Algorithm, k.KeyID)
 	}

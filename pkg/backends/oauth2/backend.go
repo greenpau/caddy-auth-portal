@@ -47,6 +47,7 @@ type Backend struct {
 	ClientSecret string `json:"client_secret,omitempty"`
 	ServerID     string `json:"server_id,omitempty"`
 	AppSecret    string `json:"app_secret,omitempty"`
+	TenantID     string `json:"tenant_id,omitempty"`
 
 	Scopes []string `json:"scopes,omitempty"`
 
@@ -148,6 +149,14 @@ func (b *Backend) ConfigureAuthenticator() error {
 		b.enableAcceptHeader = true
 		b.requiredTokenFields = map[string]interface{}{
 			"access_token": true,
+		}
+	case "azure":
+		if b.TenantID == "" {
+			b.TenantID = "common"
+		}
+		if b.BaseAuthURL == "" {
+			b.BaseAuthURL = "https://login.microsoftonline.com/" + b.TenantID + "/oauth2/v2.0/"
+			b.MetadataURL = "https://login.microsoftonline.com/" + b.TenantID + "/v2.0/.well-known/openid-configuration"
 		}
 	case "facebook":
 		if b.BaseAuthURL == "" {
