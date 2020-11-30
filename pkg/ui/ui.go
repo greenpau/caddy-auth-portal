@@ -61,13 +61,6 @@ type UserInterfaceTemplate struct {
 	Template *template.Template `json:"-"`
 }
 
-// UserInterfaceLink represents a single HTML link.
-type UserInterfaceLink struct {
-	Link  string `json:"link,omitempty"`
-	Title string `json:"title,omitempty"`
-	Style string `json:"style,omitempty"`
-}
-
 // UserRealm represents a single authentication realm/domain.
 type UserRealm struct {
 	Name  string `json:"name,omitempty"`

@@ -197,7 +197,10 @@ var PageTemplates = map[string]string{
             <ul class="collection">
               {{range .PrivateLinks}}
               <li class="collection-item">
-                <a href="{{ .Link }}">{{ .Title }}</a>
+                {{ if .IconEnabled -}}
+                <i class="{{ .IconName }}"></i>
+                {{- end }}
+                <a href="{{ .Link }}"{{ if .TargetEnabled }} target="{{ .Target }}"{{ end }}>{{ .Title }}</a>
               </li>
               {{ end }}
             </ul>

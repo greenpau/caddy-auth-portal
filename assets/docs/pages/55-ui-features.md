@@ -87,4 +87,45 @@ minor javascript code.
 
 [:arrow_up: Back to Top](#table-of-contents)
 
+### Portal Links
+
+The following Caddyfile directive sets links that a user would see
+upon a successful login:
+
+```bash
+      ui {
+        ...
+        links {
+          "Prometheus" /prometheus
+          "Alertmanager" /alertmanager
+          "My App" /myapp
+        }
+        ...
+      }
+```
+
+The link can be opened in a new tab or window via `target_blank` argument:
+
+```
+          "My App" /myapp target_blank
+```
+
+The link can be disabled with `disabled` argument:
+
+```
+          "My App" /myapp disabled
+```
+
+The link can have an icon associated with it via `icon` argument:
+
+```
+          "My App" /myapp icon "las la-cog"
+```
+
+The icon is the reference to [Line Awesome](https://icons8.com/line-awesome) by Icon8.
+
+![Portal - UI - Icons](./assets/docs/images/portal_ui_icons.png)
+
+[:arrow_up: Back to Top](#table-of-contents)
+
 <!--- end of section -->

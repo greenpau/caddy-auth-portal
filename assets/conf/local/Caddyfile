@@ -79,10 +79,11 @@
         logo_description "Caddy"
         links {
           "Prometheus" /prometheus
-          "Alertmanager" /alertmanager
-          "My App" /myapp/
-          "My Identity" /auth/whoami
-          "My Settings" /auth/settings
+          "Alertmanager" /alertmanager icon "las la-bell"
+          "My App" /myapp/ target_blank
+          "My Identity" /auth/whoami target_blank icon "las la-star"
+          "My Settings" /auth/settings icon "las la-cog" target_blank
+          "Hidden" /hidden disabled
         }
       }
       registration {

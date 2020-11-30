@@ -484,10 +484,38 @@ func parseCaddyfileAuthPortal(h httpcaddyfile.Helper) ([]httpcaddyfile.ConfigVal
 								if len(args) == 0 {
 									return nil, h.Errf("auth backend %s subdirective %s has no value", subDirective, title)
 								}
-								portal.UserInterface.PrivateLinks = append(portal.UserInterface.PrivateLinks, ui.UserInterfaceLink{
+								privateLink := ui.UserInterfaceLink{
 									Title: title,
 									Link:  args[0],
-								})
+								}
+								if len(args) == 1 {
+									portal.UserInterface.PrivateLinks = append(portal.UserInterface.PrivateLinks, privateLink)
+									continue
+								}
+								argp := 1
+								disabledLink := false
+								for argp < len(args) {
+									switch args[argp] {
+									case "target_blank":
+										privateLink.Target = "_blank"
+										privateLink.TargetEnabled = true
+									case "icon":
+										argp++
+										if argp < len(args) {
+											privateLink.IconName = args[argp]
+											privateLink.IconEnabled = true
+										}
+									case "disabled":
+										disabledLink = true
+									default:
+										return nil, h.Errf("auth backend %s subdirective %s has unsupported key %s", subDirective, title, args[argp])
+									}
+									argp++
+								}
+								if disabledLink {
+									continue
+								}
+								portal.UserInterface.PrivateLinks = append(portal.UserInterface.PrivateLinks, privateLink)
 							}
 						case "custom_css", "custom_css_path":
 							if !h.NextArg() {
