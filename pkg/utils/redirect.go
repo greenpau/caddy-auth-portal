@@ -40,8 +40,21 @@ func GetCurrentBaseURL(r *http.Request) string {
 	}
 	redirPort := r.Header.Get("X-Forwarded-Port")
 	redirectBaseURL := redirProto + "://" + redirHost
+
 	if redirPort != "" {
-		redirectBaseURL += ":" + redirPort
+		switch redirPort {
+		case "443":
+			if redirProto != "https" {
+				redirectBaseURL += ":" + redirPort
+			}
+		case "80":
+			if redirProto != "http" {
+				redirectBaseURL += ":" + redirPort
+			}
+		default:
+			redirectBaseURL += ":" + redirPort
+		}
 	}
+
 	return redirectBaseURL
 }
