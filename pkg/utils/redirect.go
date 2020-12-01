@@ -21,18 +21,27 @@ import (
 
 // GetCurrentURL returns current URL
 func GetCurrentURL(r *http.Request) string {
-	schema := "https"
-	if r.TLS == nil {
-		schema = "http"
-	}
-	return schema + "://" + r.Host + r.URL.Path
+	return GetCurrentBaseURL(r) + r.URL.Path
 }
 
 // GetCurrentBaseURL returns current base URL
 func GetCurrentBaseURL(r *http.Request) string {
-	schema := "https"
-	if r.TLS == nil {
-		schema = "http"
+	redirHost := r.Header.Get("X-Forwarded-Host")
+	if redirHost == "" {
+		redirHost = r.Host
 	}
-	return schema + "://" + r.Host
+	redirProto := r.Header.Get("X-Forwarded-Proto")
+	if redirProto == "" {
+		if r.TLS == nil {
+			redirProto = "http"
+		} else {
+			redirProto = "https"
+		}
+	}
+	redirPort := r.Header.Get("X-Forwarded-Port")
+	redirectBaseURL := redirProto + "://" + redirHost
+	if redirPort != "" {
+		redirectBaseURL += ":" + redirPort
+	}
+	return redirectBaseURL
 }
