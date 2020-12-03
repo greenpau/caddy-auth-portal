@@ -1559,7 +1559,7 @@ browses to the endpoint, the user will be redirected to Okta.
           method oauth2
           realm okta
           provider okta
-          domain dev-680653.okta.com
+          domain_name dev-680653.okta.com
           client_id 0oa121qw81PJW0Tj34x7
           client_secret b3aJC5E59hU18YKC7Yca3994F4qFhWiAo_ZojanF
           server_id default

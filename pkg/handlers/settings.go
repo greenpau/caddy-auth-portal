@@ -153,6 +153,8 @@ func ServeSettings(w http.ResponseWriter, r *http.Request, opts map[string]inter
 							case "gpgkeys":
 								operation["name"] = "add_gpg_key"
 							}
+							operation["username"] = claims.Subject
+							operation["email"] = claims.Email
 							for k, v := range keys {
 								operation[k] = v
 							}
@@ -192,6 +194,8 @@ func ServeSettings(w http.ResponseWriter, r *http.Request, opts map[string]inter
 						} else {
 							operation := make(map[string]interface{})
 							operation["name"] = "add_api_key"
+							operation["username"] = claims.Subject
+							operation["email"] = claims.Email
 							for k, v := range keys {
 								operation[k] = v
 							}
