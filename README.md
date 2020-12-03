@@ -41,6 +41,7 @@ Please ask questions either here or via LinkedIn. I am happy to help you! @green
   * [Custom CSS Styles](#custom-css-styles)
   * [Custom Javascript](#custom-javascript)
   * [Portal Links](#portal-links)
+  * [Custom Header](#custom-header)
 * [Local Authentication Backend](#local-authentication-backend)
   * [Configuration Primer](#configuration-primer)
   * [Identity Store](#identity-store)
@@ -636,6 +637,21 @@ The link can have an icon associated with it via `icon` argument:
 The icon is the reference to [Line Awesome](https://icons8.com/line-awesome) by Icon8.
 
 ![Portal - UI - Icons](./assets/docs/images/portal_ui_icons.png)
+
+[:arrow_up: Back to Top](#table-of-contents)
+
+### Custom Header
+
+The following Caddyfile directive injects the code found in `path/to/head.html`
+to `<head>` section of the portal's pages:
+
+```bash
+      ui {
+        ...
+        custom_html_header_path path/to/head.html
+        ...
+      }
+```
 
 [:arrow_up: Back to Top](#table-of-contents)
 

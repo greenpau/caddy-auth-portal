@@ -16,6 +16,7 @@ package portal
 
 import (
 	"encoding/json"
+	"io/ioutil"
 	"regexp"
 	"strconv"
 	"strings"
@@ -527,6 +528,22 @@ func parseCaddyfileAuthPortal(h httpcaddyfile.Helper) ([]httpcaddyfile.ConfigVal
 								return nil, h.Errf("%s %s subdirective has no value", rootDirective, subDirective)
 							}
 							portal.UserInterface.CustomJsPath = h.Val()
+						case "custom_html_header_path":
+							if !h.NextArg() {
+								return nil, h.Errf("%s %s subdirective has no value", rootDirective, subDirective)
+							}
+							b, err := ioutil.ReadFile(h.Val())
+							if err != nil {
+								return nil, h.Errf("%s %s subdirective: %s %s", rootDirective, subDirective, h.Val(), err)
+							}
+							for k, v := range ui.PageTemplates {
+								headIndex := strings.Index(v, "<meta name=\"description\"")
+								if headIndex < 1 {
+									continue
+								}
+								v = v[:headIndex] + string(b) + v[headIndex:]
+								ui.PageTemplates[k] = v
+							}
 						default:
 							return nil, h.Errf("unsupported subdirective for %s: %s", rootDirective, subDirective)
 						}

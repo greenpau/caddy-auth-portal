@@ -128,4 +128,19 @@ The icon is the reference to [Line Awesome](https://icons8.com/line-awesome) by 
 
 [:arrow_up: Back to Top](#table-of-contents)
 
+### Custom Header
+
+The following Caddyfile directive injects the code found in `path/to/head.html`
+to `<head>` section of the portal's pages:
+
+```bash
+      ui {
+        ...
+        custom_html_header_path path/to/head.html
+        ...
+      }
+```
+
+[:arrow_up: Back to Top](#table-of-contents)
+
 <!--- end of section -->
