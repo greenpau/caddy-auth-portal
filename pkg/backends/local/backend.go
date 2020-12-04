@@ -208,12 +208,28 @@ func (sa *Authenticator) ChangePassword(opts map[string]interface{}) error {
 	return sa.db.ChangeUserPassword(opts)
 }
 
-// AddSSHKey adds SSH key for a user.
-func (sa *Authenticator) AddSSHKey(opts map[string]interface{}) error {
+// AddPublicKey adds public key, e.g. GPG or SSH, for a user.
+func (sa *Authenticator) AddPublicKey(opts map[string]interface{}) error {
 	sa.mux.Lock()
 	defer sa.mux.Unlock()
 	opts["file_path"] = sa.path
-	return sa.db.AddUserSSHKey(opts)
+	return sa.db.AddPublicKey(opts)
+}
+
+// DeletePublicKey removes a public key, e.g. GPG or SSH, associated with the user.
+func (sa *Authenticator) DeletePublicKey(opts map[string]interface{}) error {
+	sa.mux.Lock()
+	defer sa.mux.Unlock()
+	opts["file_path"] = sa.path
+	return sa.db.DeletePublicKey(opts)
+}
+
+// GetPublicKeys returns a list of public keys associated with a user.
+func (sa *Authenticator) GetPublicKeys(opts map[string]interface{}) ([]*identity.PublicKey, error) {
+	sa.mux.Lock()
+	defer sa.mux.Unlock()
+	opts["file_path"] = sa.path
+	return sa.db.GetPublicKeys(opts)
 }
 
 // ConfigureAuthenticator configures backend.
@@ -360,7 +376,8 @@ func (b *Backend) Do(opts map[string]interface{}) error {
 	switch op {
 	case "password_change":
 	case "add_ssh_key":
-	// case "add_gpg_key"
+	case "add_gpg_key":
+	case "delete_public_key":
 	// case "add_api_key"
 	default:
 		return fmt.Errorf("Unsupported backend operation")
@@ -371,13 +388,35 @@ func (b *Backend) Do(opts map[string]interface{}) error {
 
 	switch op {
 	case "password_change":
-		if err := b.Authenticator.ChangePassword(opts); err != nil {
-			return err
-		}
+		return b.Authenticator.ChangePassword(opts)
 	case "add_ssh_key":
-		if err := b.Authenticator.AddSSHKey(opts); err != nil {
-			return err
-		}
+		opts["key_usage"] = "ssh"
+		return b.Authenticator.AddPublicKey(opts)
+	case "add_gpg_key":
+		opts["key_usage"] = "gpg"
+		return b.Authenticator.AddPublicKey(opts)
+	case "delete_public_key":
+		return b.Authenticator.DeletePublicKey(opts)
 	}
 	return nil
+}
+
+// GetPublicKeys return a list of public keys associated with a user.
+func (b *Backend) GetPublicKeys(opts map[string]interface{}) ([]*identity.PublicKey, error) {
+	var keyUsage string
+	if v, exists := opts["key_usage"]; exists {
+		keyUsage = v.(string)
+	} else {
+		return nil, fmt.Errorf("key usage not found")
+	}
+
+	if b.Authenticator == nil {
+		return nil, fmt.Errorf("Internal Server Error, Authentication backend is unavailable")
+	}
+	opts["key_usage"] = keyUsage
+	keys, err := b.Authenticator.GetPublicKeys(opts)
+	if err != nil {
+		return nil, err
+	}
+	return keys, nil
 }

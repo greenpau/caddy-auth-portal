@@ -140,10 +140,10 @@ func ServeSettings(w http.ResponseWriter, r *http.Request, opts map[string]inter
 			switch viewParts[1] {
 			case "add":
 				if r.Method == "POST" {
-					resp.Data["status"] = "failure"
+					resp.Data["status"] = "FAIL"
 					if backend != nil {
 						if keys, err := validateKeyInputForm(r); err != nil {
-							resp.Data["status"] = "failure"
+							resp.Data["status"] = "FAIL"
 							resp.Data["status_reason"] = "Bad Request"
 						} else {
 							operation := make(map[string]interface{})
@@ -161,7 +161,7 @@ func ServeSettings(w http.ResponseWriter, r *http.Request, opts map[string]inter
 							if err := backend.Do(operation); err != nil {
 								resp.Data["status_reason"] = fmt.Sprintf("%s", err)
 							} else {
-								resp.Data["status"] = "success"
+								resp.Data["status"] = "SUCCESS"
 								switch view {
 								case "sshkeys":
 									resp.Data["status_reason"] = "Public SSH key has been added"
@@ -177,8 +177,51 @@ func ServeSettings(w http.ResponseWriter, r *http.Request, opts map[string]inter
 				} else {
 					view = strings.Join(viewParts, "-")
 				}
+			case "delete":
+				view = viewParts[0] + "-" + viewParts[1] + "-status"
+				resp.Data["status"] = "FAIL"
+				keyID := viewParts[2]
+				if len(viewParts) != 3 {
+					resp.Data["status_reason"] = "malformed request"
+				} else {
+					if keyID == "" {
+						resp.Data["status_reason"] = "key id not found"
+					} else {
+						operation := make(map[string]interface{})
+						operation["name"] = "delete_public_key"
+						operation["key_id"] = keyID
+						operation["username"] = claims.Subject
+						operation["email"] = claims.Email
+						if err := backend.Do(operation); err != nil {
+							resp.Data["status_reason"] = fmt.Sprintf("failed deleting key id %s: %s", keyID, err)
+						} else {
+							resp.Data["status"] = "SUCCESS"
+							resp.Data["status_reason"] = fmt.Sprintf("key id %s deleted successfully", keyID)
+						}
+					}
+				}
 			default:
 				view = strings.Join(viewParts, "-")
+			}
+		} else {
+			// Entry Page
+			args := make(map[string]interface{})
+			args["username"] = claims.Subject
+			args["email"] = claims.Email
+			switch view {
+			case "sshkeys":
+				args["key_usage"] = "ssh"
+			case "gpgkeys":
+				args["key_usage"] = "gpg"
+			}
+			pubKeys, err := backend.GetPublicKeys(args)
+			if err != nil {
+				resp.Data["status"] = "failure"
+				resp.Data["status_reason"] = fmt.Sprintf("%s", err)
+			} else {
+				if len(pubKeys) > 0 {
+					resp.Data[view] = pubKeys
+				}
 			}
 		}
 	case "apikeys":
@@ -282,5 +325,10 @@ func validateKeyInputForm(r *http.Request) (map[string]string, error) {
 	}
 	resp := make(map[string]string)
 	resp["key"] = r.PostFormValue("key1")
+	comment := r.PostFormValue("comment1")
+	comment = strings.TrimSpace(comment)
+	if comment != "" {
+		resp["comment"] = comment
+	}
 	return resp, nil
 }

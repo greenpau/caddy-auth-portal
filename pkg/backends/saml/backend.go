@@ -22,6 +22,7 @@ import (
 	samllib "github.com/crewjam/saml"
 	"github.com/crewjam/saml/samlsp"
 	"github.com/greenpau/caddy-auth-portal/pkg/utils"
+	"github.com/greenpau/go-identity"
 	"io/ioutil"
 	"net/http"
 	"net/url"
@@ -416,4 +417,9 @@ func (b *Backend) Do(opts map[string]interface{}) error {
 		return fmt.Errorf("Password change operation is not available")
 	}
 	return fmt.Errorf("Unsupported backend operation")
+}
+
+// GetPublicKeys return a list of public keys associated with a user.
+func (b *Backend) GetPublicKeys(opts map[string]interface{}) ([]*identity.PublicKey, error) {
+	return nil, fmt.Errorf("Unsupported backend operation")
 }

@@ -20,6 +20,7 @@ import (
 	"fmt"
 	jwtclaims "github.com/greenpau/caddy-auth-jwt/pkg/claims"
 	jwtconfig "github.com/greenpau/caddy-auth-jwt/pkg/config"
+	"github.com/greenpau/go-identity"
 	"go.uber.org/zap"
 	"os"
 	"sync"
@@ -269,4 +270,9 @@ func (b *Backend) Do(opts map[string]interface{}) error {
 		return fmt.Errorf("Password change operation is not available")
 	}
 	return fmt.Errorf("Unsupported backend operation")
+}
+
+// GetPublicKeys return a list of public keys associated with a user.
+func (b *Backend) GetPublicKeys(opts map[string]interface{}) ([]*identity.PublicKey, error) {
+	return nil, fmt.Errorf("Unsupported backend operation")
 }

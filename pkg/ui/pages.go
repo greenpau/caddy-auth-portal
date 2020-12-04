@@ -576,8 +576,19 @@ var PageTemplates = map[string]string{
             </div>
           </div>
           <div class="row">
-            {{ if .Data.ssh_keys }}
+            {{ if .Data.sshkeys }}
               <p>List of registered SSH Keys</p>
+              {{range .Data.sshkeys}}
+              <p>
+                ID: {{ .ID }}<br/>
+                Type: {{ .Type }}<br/>
+                Comment: {{ .Comment }}<br/>
+                Fingerprint: {{ .Fingerprint }}<br/>
+                Fingerprint: {{ .FingerprintMD5 }}<br/>
+                Created At: {{ .CreatedAt }}
+              </p>
+              <a href="{{ pathjoin $.ActionEndpoint "/settings/sshkeys/delete/" .ID }}">Delete</a>
+              {{ end }}
             {{ else }}
               <p>No registered SSH Keys found</p>
             {{ end }}
@@ -592,19 +603,22 @@ var PageTemplates = map[string]string{
                   <div class="input-field shell-textarea-wrapper">
                       <textarea id="key1" name="key1" class="hljs shell-textarea"></textarea>
                   </div>
+                  <div class="input-field">
+                    <input placeholder="Comment" name="comment1" id="comment1" type="text" class="validate">
+                  </div>
                   <div class="right">
-                  <button type="submit" name="submit" class="btn waves-effect waves-light navbtn active navbtn-last app-btn">
-                    <i class="las la-plus-circle left app-btn-icon"></i>
-                    <span class="app-btn-text">Add SSH Key</span>
-                  </button>
+                    <button type="submit" name="submit" class="btn waves-effect waves-light navbtn active navbtn-last app-btn">
+                      <i class="las la-plus-circle left app-btn-icon"></i>
+                      <span class="app-btn-text">Add SSH Key</span>
+                    </button>
                   </div>
                 </div>
               </div>
             </form>
           {{ end }}
           {{ if eq .Data.view "sshkeys-add-status" }}
-            {{ if eq .Data.status "success" }}
-              <h1>Public SSH Key Has Been Added</h1>
+            {{ if eq .Data.status "SUCCESS" }}
+              <h1>Public SSH Key</h1>
               <p>{{ .Data.status_reason }}</p>
               <a href="{{ pathjoin .ActionEndpoint "/settings/sshkeys" }}">
                 <button type="button" class="btn waves-effect waves-light navbtn active">
@@ -613,7 +627,7 @@ var PageTemplates = map[string]string{
                 </button>
               </a>
             {{ else }}
-              <h1>Failed Adding Public SSH Key</h1>
+              <h1>Public SSH Key</h1>
               <p>Reason: {{ .Data.status_reason }} </p>
               <a href="{{ pathjoin .ActionEndpoint "/settings/sshkeys/add" }}">
                 <button type="button" class="btn waves-effect waves-light navbtn active">
@@ -622,6 +636,16 @@ var PageTemplates = map[string]string{
                 </button>
               </a>
             {{ end }}
+          {{ end }}
+          {{ if eq .Data.view "sshkeys-delete-status" }}
+            <h1>Public SSH Key</h1>
+            <p>{{.Data.status }}: {{ .Data.status_reason }}</p>
+            <a href="{{ pathjoin .ActionEndpoint "/settings/sshkeys" }}">
+              <button type="button" class="btn waves-effect waves-light navbtn active">
+                <i class="las la-undo-alt left app-btn-icon"></i>
+                <span class="app-btn-text">Go Back</span>
+              </button>
+            </a>
           {{ end }}
           {{ if eq .Data.view "gpgkeys" }}
           <div class="row">
@@ -635,8 +659,13 @@ var PageTemplates = map[string]string{
             </div>
           </div>
           <div class="row">
-            {{ if .Data.gpg_keys }}
+            {{ if .Data.gpgkeys }}
               <p>List of registered GPG Keys</p>
+              {{range .Data.gpgkeys}}
+              <p>
+                ID: {{ .ID }}<br/>
+              </p>
+              {{ end }}
             {{ else }}
               <p>No registered GPG Keys found</p>
             {{ end }}
@@ -651,19 +680,22 @@ var PageTemplates = map[string]string{
                   <div class="input-field shell-textarea-wrapper">
                       <textarea id="key1" name="key1" class="hljs shell-textarea"></textarea>
                   </div>
+                  <div class="input-field">
+                    <input placeholder="Comment" name="comment1" id="comment1" type="text" class="validate">
+                  </div>
                   <div class="right">
-                  <button type="submit" name="submit" class="btn waves-effect waves-light navbtn active navbtn-last app-btn">
-                    <i class="las la-plus-circle left app-btn-icon"></i>
-                    <span class="app-btn-text">Add GPG Key</span>
-                  </button>
+                    <button type="submit" name="submit" class="btn waves-effect waves-light navbtn active navbtn-last app-btn">
+                      <i class="las la-plus-circle left app-btn-icon"></i>
+                      <span class="app-btn-text">Add GPG Key</span>
+                    </button>
                   </div>
                 </div>
               </div>
             </form>
           {{ end }}
           {{ if eq .Data.view "gpgkeys-add-status" }}
-            {{ if eq .Data.status "success" }}
-              <h1>Public GPG Key Has Been Added</h1>
+            {{ if eq .Data.status "SUCCESS" }}
+              <h1>Public GPG Key</h1>
               <p>{{ .Data.status_reason }}</p>
               <a href="{{ pathjoin .ActionEndpoint "/settings/gpgkeys" }}">
                 <button type="button" class="btn waves-effect waves-light navbtn active">
@@ -672,7 +704,7 @@ var PageTemplates = map[string]string{
                 </button>
               </a>
             {{ else }}
-              <h1>Failed Adding Public GPG Key</h1>
+              <h1>Public GPG Key</h1>
               <p>Reason: {{ .Data.status_reason }} </p>
               <a href="{{ pathjoin .ActionEndpoint "/settings/gpgkeys/add" }}">
                 <button type="button" class="btn waves-effect waves-light navbtn active">

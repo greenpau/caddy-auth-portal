@@ -26,6 +26,7 @@ import (
 	"github.com/greenpau/caddy-auth-portal/pkg/backends/saml"
 	"github.com/greenpau/caddy-auth-portal/pkg/backends/x509"
 	"github.com/greenpau/caddy-auth-portal/pkg/errors"
+	"github.com/greenpau/go-identity"
 	"go.uber.org/zap"
 )
 
@@ -46,6 +47,7 @@ type BackendDriver interface {
 	ConfigureAuthenticator() error
 	Validate() error
 	Do(map[string]interface{}) error
+	GetPublicKeys(map[string]interface{}) ([]*identity.PublicKey, error)
 }
 
 // GetRealm returns realm associated with an authentication provider.
@@ -94,6 +96,17 @@ func (b *Backend) Do(opts map[string]interface{}) error {
 		return fmt.Errorf("no operation name found")
 	}
 	return b.driver.Do(opts)
+}
+
+// GetPublicKeys return a list of public keys associated with a user.
+func (b *Backend) GetPublicKeys(opts map[string]interface{}) ([]*identity.PublicKey, error) {
+	if len(opts) == 0 {
+		return nil, fmt.Errorf("no input found")
+	}
+	if _, exists := opts["key_usage"]; !exists {
+		return nil, fmt.Errorf("no key usage found")
+	}
+	return b.driver.GetPublicKeys(opts)
 }
 
 // Authenticate performs authentication with an authentication provider.
