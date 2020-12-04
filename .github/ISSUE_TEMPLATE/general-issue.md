@@ -19,13 +19,17 @@ Paste full `Caddyfile` below:
 Paste configuration here ...
 ```
 
-**Expected behavior**
+**Version Information**
 
 Provide output of `caddy list-modules -versions | grep auth` below:
 
 ```
 Paste output here ...
 ```
+
+**Expected behavior**
+
+Describe expected behavior.
 
 **Additional context**
 
