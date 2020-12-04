@@ -64,22 +64,22 @@ func ServeSettings(w http.ResponseWriter, r *http.Request, opts map[string]inter
 		if len(viewParts) > 1 {
 			switch viewParts[1] {
 			case "barcode":
-				if len(viewParts) != 3 {
+				if len(viewParts) < 3 {
 					log.Error("Failed rendering key code URI barcode", zap.String("request_id", reqID), zap.String("error", "malformed barcode url"))
 					w.Header().Set("Content-Type", "text/plain")
 					w.WriteHeader(400)
 					w.Write([]byte(`Bad Request`))
 					return fmt.Errorf("malformed barcode url")
 				}
-				opts["code_uri_encoded"] = strings.TrimSuffix(viewParts[2], ".png")
+				opts["code_uri_encoded"] = strings.TrimSuffix(strings.Join(viewParts[2:], "/"), ".png")
 				return ServeBarcodeImage(w, r, opts)
 			case "add":
 				if len(viewParts) > 2 {
 					if viewParts[2] == "app" {
 						codeOpts := make(map[string]interface{})
 						codeOpts["type"] = "totp"
-						codeOpts["label"] = claims.Email
-						codeOpts["secret"] = "My@Secret!"
+						codeOpts["label"] = "Gatekeeper:" + claims.Email
+						codeOpts["secret"] = utils.GetRandomEncodedStringFromRange(64, 92)
 						codeOpts["period"] = 30
 						codeOpts["issuer"] = "Gatekeeper"
 						// codeOpts["algorithm"] = "SHA512"

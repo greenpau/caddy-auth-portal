@@ -8,7 +8,7 @@ require (
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/go-ldap/ldap v3.0.3+incompatible
 	github.com/greenpau/caddy-auth-jwt v1.2.1
-	github.com/greenpau/go-identity v1.0.14
+	github.com/greenpau/go-identity v1.0.15
 	github.com/satori/go.uuid v1.2.0
 	github.com/skip2/go-qrcode v0.0.0-20200617195104-da1b6568686e
 	go.uber.org/zap v1.15.0

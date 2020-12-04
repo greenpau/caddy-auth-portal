@@ -15,6 +15,7 @@
 package utils
 
 import (
+	"encoding/base32"
 	"math/rand"
 	"time"
 )
@@ -52,4 +53,11 @@ func GetRandomStringFromRange(a, b int) string {
 		i = rand.Intn(b-a) + a
 	}
 	return gen(i, charset)
+}
+
+// GetRandomEncodedStringFromRange return the number returned by
+// GetRandomStringFromRange() and encoded with Base32
+func GetRandomEncodedStringFromRange(a, b int) string {
+	s := GetRandomStringFromRange(a, b)
+	return base32.StdEncoding.EncodeToString([]byte(s))
 }
