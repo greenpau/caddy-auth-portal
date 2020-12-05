@@ -256,8 +256,16 @@
             </div>
           </div>
           <div class="row">
-            {{ if .Data.mfa_devices }}
+            {{ if .Data.mfa_tokens }}
               <p>List of registered MFA devices</p>
+              {{range .Data.mfa_tokens}}
+              <p>
+                ID: {{ .ID }}<br/>
+                Comment: {{ .Comment }}<br/>
+                Created At: {{ .CreatedAt }}
+              </p>
+              <a href="{{ pathjoin $.ActionEndpoint "/settings/mfa/delete/" .ID }}">Delete</a>
+              {{ end }}
             {{ else }}
               <p>No registered MFA devices found</p>
             {{ end }}
@@ -273,17 +281,26 @@
                     <p>If your MFA application supports scanning QR codes, scan the QR code image.</p>
                     <p>After adding this account to the MFA authenticator application, enter two consecutive authentication codes in the boxes below and click "Add".</p>
                     <div class="input-field">
-                      <input id="mfacode1" name="mfacode1" type="text" class="validate" pattern="[A-Za-z0-9]{4,8}"
-                        title="Authentication code should contain maximum of 25 characters and consists of A-Z, a-z, and 0-9 characters."
+                      <input id="comment" name="comment" type="text" class="validate" pattern="[A-Za-z0-9 -]{4,25}"
+                        title="Authentication code should contain 4-25 characters and consists of A-Z, a-z, 0-9, space, and dash characters."
                         required />
-                      <label for="mfacode1">Authentication Code 1</label>
+                      <label for="comment">Comment</label>
                     </div>
                     <div class="input-field">
-                      <input id="mfacode2" name="mfacode2" type="text" class="validate" pattern="[A-Za-z0-9]{4,8}"
-                        title="Authentication code should contain maximum of 25 characters and consists of A-Z, a-z, and 0-9 characters."
+                      <input id="code1" name="code1" type="text" class="validate" pattern="[0-9]{4,8}"
+                        title="Authentication code should contain 4-8 characters and consists of 0-9 characters."
                         required />
-                      <label for="mfacode2">Authentication Code 2</label>
+                      <label for="code1">Authentication Code 1</label>
                     </div>
+                    <div class="input-field">
+                      <input id="code2" name="code2" type="text" class="validate" pattern="[0-9]{4,8}"
+                        title="Authentication code should contain 4-8 characters and consists of 0-9 characters."
+                        required />
+                      <label for="code2">Authentication Code 2</label>
+                    </div>
+                    <input id="secret" name="secret" type="hidden" value="{{ .Data.mfa_secret }}" />
+                    <input id="type" name="type" type="hidden" value="{{ .Data.mfa_type }}" />
+                    <input id="period" name="period" type="hidden" value="{{ .Data.mfa_period }}" />
                   </div>
                   <div class="col s12 m6 l6">
                     <div class="center-align"><img src="{{ pathjoin .ActionEndpoint "/settings/mfa/barcode/" .Data.code_uri_encoded }}.png" alt="QR Code" /></div>
@@ -298,6 +315,35 @@
                 </button>
               </div>
             </form>
+          {{ end }}
+          {{ if eq .Data.view "mfa-add-app-status" }}
+            <h1>MFA Token</h1>
+            <p>{{.Data.status }}: {{ .Data.status_reason }}</p>
+            {{ if eq .Data.status "SUCCESS" }}
+              <a href="{{ pathjoin .ActionEndpoint "/settings/mfa" }}">
+                <button type="button" class="btn waves-effect waves-light navbtn active">
+                  <i class="las la-undo-alt left app-btn-icon"></i>
+                  <span class="app-btn-text">Go Back</span>
+                </button>
+              </a>
+            {{ else }}
+              <a href="{{ pathjoin .ActionEndpoint "/settings/mfa/add/app" }}">
+                <button type="button" class="btn waves-effect waves-light navbtn active">
+                  <i class="las la-undo-alt left app-btn-icon"></i>
+                  <span class="app-btn-text">Try Again</span>
+                </button>
+              </a>
+            {{ end }}
+          {{ end }}
+          {{ if eq .Data.view "mfa-delete-status" }}
+            <h1>MFA Token</h1>
+            <p>{{.Data.status }}: {{ .Data.status_reason }}</p>
+            <a href="{{ pathjoin .ActionEndpoint "/settings/mfa" }}">
+              <button type="button" class="btn waves-effect waves-light navbtn active">
+                <i class="las la-undo-alt left app-btn-icon"></i>
+                <span class="app-btn-text">Go Back</span>
+              </button>
+            </a>
           {{ end }}
           {{ if eq .Data.view "mfa-add-u2f" }}
             <form action="{{ pathjoin .ActionEndpoint "/settings/mfa/add/u2f" }}" method="POST">

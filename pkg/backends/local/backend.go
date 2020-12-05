@@ -232,6 +232,30 @@ func (sa *Authenticator) GetPublicKeys(opts map[string]interface{}) ([]*identity
 	return sa.db.GetPublicKeys(opts)
 }
 
+// AddMfaToken adds MFA token to a user.
+func (sa *Authenticator) AddMfaToken(opts map[string]interface{}) error {
+	sa.mux.Lock()
+	defer sa.mux.Unlock()
+	opts["file_path"] = sa.path
+	return sa.db.AddMfaToken(opts)
+}
+
+// DeleteMfaToken removes MFA token associated with the user.
+func (sa *Authenticator) DeleteMfaToken(opts map[string]interface{}) error {
+	sa.mux.Lock()
+	defer sa.mux.Unlock()
+	opts["file_path"] = sa.path
+	return sa.db.DeleteMfaToken(opts)
+}
+
+// GetMfaTokens returns a list of MFA token associated with a user.
+func (sa *Authenticator) GetMfaTokens(opts map[string]interface{}) ([]*identity.MfaToken, error) {
+	sa.mux.Lock()
+	defer sa.mux.Unlock()
+	opts["file_path"] = sa.path
+	return sa.db.GetMfaTokens(opts)
+}
+
 // ConfigureAuthenticator configures backend.
 func (b *Backend) ConfigureAuthenticator() error {
 	if b.Authenticator == nil {
@@ -378,8 +402,13 @@ func (b *Backend) Do(opts map[string]interface{}) error {
 	case "add_ssh_key":
 	case "add_gpg_key":
 	case "delete_public_key":
-	// case "add_api_key"
+	case "add_mfa_token", "delete_mfa_token":
 	default:
+		//b.logger.Debug(
+		//	"detected unsupported backend operation",
+		//	zap.String("op", op),
+		//	zap.Any("params", opts),
+		//)
 		return fmt.Errorf("Unsupported backend operation")
 	}
 	if b.Authenticator == nil {
@@ -397,6 +426,10 @@ func (b *Backend) Do(opts map[string]interface{}) error {
 		return b.Authenticator.AddPublicKey(opts)
 	case "delete_public_key":
 		return b.Authenticator.DeletePublicKey(opts)
+	case "add_mfa_token":
+		return b.Authenticator.AddMfaToken(opts)
+	case "delete_mfa_token":
+		return b.Authenticator.DeleteMfaToken(opts)
 	}
 	return nil
 }
@@ -415,6 +448,18 @@ func (b *Backend) GetPublicKeys(opts map[string]interface{}) ([]*identity.Public
 	}
 	opts["key_usage"] = keyUsage
 	keys, err := b.Authenticator.GetPublicKeys(opts)
+	if err != nil {
+		return nil, err
+	}
+	return keys, nil
+}
+
+// GetMfaTokens return a list of MFA tokens associated with a user.
+func (b *Backend) GetMfaTokens(opts map[string]interface{}) ([]*identity.MfaToken, error) {
+	if b.Authenticator == nil {
+		return nil, fmt.Errorf("Internal Server Error, Authentication backend is unavailable")
+	}
+	keys, err := b.Authenticator.GetMfaTokens(opts)
 	if err != nil {
 		return nil, err
 	}

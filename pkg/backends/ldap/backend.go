@@ -748,3 +748,8 @@ func (b *Backend) Do(opts map[string]interface{}) error {
 func (b *Backend) GetPublicKeys(opts map[string]interface{}) ([]*identity.PublicKey, error) {
 	return nil, fmt.Errorf("Unsupported backend operation")
 }
+
+// GetMfaTokens return a list of MFA tokens associated with a user.
+func (b *Backend) GetMfaTokens(opts map[string]interface{}) ([]*identity.MfaToken, error) {
+	return nil, fmt.Errorf("Unsupported backend operation")
+}

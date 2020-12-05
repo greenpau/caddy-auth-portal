@@ -48,6 +48,7 @@ type BackendDriver interface {
 	Validate() error
 	Do(map[string]interface{}) error
 	GetPublicKeys(map[string]interface{}) ([]*identity.PublicKey, error)
+	GetMfaTokens(map[string]interface{}) ([]*identity.MfaToken, error)
 }
 
 // GetRealm returns realm associated with an authentication provider.
@@ -107,6 +108,14 @@ func (b *Backend) GetPublicKeys(opts map[string]interface{}) ([]*identity.Public
 		return nil, fmt.Errorf("no key usage found")
 	}
 	return b.driver.GetPublicKeys(opts)
+}
+
+// GetMfaTokens return a list of MFA tokens associated with a user.
+func (b *Backend) GetMfaTokens(opts map[string]interface{}) ([]*identity.MfaToken, error) {
+	if len(opts) == 0 {
+		return nil, fmt.Errorf("no input found")
+	}
+	return b.driver.GetMfaTokens(opts)
 }
 
 // Authenticate performs authentication with an authentication provider.
