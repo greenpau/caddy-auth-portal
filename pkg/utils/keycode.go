@@ -64,6 +64,9 @@ func GetCodeURI(opts map[string]interface{}) (string, error) {
 				switch k {
 				case "digits":
 					digits = v.(int)
+					if digits < 4 || digits > 8 {
+						return "", fmt.Errorf("%s must be between 4 and 8 digits long", k)
+					}
 				case "period":
 					period = v.(int)
 				case "counter":

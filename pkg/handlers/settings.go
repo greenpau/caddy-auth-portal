@@ -15,6 +15,7 @@
 package handlers
 
 import (
+	"encoding/base32"
 	"encoding/base64"
 	"fmt"
 	"net/http"
@@ -104,17 +105,21 @@ func ServeSettings(w http.ResponseWriter, r *http.Request, opts map[string]inter
 				} else {
 					if len(viewParts) > 2 {
 						if viewParts[2] == "app" {
-							secret := utils.GetRandomEncodedStringFromRange(64, 92)
+							secretText := utils.GetRandomEncodedStringFromRange(64, 92)
+							secretEncoder := base32.StdEncoding.WithPadding(base32.NoPadding)
+							secret := secretEncoder.EncodeToString([]byte(secretText))
 							codeOpts := make(map[string]interface{})
 							codeOpts["secret"] = secret
 							codeOpts["type"] = "totp"
 							codeOpts["label"] = "Gatekeeper:" + claims.Email
 							codeOpts["period"] = 30
 							codeOpts["issuer"] = "Gatekeeper"
+							codeOpts["digits"] = 6
 
 							resp.Data["mfa_type"] = "totp"
-							resp.Data["mfa_secret"] = "secret"
+							resp.Data["mfa_secret"] = secretText
 							resp.Data["mfa_period"] = "30"
+							resp.Data["mfa_digits"] = "6"
 
 							// codeOpts["algorithm"] = "SHA512"
 							// codeOpts["digits"] = 8
@@ -406,6 +411,7 @@ func validateKeyInputForm(r *http.Request) (map[string]string, error) {
 }
 
 func validateAddMfaTokenForm(r *http.Request) (map[string]string, error) {
+	resp := make(map[string]string)
 	if r.Header.Get("Content-Type") != "application/x-www-form-urlencoded" {
 		return nil, fmt.Errorf("Unsupported content type")
 	}
@@ -417,6 +423,8 @@ func validateAddMfaTokenForm(r *http.Request) (map[string]string, error) {
 			return nil, fmt.Errorf("Required form field not found")
 		}
 	}
+
+	// Codes
 	var code1, code2 string
 	for _, i := range []string{"1", "2"} {
 		code := r.PostFormValue("code" + i)
@@ -434,13 +442,21 @@ func validateAddMfaTokenForm(r *http.Request) (map[string]string, error) {
 		if code2 == code1 {
 			return nil, fmt.Errorf("MFA code 1 and 2 match")
 		}
+		if len(code2) != len(code1) {
+			return nil, fmt.Errorf("MFA code 1 and 2 have different length")
+		}
 	}
+	resp["code1"] = code1
+	resp["code2"] = code2
 
+	// Secret
 	secret := r.PostFormValue("secret")
 	if secret == "" {
 		return nil, fmt.Errorf("MFA secret is empty")
 	}
+	resp["secret"] = secret
 
+	// Type
 	secretType := r.PostFormValue("type")
 	switch secretType {
 	case "":
@@ -449,7 +465,9 @@ func validateAddMfaTokenForm(r *http.Request) (map[string]string, error) {
 	default:
 		return nil, fmt.Errorf("MFA type is unsupported")
 	}
+	resp["type"] = secretType
 
+	// Period
 	period := r.PostFormValue("period")
 	if period == "" {
 		return nil, fmt.Errorf("MFA period is empty")
@@ -464,12 +482,23 @@ func validateAddMfaTokenForm(r *http.Request) (map[string]string, error) {
 	if periodInt < 30 || periodInt > 180 {
 		return nil, fmt.Errorf("MFA period is invalid")
 	}
-
-	resp := make(map[string]string)
-	resp["code1"] = code1
-	resp["code2"] = code2
-	resp["secret"] = secret
-	resp["type"] = secretType
 	resp["period"] = period
+
+	// Digits
+	digits := r.PostFormValue("digits")
+	if digits == "" {
+		return nil, fmt.Errorf("MFA digits is empty")
+	}
+	digitsInt, err := strconv.Atoi(digits)
+	if err != nil {
+		return nil, fmt.Errorf("MFA digits is invalid")
+	}
+	if digits != strconv.Itoa(digitsInt) {
+		return nil, fmt.Errorf("MFA digits is invalid")
+	}
+	if digitsInt < 4 || digitsInt > 8 {
+		return nil, fmt.Errorf("MFA digits is invalid")
+	}
+	resp["digits"] = digits
 	return resp, nil
 }

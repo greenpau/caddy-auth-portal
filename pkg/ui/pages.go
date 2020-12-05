@@ -796,6 +796,7 @@ var PageTemplates = map[string]string{
                     <input id="secret" name="secret" type="hidden" value="{{ .Data.mfa_secret }}" />
                     <input id="type" name="type" type="hidden" value="{{ .Data.mfa_type }}" />
                     <input id="period" name="period" type="hidden" value="{{ .Data.mfa_period }}" />
+                    <input id="period" name="digits" type="hidden" value="{{ .Data.mfa_digits }}" />
                   </div>
                   <div class="col s12 m6 l6">
                     <div class="center-align"><img src="{{ pathjoin .ActionEndpoint "/settings/mfa/barcode/" .Data.code_uri_encoded }}.png" alt="QR Code" /></div>
