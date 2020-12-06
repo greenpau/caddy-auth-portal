@@ -98,7 +98,10 @@ func GetCodeURI(opts map[string]interface{}) (string, error) {
 	}
 
 	sb.WriteString(codeType + "/" + url.QueryEscape(label))
-	sb.WriteString("?secret=" + base32.StdEncoding.EncodeToString([]byte(secret)))
+
+	secretEncoder := base32.StdEncoding.WithPadding(base32.NoPadding)
+	sb.WriteString("?secret=" + secretEncoder.EncodeToString([]byte(secret)))
+
 	if issuer != "" {
 		sb.WriteString("&issuer=" + url.QueryEscape(issuer))
 	}

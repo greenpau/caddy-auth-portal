@@ -782,14 +782,14 @@ var PageTemplates = map[string]string{
                       <label for="comment">Comment</label>
                     </div>
                     <div class="input-field">
-                      <input id="code1" name="code1" type="text" class="validate" pattern="[0-9]{4,8}"
-                        title="Authentication code should contain 4-8 characters and consists of 0-9 characters."
+                      <input id="code1" name="code1" type="text" class="validate" pattern="[0-9]{6}"
+                        title="Authentication code should contain 6 characters and consists of 0-9 characters."
                         required />
                       <label for="code1">Authentication Code 1</label>
                     </div>
                     <div class="input-field">
-                      <input id="code2" name="code2" type="text" class="validate" pattern="[0-9]{4,8}"
-                        title="Authentication code should contain 4-8 characters and consists of 0-9 characters."
+                      <input id="code2" name="code2" type="text" class="validate" pattern="[0-9]{6}"
+                        title="Authentication code should contain 6 characters and consists of 0-9 characters."
                         required />
                       <label for="code2">Authentication Code 2</label>
                     </div>

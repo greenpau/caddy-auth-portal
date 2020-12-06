@@ -403,6 +403,11 @@ func (b *Backend) Do(opts map[string]interface{}) error {
 	case "add_gpg_key":
 	case "delete_public_key":
 	case "add_mfa_token", "delete_mfa_token":
+		b.logger.Debug(
+			"detected unsupported backend operation",
+			zap.String("op", op),
+			zap.Any("params", opts),
+		)
 	default:
 		//b.logger.Debug(
 		//	"detected unsupported backend operation",

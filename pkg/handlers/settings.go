@@ -15,7 +15,6 @@
 package handlers
 
 import (
-	"encoding/base32"
 	"encoding/base64"
 	"fmt"
 	"net/http"
@@ -105,11 +104,10 @@ func ServeSettings(w http.ResponseWriter, r *http.Request, opts map[string]inter
 				} else {
 					if len(viewParts) > 2 {
 						if viewParts[2] == "app" {
-							secretText := utils.GetRandomEncodedStringFromRange(64, 92)
-							secretEncoder := base32.StdEncoding.WithPadding(base32.NoPadding)
-							secret := secretEncoder.EncodeToString([]byte(secretText))
+							secretText := utils.GetRandomStringFromRange(64, 92)
+
 							codeOpts := make(map[string]interface{})
-							codeOpts["secret"] = secret
+							codeOpts["secret"] = secretText
 							codeOpts["type"] = "totp"
 							codeOpts["label"] = "Gatekeeper:" + claims.Email
 							codeOpts["period"] = 30
@@ -121,8 +119,6 @@ func ServeSettings(w http.ResponseWriter, r *http.Request, opts map[string]inter
 							resp.Data["mfa_period"] = "30"
 							resp.Data["mfa_digits"] = "6"
 
-							// codeOpts["algorithm"] = "SHA512"
-							// codeOpts["digits"] = 8
 							codeURI, codeErr = utils.GetCodeURI(codeOpts)
 							if codeErr != nil {
 								log.Error("Failed creating key code URI", zap.String("request_id", reqID), zap.String("error", codeErr.Error()))
