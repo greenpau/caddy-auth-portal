@@ -445,6 +445,11 @@ func validateAddMfaTokenForm(r *http.Request) (map[string]string, error) {
 	resp["code1"] = code1
 	resp["code2"] = code2
 
+	// Comment
+	comment := r.PostFormValue("comment")
+	if comment != "" {
+		resp["comment"] = comment
+	}
 	// Secret
 	secret := r.PostFormValue("secret")
 	if secret == "" {

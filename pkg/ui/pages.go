@@ -565,7 +565,7 @@ var PageTemplates = map[string]string{
             <p>The {{ .Data.view }} view is under construction.</p>
           {{ end }}
           {{ if eq .Data.view "sshkeys" }}
-          <div class="row">
+          <div class="row right">
             <div class="col s12 right">
               <a href="{{ pathjoin .ActionEndpoint "/settings/sshkeys/add" }}">
                 <button type="button" class="btn waves-effect waves-light navbtn active app-btn">
@@ -576,22 +576,30 @@ var PageTemplates = map[string]string{
             </div>
           </div>
           <div class="row">
+            <div class="col s12">
             {{ if .Data.sshkeys }}
-              <p>List of registered SSH Keys</p>
               {{range .Data.sshkeys}}
-              <p>
-                ID: {{ .ID }}<br/>
-                Type: {{ .Type }}<br/>
-                Comment: {{ .Comment }}<br/>
-                Fingerprint: {{ .Fingerprint }}<br/>
-                Fingerprint: {{ .FingerprintMD5 }}<br/>
-                Created At: {{ .CreatedAt }}
-              </p>
-              <a href="{{ pathjoin $.ActionEndpoint "/settings/sshkeys/delete/" .ID }}">Delete</a>
+              <div class="card">
+                <div class="card-content">
+                  <span class="card-title">{{ .Comment }}</span>
+                  <p>
+                    <b>ID</b>: {{ .ID }}<br/>
+                    <b>Type:</b> {{ .Type }}<br/>
+                    <b>Fingerprint (SHA256)</b>: {{ .Fingerprint }}<br/>
+                    <b>Fingerprint (MD5)</b>: {{ .FingerprintMD5 }}<br/>
+                    <b>Created At</b>: {{ .CreatedAt }}
+                  </p>
+                </div>
+                <div class="card-action">
+                  <a href="{{ pathjoin $.ActionEndpoint "/settings/sshkeys/delete/" .ID }}">Delete</a>
+                  <a href="{{ pathjoin $.ActionEndpoint "/settings/sshkeys/get/" .ID }}">View</a>
+                </div>
+              </div>
               {{ end }}
             {{ else }}
               <p>No registered SSH Keys found</p>
             {{ end }}
+            </div>
           </div>
           {{ end }}
           {{ if eq .Data.view "sshkeys-add" }}
@@ -617,6 +625,8 @@ var PageTemplates = map[string]string{
             </form>
           {{ end }}
           {{ if eq .Data.view "sshkeys-add-status" }}
+          <div class="row">
+            <div class="col s12">
             {{ if eq .Data.status "SUCCESS" }}
               <h1>Public SSH Key</h1>
               <p>{{ .Data.status_reason }}</p>
@@ -636,8 +646,12 @@ var PageTemplates = map[string]string{
                 </button>
               </a>
             {{ end }}
+            </div>
+          </div>
           {{ end }}
           {{ if eq .Data.view "sshkeys-delete-status" }}
+          <div class="row">
+            <div class="col s12">
             <h1>Public SSH Key</h1>
             <p>{{.Data.status }}: {{ .Data.status_reason }}</p>
             <a href="{{ pathjoin .ActionEndpoint "/settings/sshkeys" }}">
@@ -646,9 +660,11 @@ var PageTemplates = map[string]string{
                 <span class="app-btn-text">Go Back</span>
               </button>
             </a>
+            </div>
+          </div>
           {{ end }}
           {{ if eq .Data.view "gpgkeys" }}
-          <div class="row">
+          <div class="row right">
             <div class="col s12 right">
               <a href="{{ pathjoin .ActionEndpoint "/settings/gpgkeys/add" }}">
                 <button type="button" class="btn waves-effect waves-light navbtn active app-btn">
@@ -659,6 +675,7 @@ var PageTemplates = map[string]string{
             </div>
           </div>
           <div class="row">
+            <div class="col s12">
             {{ if .Data.gpgkeys }}
               <p>List of registered GPG Keys</p>
               {{range .Data.gpgkeys}}
@@ -669,6 +686,7 @@ var PageTemplates = map[string]string{
             {{ else }}
               <p>No registered GPG Keys found</p>
             {{ end }}
+            </div>
           </div>
           {{ end }}
           {{ if eq .Data.view "gpgkeys-add" }}
@@ -694,6 +712,8 @@ var PageTemplates = map[string]string{
             </form>
           {{ end }}
           {{ if eq .Data.view "gpgkeys-add-status" }}
+          <div class="row">
+            <div class="col s12">
             {{ if eq .Data.status "SUCCESS" }}
               <h1>Public GPG Key</h1>
               <p>{{ .Data.status_reason }}</p>
@@ -713,6 +733,8 @@ var PageTemplates = map[string]string{
                 </button>
               </a>
             {{ end }}
+            </div>
+          </div>
           {{ end }}
           {{ if eq .Data.view "apikeys" }}
           <div class="row">
@@ -726,16 +748,18 @@ var PageTemplates = map[string]string{
             </div>
           </div>
           <div class="row">
+            <div class="col s12">
             {{ if .Data.api_keys }}
               <p>List of registered API Keys</p>
             {{ else }}
               <p>No registered API Keys found</p>
             {{ end }}
+            </div>
           </div>
           {{ end }}
           {{ if eq .Data.view "mfa" }}
-          <div class="row">
-            <div class="col 12 right">
+          <div class="row right">
+            <div class="col s12 right">
               <a href="{{ pathjoin .ActionEndpoint "/settings/mfa/add/app" }}">
                 <button type="button" class="btn waves-effect waves-light navbtn active app-btn">
                   <i class="las la-mobile-alt left app-btn-icon"></i>
@@ -751,19 +775,31 @@ var PageTemplates = map[string]string{
             </div>
           </div>
           <div class="row">
+            <div class="col s12">
             {{ if .Data.mfa_tokens }}
-              <p>List of registered MFA devices</p>
               {{range .Data.mfa_tokens}}
-              <p>
-                ID: {{ .ID }}<br/>
-                Comment: {{ .Comment }}<br/>
-                Created At: {{ .CreatedAt }}
-              </p>
-              <a href="{{ pathjoin $.ActionEndpoint "/settings/mfa/delete/" .ID }}">Delete</a>
+              <div class="card">
+                <div class="card-content">
+                  <span class="card-title">{{ .Comment }}</span>
+                  <p>
+                    <b>ID</b>: {{ .ID }}<br/>
+                    <b>Type</b>: {{ .Type }}<br/>
+                    <b>Algorithm</b>: {{ .Algorithm }}<br/>
+                    <b>Period</b>: {{ .Period }} seconds<br/>
+                    <b>Digits</b>: {{ .Digits }}<br/>
+                    <b>Created At</b>: {{ .CreatedAt }}
+                  </p>
+                </div>
+                <div class="card-action">
+                  <a href="{{ pathjoin $.ActionEndpoint "/settings/mfa/delete/" .ID }}">Delete</a>
+                  <a href="{{ pathjoin $.ActionEndpoint "/settings/mfa/test/" .ID }}">Test</a>
+                </div>
+              </div>
               {{ end }}
             {{ else }}
               <p>No registered MFA devices found</p>
             {{ end }}
+            </div>
           </div>
           {{ end }}
           {{ if eq .Data.view "mfa-add-app" }}
@@ -813,6 +849,8 @@ var PageTemplates = map[string]string{
             </form>
           {{ end }}
           {{ if eq .Data.view "mfa-add-app-status" }}
+          <div class="row">
+            <div class="col s12">
             <h1>MFA Token</h1>
             <p>{{.Data.status }}: {{ .Data.status_reason }}</p>
             {{ if eq .Data.status "SUCCESS" }}
@@ -830,8 +868,12 @@ var PageTemplates = map[string]string{
                 </button>
               </a>
             {{ end }}
+            </div>
+          </div>
           {{ end }}
           {{ if eq .Data.view "mfa-delete-status" }}
+          <div class="row">
+            <div class="col s12">
             <h1>MFA Token</h1>
             <p>{{.Data.status }}: {{ .Data.status_reason }}</p>
             <a href="{{ pathjoin .ActionEndpoint "/settings/mfa" }}">
@@ -840,6 +882,8 @@ var PageTemplates = map[string]string{
                 <span class="app-btn-text">Go Back</span>
               </button>
             </a>
+            </div>
+          </div>
           {{ end }}
           {{ if eq .Data.view "mfa-add-u2f" }}
             <form action="{{ pathjoin .ActionEndpoint "/settings/mfa/add/u2f" }}" method="POST">
@@ -905,6 +949,8 @@ var PageTemplates = map[string]string{
             </form>
           {{ end }}
           {{ if eq .Data.view "password-edit" }}
+          <div class="row">
+            <div class="col s12">
             {{ if eq .Data.status "success" }}
               <h1>Password Has Been Changed</h1>
               <p>Please log out and log back in.</p>
@@ -918,9 +964,15 @@ var PageTemplates = map[string]string{
                 </button>
               </a>
             {{ end }}
+            </div>
+          </div>
           {{ end }}
           {{ if eq .Data.view "misc" }}
+          <div class="row">
+            <div class="col s12">
             <p>The {{ .Data.view }} view is under construction.</p>
+            </div>
+          </div>
           {{ end }}
         </div>
       </div>
