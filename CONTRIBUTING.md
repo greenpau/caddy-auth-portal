@@ -29,5 +29,6 @@ ready to accept, add the following text in the body your first commit message.
 
 Before sending your pull requests, make sure you followed this list.
 
-- Ensure you read appropriate Contributor License Agreement (CLA)
-- Run unit tests
+1. Open an issue to discuss your PR
+2. Ensure you read appropriate Contributor License Agreement (CLA)
+3. Run unit tests
