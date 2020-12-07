@@ -297,7 +297,12 @@
                 </div>
                 <div class="card-action">
                   <a href="{{ pathjoin $.ActionEndpoint "/settings/mfa/delete/" .ID }}">Delete</a>
-                  <a href="{{ pathjoin $.ActionEndpoint "/settings/mfa/test/" .ID }}">Test</a>
+                  {{ if eq .Type "totp" }}
+                  <a href="{{ pathjoin $.ActionEndpoint "/settings/mfa/test/app/" .ID }}">Test</a>
+                  {{ end }}
+                  {{ if eq .Type "u2f" }}
+                  <a href="{{ pathjoin $.ActionEndpoint "/settings/mfa/test/u2f/" .ID }}">Test</a>
+                  {{ end }}
                 </div>
               </div>
               {{ end }}
@@ -337,7 +342,7 @@
                     <input id="secret" name="secret" type="hidden" value="{{ .Data.mfa_secret }}" />
                     <input id="type" name="type" type="hidden" value="{{ .Data.mfa_type }}" />
                     <input id="period" name="period" type="hidden" value="{{ .Data.mfa_period }}" />
-                    <input id="period" name="digits" type="hidden" value="{{ .Data.mfa_digits }}" />
+                    <input id="digits" name="digits" type="hidden" value="{{ .Data.mfa_digits }}" />
                   </div>
                   <div class="col s12 m6 l6">
                     <div class="center-align"><img src="{{ pathjoin .ActionEndpoint "/settings/mfa/barcode/" .Data.code_uri_encoded }}.png" alt="QR Code" /></div>
@@ -367,6 +372,54 @@
               </a>
             {{ else }}
               <a href="{{ pathjoin .ActionEndpoint "/settings/mfa/add/app" }}">
+                <button type="button" class="btn waves-effect waves-light navbtn active">
+                  <i class="las la-undo-alt left app-btn-icon"></i>
+                  <span class="app-btn-text">Try Again</span>
+                </button>
+              </a>
+            {{ end }}
+            </div>
+          </div>
+          {{ end }}
+          {{ if eq .Data.view "mfa-test-app" }}
+            <form action="{{ pathjoin .ActionEndpoint "/settings/mfa/test/app/" .Data.mfa_token_id }}" method="POST">
+              <div class="row">
+                <h1>Test MFA Authenticator Application</h1>
+                <div class="row">
+                  <div class="col s12 m6 l6">
+                    <p>Please open your MFA authenticator application to view your authentication code and verify your identity</p>
+                    <div class="input-field">
+                      <input id="passcode" name="passcode" type="text" class="validate" pattern="[0-9]{6}"
+                        title="Passcode should contain 6 characters and consists of 0-9 characters."
+                        required />
+                      <label for="passcode">Passcode</label>
+                    </div>
+                    <input id="token_id" name="token_id" type="hidden" value="{{ .Data.mfa_token_id }}" />
+                  </div>
+                </div>
+              </div>
+              <div class="row">
+                <button type="submit" name="submit" class="btn waves-effect waves-light navbtn active navbtn-last app-btn">
+                  <i class="las la-plus-circle left app-btn-icon"></i>
+                  <span class="app-btn-text">Validate</span>
+                </button>
+              </div>
+            </form>
+          {{ end }}
+          {{ if eq .Data.view "mfa-test-app-status" }}
+          <div class="row">
+            <div class="col s12">
+            <h1>Test MFA Authenticator Application</h1>
+            <p>{{.Data.status }}: {{ .Data.status_reason }}</p>
+            {{ if eq .Data.status "SUCCESS" }}
+              <a href="{{ pathjoin .ActionEndpoint "/settings/mfa" }}">
+                <button type="button" class="btn waves-effect waves-light navbtn active">
+                  <i class="las la-undo-alt left app-btn-icon"></i>
+                  <span class="app-btn-text">Go Back</span>
+                </button>
+              </a>
+            {{ else }}
+              <a href="{{ pathjoin .ActionEndpoint "/settings/mfa/test/app/" .Data.mfa_token_id }}">
                 <button type="button" class="btn waves-effect waves-light navbtn active">
                   <i class="las la-undo-alt left app-btn-icon"></i>
                   <span class="app-btn-text">Try Again</span>

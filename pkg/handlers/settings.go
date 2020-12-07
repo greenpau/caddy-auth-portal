@@ -156,6 +156,59 @@ func ServeSettings(w http.ResponseWriter, r *http.Request, opts map[string]inter
 						}
 					}
 				}
+			case "test":
+				if len(viewParts) > 3 {
+					resp.Data["mfa_token_id"] = strings.TrimSpace(viewParts[3])
+					if r.Method == "POST" {
+						resp.Data["status"] = "FAIL"
+						if backend != nil {
+							switch viewParts[2] {
+							case "app":
+								view = "mfa-test-app-status"
+								var passcodeValid bool
+								if tokenID, passcode, err := validateMfaAuthTokenForm(r); err != nil {
+									resp.Data["status_reason"] = fmt.Sprintf("Bad Request: %s", err)
+								} else {
+									args := make(map[string]interface{})
+									args["username"] = claims.Subject
+									args["email"] = claims.Email
+									mfaTokens, err := backend.GetMfaTokens(args)
+									if err != nil {
+										resp.Data["status_reason"] = fmt.Sprintf("%s", err)
+									} else {
+										for _, mfaToken := range mfaTokens {
+											if mfaToken.ID != tokenID {
+												continue
+											}
+											if err := mfaToken.ValidateCode(passcode); err == nil {
+												passcodeValid = true
+												resp.Data["status"] = "SUCCESS"
+												resp.Data["status_reason"] = fmt.Sprintf("token %s validated successfully", mfaToken.ID)
+												break
+											}
+										}
+										if !passcodeValid {
+											resp.Data["status_reason"] = fmt.Sprintf("invalid passcode")
+										}
+									}
+								}
+							case "u2f":
+								view = "mfa-test-u2f-status"
+								resp.Data["status_reason"] = "Not implemented"
+							}
+						} else {
+							resp.Data["status_reason"] = "Authentication backend not found"
+						}
+					} else {
+						// Get token ID from path
+						switch viewParts[2] {
+						case "app":
+							view = "mfa-test-app"
+						case "u2f":
+							view = "mfa-test-u2f"
+						}
+					}
+				}
 			}
 		} else {
 			// Entry Page
@@ -404,6 +457,33 @@ func validateKeyInputForm(r *http.Request) (map[string]string, error) {
 		resp["comment"] = comment
 	}
 	return resp, nil
+}
+
+func validateMfaAuthTokenForm(r *http.Request) (string, string, error) {
+	if r.Header.Get("Content-Type") != "application/x-www-form-urlencoded" {
+		return "", "", fmt.Errorf("Unsupported content type")
+	}
+	if err := r.ParseForm(); err != nil {
+		return "", "", fmt.Errorf("Failed parsing submitted form")
+	}
+
+	passcode := r.PostFormValue("passcode")
+	passcode = strings.TrimSpace(passcode)
+	if passcode == "" {
+		return "", "", fmt.Errorf("Required form passcode field is empty")
+	}
+
+	if len(passcode) < 4 || len(passcode) > 8 {
+		return "", "", fmt.Errorf("MFA passcode is not 4-8 characters long")
+	}
+
+	tokenID := r.PostFormValue("token_id")
+	tokenID = strings.TrimSpace(tokenID)
+	if tokenID == "" {
+		return "", "", fmt.Errorf("Required form token_id field is empty")
+	}
+
+	return tokenID, passcode, nil
 }
 
 func validateAddMfaTokenForm(r *http.Request) (map[string]string, error) {
