@@ -24,13 +24,18 @@ import (
 )
 
 func (b *Backend) validateAccessToken(state string, data map[string]interface{}) (*jwtclaims.UserClaims, error) {
-	for _, k := range []string{"id_token"} {
-		if _, exists := data[k]; !exists {
-			return nil, fmt.Errorf("token response has no %s field", k)
+	var tokenKey, tokenString string
+	for _, k := range []string{"id_token", "access_token"} {
+		if v, exists := data[k]; exists {
+			tokenKey = k
+			tokenString = v.(string)
+			break
 		}
 	}
 
-	tokenString := data["id_token"].(string)
+	if tokenString == "" {
+		return nil, fmt.Errorf("token response has neither id_token nor access_token field")
+	}
 
 	token, err := jwtlib.Parse(tokenString, func(token *jwtlib.Token) (interface{}, error) {
 		if _, validMethod := token.Method.(*jwtlib.SigningMethodRSA); !validMethod {
@@ -38,7 +43,7 @@ func (b *Backend) validateAccessToken(state string, data map[string]interface{})
 		}
 		keyID, found := token.Header["kid"].(string)
 		if !found {
-			return nil, fmt.Errorf("kid not found in id_token")
+			return nil, fmt.Errorf("kid not found in %s", tokenKey)
 		}
 		key, exists := b.publicKeys[keyID]
 		if !exists {
@@ -56,7 +61,7 @@ func (b *Backend) validateAccessToken(state string, data map[string]interface{})
 	})
 
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse id_token: %s", err)
+		return nil, fmt.Errorf("failed to parse %s: %s", tokenKey, err)
 	}
 
 	if _, ok := token.Claims.(jwtlib.Claims); !ok && !token.Valid {
