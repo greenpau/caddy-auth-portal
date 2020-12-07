@@ -132,7 +132,6 @@ using local and LDAP credentials.
       jwt {
         token_name access_token
         token_secret 0e2fdcf8-6868-41a7-884b-7308795fc286
-        token_issuer e1008f2d-ccfa-4e62-bbe6-c202ec2988cc
       }
       ui {
         logo_url "https://caddyserver.com/resources/images/caddy-circle-lock.svg"
@@ -153,7 +152,6 @@ using local and LDAP credentials.
         static_secret {
           token_name access_token
           token_secret 0e2fdcf8-6868-41a7-884b-7308795fc286
-          token_issuer e1008f2d-ccfa-4e62-bbe6-c202ec2988cc
         }
       }
       auth_url /auth

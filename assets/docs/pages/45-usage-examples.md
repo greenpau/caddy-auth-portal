@@ -26,7 +26,6 @@ localhost:8443 {
       jwt {
         token_name access_token
         token_secret 0e2fdcf8-6868-41a7-884b-7308795fc286
-        token_issuer e1008f2d-ccfa-4e62-bbe6-c202ec2988cc
       }
       ui {
         links {
@@ -45,7 +44,6 @@ localhost:8443 {
         static_secret {
           token_name access_token
           token_secret 0e2fdcf8-6868-41a7-884b-7308795fc286
-          token_issuer e1008f2d-ccfa-4e62-bbe6-c202ec2988cc
         }
       }
       auth_url /auth

@@ -58,7 +58,6 @@ func init() {
 //	     jwt {
 //	       token_name <value>
 //	       token_secret <value>
-//	       token_issuer <value>
 //         token_lifetime <seconds>
 //         token_sign_method <HS256|HS384|HS512|RS256|RS384|RS512>
 //	     }
@@ -417,11 +416,6 @@ func parseCaddyfileAuthPortal(h httpcaddyfile.Helper) ([]httpcaddyfile.ConfigVal
 						}
 						portal.TokenProvider.TokenRSAFiles = make(map[string]string)
 						portal.TokenProvider.TokenRSAFiles[rsaArgs[0]] = rsaArgs[1]
-					case "token_issuer":
-						if !h.NextArg() {
-							return nil, h.Errf("%s %s subdirective has no value", rootDirective, subDirective)
-						}
-						portal.TokenProvider.TokenIssuer = h.Val()
 					case "token_lifetime":
 						if !h.NextArg() {
 							return nil, h.Errf("%s %s subdirective has no value", rootDirective, subDirective)

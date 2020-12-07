@@ -709,9 +709,6 @@ func (b *Backend) ConfigureTokenProvider(upstream *jwtconfig.CommonTokenConfig) 
 	if b.TokenProvider.TokenSecret == "" {
 		b.TokenProvider.TokenSecret = upstream.TokenSecret
 	}
-	if b.TokenProvider.TokenIssuer == "" {
-		b.TokenProvider.TokenIssuer = upstream.TokenIssuer
-	}
 	if b.TokenProvider.TokenOrigin == "" {
 		b.TokenProvider.TokenOrigin = upstream.TokenOrigin
 	}

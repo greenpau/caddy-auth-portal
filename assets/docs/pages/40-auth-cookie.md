@@ -28,7 +28,6 @@ can be used to change it to 1 hour (3600 seconds).
       jwt {
         token_name access_token
         token_secret 0e2fdcf8-6868-41a7-884b-7308795fc286
-        token_issuer e1008f2d-ccfa-4e62-bbe6-c202ec2988cc
         token_lifetime 3600
       }
 ```

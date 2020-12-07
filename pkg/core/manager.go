@@ -159,14 +159,6 @@ func (m *AuthPortalManager) Register(p *AuthPortal) error {
 
 	p.TokenProvider.TokenSignMethod = strings.ToUpper(p.TokenProvider.TokenSignMethod)
 
-	if p.TokenProvider.TokenIssuer == "" {
-		p.logger.Warn(
-			"JWT token issuer not found, using default",
-			zap.String("instance_name", p.Name),
-		)
-		p.TokenProvider.TokenIssuer = "localhost"
-	}
-
 	if p.TokenProvider.TokenOrigin == "" {
 		p.logger.Warn(
 			"JWT token origin not found, using default",
@@ -179,12 +171,6 @@ func (m *AuthPortalManager) Register(p *AuthPortal) error {
 		"JWT token origin found",
 		zap.String("instance_name", p.Name),
 		zap.String("token_origin", p.TokenProvider.TokenOrigin),
-	)
-
-	p.logger.Debug(
-		"JWT token issuer found",
-		zap.String("instance_name", p.Name),
-		zap.String("token_issuer", p.TokenProvider.TokenIssuer),
 	)
 
 	if p.TokenProvider.TokenLifetime == 0 {
@@ -206,7 +192,6 @@ func (m *AuthPortalManager) Register(p *AuthPortal) error {
 		zap.String("auth_url_path", p.AuthURLPath),
 		zap.String("token_name", p.TokenProvider.TokenName),
 		zap.String("token_origin", p.TokenProvider.TokenOrigin),
-		zap.String("token_issuer", p.TokenProvider.TokenIssuer),
 		zap.Int("token_lifetime", p.TokenProvider.TokenLifetime),
 		zap.String("token_sign_method", p.TokenProvider.TokenSignMethod),
 	)
@@ -596,10 +581,6 @@ func (m *AuthPortalManager) Provision(name string) error {
 		p.TokenProvider.TokenSecret = primaryInstance.TokenProvider.TokenSecret
 	}
 
-	if p.TokenProvider.TokenIssuer == "" {
-		p.TokenProvider.TokenIssuer = primaryInstance.TokenProvider.TokenIssuer
-	}
-
 	if p.TokenProvider.TokenOrigin == "" {
 		p.TokenProvider.TokenOrigin = primaryInstance.TokenProvider.TokenOrigin
 	}
@@ -675,7 +656,6 @@ func (m *AuthPortalManager) Provision(name string) error {
 		zap.String("auth_url_path", p.AuthURLPath),
 		zap.String("token_name", p.TokenProvider.TokenName),
 		zap.String("token_origin", p.TokenProvider.TokenOrigin),
-		zap.String("token_issuer", p.TokenProvider.TokenIssuer),
 		zap.Int("token_lifetime", p.TokenProvider.TokenLifetime),
 		zap.String("token_sign_method", p.TokenProvider.TokenSignMethod),
 	)
