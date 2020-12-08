@@ -43,12 +43,13 @@ type Backend struct {
 	Realm    string `json:"realm,omitempty"`
 	Provider string `json:"provider,omitempty"`
 
-	DomainName   string `json:"domain_name,omitempty"`
-	ClientID     string `json:"client_id,omitempty"`
-	ClientSecret string `json:"client_secret,omitempty"`
-	ServerID     string `json:"server_id,omitempty"`
-	AppSecret    string `json:"app_secret,omitempty"`
-	TenantID     string `json:"tenant_id,omitempty"`
+	DomainName        string `json:"domain_name,omitempty"`
+	ClientID          string `json:"client_id,omitempty"`
+	ClientSecret      string `json:"client_secret,omitempty"`
+	ServerID          string `json:"server_id,omitempty"`
+	AppSecret         string `json:"app_secret,omitempty"`
+	TenantID          string `json:"tenant_id,omitempty"`
+	IdentityTokenName string `json:"identity_token_name,omitempty"`
 
 	Scopes []string `json:"scopes,omitempty"`
 
@@ -115,6 +116,14 @@ func (b *Backend) ConfigureAuthenticator() error {
 
 	if len(b.Scopes) < 1 {
 		b.Scopes = []string{"openid", "email", "profile"}
+	}
+
+	switch b.IdentityTokenName {
+	case "":
+		b.IdentityTokenName = "id_token"
+	case "id_token", "access_token":
+	default:
+		return errors.ErrBackendInvalidIdentityTokenName.WithArgs(b.IdentityTokenName, b.Provider)
 	}
 
 	switch b.Provider {

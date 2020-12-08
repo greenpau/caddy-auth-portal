@@ -23,6 +23,7 @@ const (
 	ErrBackendRealmNotFound                   StandardError = "no realm found for provider %s"
 	ErrBackendClientIDNotFound                StandardError = "no client_id found for provider %s"
 	ErrBackendClientSecretNotFound            StandardError = "no client_secret found for provider %s"
+	ErrBackendInvalidIdentityTokenName        StandardError = "invalid identity token name %s for provider %s"
 	ErrBackendServerIDNotFound                StandardError = "no server_id found for provider %s"
 	ErrBackendAppNameNotFound                 StandardError = "no application name found for provider %s"
 
