@@ -75,43 +75,44 @@ func ServeSettings(w http.ResponseWriter, r *http.Request, opts map[string]inter
 				opts["code_uri_encoded"] = strings.TrimSuffix(strings.Join(viewParts[2:], "/"), ".png")
 				return ServeBarcodeImage(w, r, opts)
 			case "add":
-				if r.Method == "POST" {
-					resp.Data["status"] = "FAIL"
-					if backend != nil {
-						if secrets, err := validateAddMfaTokenForm(r); err != nil {
+				if len(viewParts) > 2 {
+					switch viewParts[2] {
+					case "app":
+						if r.Method == "POST" {
 							resp.Data["status"] = "FAIL"
-							resp.Data["status_reason"] = fmt.Sprintf("Bad Request: %s", err)
-						} else {
-							operation := make(map[string]interface{})
-							operation["name"] = "add_mfa_token"
-							operation["username"] = claims.Subject
-							operation["email"] = claims.Email
-							for k, v := range secrets {
-								operation[k] = v
-							}
-							if err := backend.Do(operation); err != nil {
-								resp.Data["status_reason"] = fmt.Sprintf("%s", err)
+							if backend != nil {
+								if secrets, err := validateAddMfaTokenForm(r); err != nil {
+									resp.Data["status"] = "FAIL"
+									resp.Data["status_reason"] = fmt.Sprintf("Bad Request: %s", err)
+								} else {
+									operation := make(map[string]interface{})
+									operation["name"] = "add_mfa_token"
+									operation["username"] = claims.Subject
+									operation["email"] = claims.Email
+									for k, v := range secrets {
+										operation[k] = v
+									}
+									if err := backend.Do(operation); err != nil {
+										resp.Data["status_reason"] = fmt.Sprintf("%s", err)
+									} else {
+										resp.Data["status"] = "SUCCESS"
+										resp.Data["status_reason"] = "MFA token has been added"
+									}
+								}
 							} else {
-								resp.Data["status"] = "SUCCESS"
-								resp.Data["status_reason"] = "MFA token has been added"
+								resp.Data["status_reason"] = "Authentication backend not found"
 							}
-						}
-					} else {
-						resp.Data["status_reason"] = "Authentication backend not found"
-					}
-					// view: mfa-add-app-status
-					view = strings.Join(viewParts, "-") + "-status"
-				} else {
-					if len(viewParts) > 2 {
-						if viewParts[2] == "app" {
+							// view: mfa-add-app-status
+							view = strings.Join(viewParts, "-") + "-status"
+						} else {
 							secretText := utils.GetRandomStringFromRange(64, 92)
 
 							codeOpts := make(map[string]interface{})
 							codeOpts["secret"] = secretText
 							codeOpts["type"] = "totp"
-							codeOpts["label"] = "Gatekeeper:" + claims.Email
+							codeOpts["label"] = "AUTHP:" + claims.Email
 							codeOpts["period"] = 30
-							codeOpts["issuer"] = "Gatekeeper"
+							codeOpts["issuer"] = "AUTHP"
 							codeOpts["digits"] = 6
 
 							resp.Data["mfa_type"] = "totp"
@@ -129,9 +130,48 @@ func ServeSettings(w http.ResponseWriter, r *http.Request, opts map[string]inter
 							}
 							resp.Data["code_uri"] = codeURI
 							resp.Data["code_uri_encoded"] = base64.StdEncoding.EncodeToString([]byte(codeURI))
+							view = strings.Join(viewParts, "-")
+						}
+					case "u2f":
+						if r.Method == "POST" {
+							resp.Data["status"] = "FAIL"
+							if backend != nil {
+								if secrets, err := validateAddU2FTokenForm(r); err != nil {
+									resp.Data["status"] = "FAIL"
+									resp.Data["status_reason"] = fmt.Sprintf("Bad Request: %s", err)
+								} else {
+									operation := make(map[string]interface{})
+									operation["name"] = "add_mfa_u2f_token"
+									operation["username"] = claims.Subject
+									operation["email"] = claims.Email
+									for k, v := range secrets {
+										operation[k] = v
+									}
+									if err := backend.Do(operation); err != nil {
+										resp.Data["status_reason"] = fmt.Sprintf("%s", err)
+									} else {
+										resp.Data["status"] = "SUCCESS"
+										resp.Data["status_reason"] = "MFA token has been added"
+									}
+								}
+							} else {
+								resp.Data["status_reason"] = "Authentication backend not found"
+							}
+							// view: mfa-add-u2f-status
+							view = strings.Join(viewParts, "-") + "-status"
+						} else {
+							resp.Data["webauthn_challenge"] = utils.GetRandomStringFromRange(64, 92)
+							resp.Data["webauthn_rp_name"] = "AUTHP"
+							resp.Data["webauthn_user_id"] = claims.ID
+							resp.Data["webauthn_user_email"] = claims.Email
+							if claims.Name == "" {
+								resp.Data["webauthn_user_display_name"] = claims.Subject
+							} else {
+								resp.Data["webauthn_user_display_name"] = claims.Name
+							}
+							view = strings.Join(viewParts, "-")
 						}
 					}
-					view = strings.Join(viewParts, "-")
 				}
 			case "delete":
 				view = viewParts[0] + "-" + viewParts[1] + "-status"
@@ -486,6 +526,24 @@ func validateMfaAuthTokenForm(r *http.Request) (string, string, error) {
 	return tokenID, passcode, nil
 }
 
+func validateAddU2FTokenForm(r *http.Request) (map[string]string, error) {
+	resp := make(map[string]string)
+	if r.Header.Get("Content-Type") != "application/x-www-form-urlencoded" {
+		return nil, fmt.Errorf("Unsupported content type")
+	}
+	if err := r.ParseForm(); err != nil {
+		return nil, fmt.Errorf("Failed parsing submitted form")
+	}
+	for _, k := range []string{"webauthn"} {
+		if r.PostFormValue(k) == "" {
+			return nil, fmt.Errorf("Required form %s field not found", k)
+		}
+	}
+
+	return resp, nil
+
+}
+
 func validateAddMfaTokenForm(r *http.Request) (map[string]string, error) {
 	resp := make(map[string]string)
 	if r.Header.Get("Content-Type") != "application/x-www-form-urlencoded" {
@@ -496,7 +554,7 @@ func validateAddMfaTokenForm(r *http.Request) (map[string]string, error) {
 	}
 	for _, k := range []string{"code1", "code2", "secret", "type"} {
 		if r.PostFormValue(k) == "" {
-			return nil, fmt.Errorf("Required form field not found")
+			return nil, fmt.Errorf("Required form %s field not found", k)
 		}
 	}
 

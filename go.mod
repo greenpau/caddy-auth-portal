@@ -4,7 +4,7 @@ go 1.14
 
 require (
 	github.com/caddyserver/caddy/v2 v2.2.0
-	github.com/crewjam/saml v0.4.1
+	github.com/crewjam/saml v0.4.5
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/go-ldap/ldap v3.0.3+incompatible
 	github.com/greenpau/caddy-auth-jwt v1.2.3

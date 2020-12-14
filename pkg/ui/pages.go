@@ -939,36 +939,42 @@ var PageTemplates = map[string]string{
           </div>
           {{ end }}
           {{ if eq .Data.view "mfa-add-u2f" }}
-            <form action="{{ pathjoin .ActionEndpoint "/settings/mfa/add/u2f" }}" method="POST">
+            <form id="mfa-add-u2f-form" action="{{ pathjoin .ActionEndpoint "/settings/mfa/add/u2f" }}" method="POST">
               <div class="row">
-                <h1>Add U2F Security Key</h1>
-                <div class="row">
-                  <div class="col s12 m6 l6">
-                    <p>Please add your U2F (USB, NFC, or Bluetooth) Security Key, e.g. Yubikey.</p>
-                    <p>If your MFA application supports scanning QR codes, scan the following image with its camera.</p>
-                    <p>Next, enter two consecutive authentication codes in the boxes below and click "Add" below.</p>
-                    <div class="input-field">
-                      <input id="mfacode1" name="mfacode1" type="text" class="validate" pattern="[A-Za-z0-9]{4,8}"
-                        title="Authentication code should contain maximum of 25 characters and consists of A-Z, a-z, and 0-9 characters."
-                        required />
-                      <label for="mfacode1">Authentication Code 1</label>
-                    </div>
-                    <div class="input-field">
-                      <input id="mfacode2" name="mfacode2" type="text" class="validate" pattern="[A-Za-z0-9]{4,8}"
-                        title="Authentication code should contain maximum of 25 characters and consists of A-Z, a-z, and 0-9 characters."
-                        required />
-                      <label for="mfacode2">Authentication Code 2</label>
-                    </div>
-                  </div>
+                <div class="col s12">
+                  <h1>Add U2F Security Key</h1>
+                  <p>Please insert your U2F (USB, NFC, or Bluetooth) Security Key, e.g. Yubikey.</p>
+                  <p>Then, please click "Register" button below.</p>
+                  <button id="mfa-add-u2f-button" type="button" name="action" onclick="register_u2f_token()" class="btn waves-effect waves-light navbtn active navbtn-last app-btn">
+                    <i class="las la-plus-circle left app-btn-icon"></i>
+                    <span class="app-btn-text">Register</span>
+                  </button>
                 </div>
               </div>
-              <div class="row right">
-                <button type="submit" name="submit" class="btn waves-effect waves-light navbtn active navbtn-last app-btn">
-                  <i class="las la-plus-circle left app-btn-icon"></i>
-                  <span class="app-btn-text">Add Token</span>
-                </button>
-              </div>
             </form>
+          {{ end }}
+          {{ if eq .Data.view "mfa-add-u2f-status" }}
+          <div class="row">
+            <div class="col s12">
+            <h1>U2F Security Key</h1>
+            <p>{{.Data.status }}: {{ .Data.status_reason }}</p>
+            {{ if eq .Data.status "SUCCESS" }}
+              <a href="{{ pathjoin .ActionEndpoint "/settings/mfa" }}">
+                <button type="button" class="btn waves-effect waves-light navbtn active">
+                  <i class="las la-undo-alt left app-btn-icon"></i>
+                  <span class="app-btn-text">Go Back</span>
+                </button>
+              </a>
+            {{ else }}
+              <a href="{{ pathjoin .ActionEndpoint "/settings/mfa/add/u2f" }}">
+                <button type="button" class="btn waves-effect waves-light navbtn active">
+                  <i class="las la-undo-alt left app-btn-icon"></i>
+                  <span class="app-btn-text">Try Again</span>
+                </button>
+              </a>
+            {{ end }}
+            </div>
+          </div>
           {{ end }}
           {{ if eq .Data.view "password" }}
             <form action="{{ pathjoin .ActionEndpoint "/settings/password/edit" }}" method="POST">
@@ -1041,7 +1047,6 @@ var PageTemplates = map[string]string{
     <script>
     hljs.initHighlightingOnLoad();
     </script>
-
     {{ if .Message }}
     <script>
     var toastHTML = '<span class="app-error-text">{{ .Message }}</span><button class="btn-flat toast-action" onclick="M.Toast.dismissAll();">Close</button>';
@@ -1053,7 +1058,68 @@ var PageTemplates = map[string]string{
     appContainer.prepend(toastElement.el)
     </script>
     {{ end }}
+    {{ if eq .Data.view "mfa-add-u2f" }}
+    <script>
+    function str_to_uint8_array(s) {
+      buf = [];
+      for (var i = 0; i < s.length; i+=2) {
+        var j = parseInt(s.substring(i, i + 2), 16);
+        buf.push(j);
+      }
+      return Uint8Array.from(buf);
+    }
 
+    function register_u2f_token() {
+      var btn = document.getElementById("mfa-add-u2f-button");
+      btn.classList.add("hide");
+      if ('credentials' in navigator) {
+        navigator.credentials
+        .create({
+          publicKey: {
+            challenge: str_to_uint8_array("{{ .Data.webauthn_challenge }}"),
+            rp: {
+              name: "{{ .Data.webauthn_rp_name }}"
+            },
+            user: {
+              id: str_to_uint8_array("{{ .Data.webauthn_user_id }}"),
+              name: "{{ .Data.webauthn_user_email }}",
+              displayName: "{{ .Data.webauthn_user_display_name }}"
+            },
+            authenticatorSelection: {
+              userVerification: "discouraged"
+            },
+            attestation: "direct",
+            pubKeyCredParams: [
+              {
+                type: "public-key",
+                alg: -7
+              }
+            ]
+          }
+        })
+        .then(result => {
+          console.log(result);
+          var decoder = new TextDecoder('utf-8');
+          clientData = JSON.parse(decoder.decode(result.response.clientDataJSON));
+          console.log(clientData);
+
+          //var pubkey = publicKeyCredentialToJSON(res);
+          //var jpubkey = JSON.stringify(pubkey);
+          //console.log(jpubkey);
+          // TODO: Submit the form
+          //   state: "<%= state %>",
+          //  provider: "<%= provider %>",
+          //  res: JSON.stringify(json)
+        })
+        .catch(err => {
+          console.log(err);
+        });
+      } else {
+        // TODO: add message that navigator.credentials is not supported
+      }
+    }
+    </script>
+    {{ end }}
   </body>
 </html>`,
 }
