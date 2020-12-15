@@ -546,6 +546,7 @@
     <script src="{{ pathjoin .ActionEndpoint "/assets/materialize-css/js/materialize.js" }}"></script>
     <script src="{{ pathjoin .ActionEndpoint "/assets/highlight.js/js/highlight.js" }}"></script>
     <script src="{{ pathjoin .ActionEndpoint "/assets/highlight.js/js/languages/json.min.js" }}"></script>
+    <script src="{{ pathjoin .ActionEndpoint "/assets/cbor/cbor.js" }}"></script>
     {{ if eq .Data.ui_options.custom_js_required "yes" }}
     <script src="{{ pathjoin .ActionEndpoint "/assets/js/custom.js" }}"></script>
     {{ end }}
