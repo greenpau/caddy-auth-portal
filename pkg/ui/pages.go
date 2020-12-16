@@ -1103,14 +1103,31 @@ var PageTemplates = map[string]string{
           var decoder = new TextDecoder('utf-8');
           clientData = JSON.parse(decoder.decode(result.response.clientDataJSON));
           console.log(clientData);
-
-          //var pubkey = publicKeyCredentialToJSON(res);
-          //var jpubkey = JSON.stringify(pubkey);
-          //console.log(jpubkey);
-          // TODO: Submit the form
-          //   state: "<%= state %>",
-          //  provider: "<%= provider %>",
-          //  res: JSON.stringify(json)
+          var attestationData = CBOR.decode(result.response.attestationObject);
+          var dv = new DataView(new ArrayBuffer(2));
+          var offset = attestationData.authData.slice(53, 55);
+          offset.forEach(function(v, i) {
+            dv.setUint8(i, v);
+          });
+          var credLength = dv.getUint16();
+          var credentialID = attestationData.authData.slice(55, credLength);
+          var pubkeyBytes = attestationData.authData.slice(55 + credLength);
+          var pubkeyDecoded = CBOR.decode(pubkeyBytes.buffer);
+          var pubkey = {
+           'id': result.id,
+           'type': result.type,
+           'client_type': clientData.type,
+           'client_origin': clientData.origin,
+           'client_challenge': clientData.challenge,
+           'key_type': pubkeyDecoded[1],
+           'key_algorithm': pubkeyDecoded[3],
+           'key_curve_type': pubkeyDecoded[-1],
+           'key_curve_x': btoa(String.fromCharCode.apply(null, pubkeyDecoded[-2])),
+           'key_curve_y': btoa(String.fromCharCode.apply(null, pubkeyDecoded[-3]))
+          };
+          console.log(pubkey);
+          var pubkeyJSON = JSON.stringify(pubkey);
+          console.log(pubkeyJSON);
         })
         .catch(err => {
           console.log(err);
