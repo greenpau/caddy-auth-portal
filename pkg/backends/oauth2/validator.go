@@ -83,7 +83,7 @@ func (b *Backend) validateAccessToken(state string, data map[string]interface{})
 	}
 
 	// Iterate over the received token and populate the fields
-	for _, k := range []string{"sub", "name", "email", "iat", "exp", "jti", "iss", "groups"} {
+	for _, k := range []string{"sub", "name", "email", "iss"} {
 		if _, exists := tokenClaims[k]; !exists {
 			continue
 		}
