@@ -1070,70 +1070,199 @@ var PageTemplates = map[string]string{
       return Uint8Array.from(buf);
     }
 
+    function uint8array_to_buffer(arr) {
+			return arr.buffer.slice(arr.byteOffset, arr.byteLength + arr.byteOffset)
+		}
+
+    function buffer_to_hex(buffer) {
+			return uint8array_to_hex(new Uint8Array(buffer));
+		}
+
+		function uint8array_to_hex(arr) {
+			return Array.prototype.map.call(arr, function (x) {
+				return ('00' + x.toString(16)).slice(-2);
+			}).join('');
+		}
+
+    function buffer_to_base64(buffer) {
+			return uint8array_to_base64(new Uint8Array(buffer));
+		}
+
+    function uint8array_to_base64(array) {
+			return window.btoa(String.fromCharCode.apply(null, array));
+		}
+
+    function parseAttestationObjectAttestationStatement(attStmt) {
+      console.log("attStmt");
+      console.log(attStmt);
+      // Algorithms, see IANA COSE Algorithms registry
+      // https://www.iana.org/assignments/cose/cose.xhtml#algorithms
+      // -7: ES256 (ECDSA w/ SHA-256)
+      // -257: RS256 (RSASSA-PKCS1-v1_5 using SHA-256)
+      response = {
+        "alg": attStmt.alg
+      }
+      return response
+    }
+
+    function parseAttestationObjectAuthData(data) {
+      // See https://www.w3.org/TR/webauthn-1/#sctn-attestation
+      var dv = new DataView(data, 0);
+      console.log(dv.byteLength);
+      var offset = 0;
+      var rp_id_hash  = dv.buffer.slice(offset, offset + 32); offset += 32;
+      var flags = dv.getUint8(offset); offset += 1;
+      var counter = dv.getUint32(offset, false); offset += 4;
+      var response = {
+        'rpIdHash': buffer_to_hex(rp_id_hash),
+        'flags': {
+					'UP':    !!(flags & 0x01), // User Present (UP)
+					'RFU1':  !!(flags & 0x02),
+					'UV':    !!(flags & 0x04), // User Verified (UV)
+					'RFU2a': !!(flags & 0x08),
+					'RFU2b': !!(flags & 0x10),
+					'RFU2c': !!(flags & 0x20),
+					'AT':    !!(flags & 0x40), // Attested credential data included
+					'ED':    !!(flags & 0x80)  // Extension data included
+				},
+				'signatureCounter': counter,
+        'credentialData': {},
+        'extensions': {}
+			};
+
+      console.log("response");
+      console.log(response);
+      console.log(offset);
+
+
+      if (response['flags']['AT']) {
+        var aaguid = dv.buffer.slice(offset, offset + 16); offset += 16;
+        console.log("aaguid");
+        console.log(aaguid);
+        console.log(buffer_to_base64(aaguid));
+        response['credentialData']['aaguid'] = buffer_to_base64(aaguid);
+        var credentialIdLength = dv.getUint16(offset); offset += 2;
+        console.log("credentialIdLength");
+        console.log(credentialIdLength);
+        var credentialId = dv.buffer.slice(offset, credentialIdLength); offset += credentialIdLength;
+        response['credentialData']['credentialId'] = buffer_to_base64(credentialId)
+        console.log("credentialId");
+        console.log(response['credentialData']['credentialId']);
+        var publicKeyBytes = dv.buffer.slice(offset);
+        console.log("publicKeyBytes");
+        console.log(publicKeyBytes);
+        var publicKeyObject = CBOR.decode(publicKeyBytes);
+        console.log("publicKeyObject");
+        console.log(publicKeyObject);
+
+
+        // TODO: fix it! The is no length!!
+        console.log(typeof publicKeyBytes);
+        // console.log(len(publicKeyBytes));
+
+        offset += publicKeyObject['length'];
+
+        // TODO: PEM object
+        console.log("CBOR decoded");
+        response['credentialData']['publicKey'] = {
+          // See COSE Key Types: https://www.iana.org/assignments/cose/cose.xhtml#key-type
+          // 2 = Elliptic Curve Keys w/ x- and y-coordinate pair
+          'key_type': publicKeyObject[1],
+          // See COSE Algorithms: https://www.iana.org/assignments/cose/cose.xhtml#algorithms
+          // -7 = ECDSA with SHA256
+					'algorithm': publicKeyObject[3],
+          // See COSE Elliptic Curves: https://www.iana.org/assignments/cose/cose.xhtml#elliptic-curves
+          // 1 = P-256 (NIST P-256 also known as secp256r1)
+  				'curve_type': publicKeyObject[-1],
+          // Elliptic Curve x-coordinate as byte string 32 bytes in length
+	  			'curve_x': uint8array_to_base64(publicKeyObject[-2]),
+          // Elliptic Curve y-coordinate as byte string 32 bytes in length
+					'curve_y': uint8array_to_base64(publicKeyObject[-3]),
+        }
+      }
+
+      if (response['flags']['ED']) {
+        // var extensionData = dv.buffer.slice(offset);
+      }
+
+      console.log(response);
+      return response;
+    }
+
+    function parseNavigatorCredentialsCreateResponse(result) {
+      var decoder = new TextDecoder('utf-8');
+      clientData = JSON.parse(decoder.decode(result.response.clientDataJSON));
+      console.log("clientData");
+      console.log(clientData);
+      console.log("result");
+      console.log(result);
+      var attestationObject = CBOR.decode(result.response.attestationObject);
+      var attestationObjectAuthData = uint8array_to_buffer(attestationObject.authData);
+      console.log("attestationObject");
+      console.log(attestationObject);
+      console.log("attestationObjectAuthData");
+      console.log(attestationObjectAuthData);
+      var authData = parseAttestationObjectAuthData(attestationObjectAuthData);
+      var attStmt = parseAttestationObjectAttestationStatement(attestationObject.attStmt);
+
+      var response = {
+        "success": true,
+        "attestationObject": {
+          "attStmt": attStmt,
+          "authData": authData,
+          "fmt": attestationObject.fmt
+        },
+        "clientData": clientData,
+        "device": {
+          "name": "Unknown device",
+          "type": "unknown"
+        }
+      }
+      return response;
+    }
+
     function register_u2f_token() {
       var btn = document.getElementById("mfa-add-u2f-button");
       btn.classList.add("hide");
+      var publicKeyOptions = {
+        "challenge": str_to_uint8_array("{{ .Data.webauthn_challenge }}"),
+        "rp": {
+          "name": "{{ .Data.webauthn_rp_name }}"
+        },
+        "user": {
+          "id": str_to_uint8_array("{{ .Data.webauthn_user_id }}"),
+          "name": "{{ .Data.webauthn_user_email }}",
+          "displayName": "{{ .Data.webauthn_user_display_name }}"
+        },
+        authenticatorSelection: {
+          userVerification: "discouraged"
+        },
+        attestation: "direct",
+        pubKeyCredParams: [
+          {
+            type: "public-key",
+            alg: -7
+          }
+        ]
+      };
+      console.log("public key options");
+      console.log(publicKeyOptions);
       if ('credentials' in navigator) {
         navigator.credentials
-        .create({
-          publicKey: {
-            challenge: str_to_uint8_array("{{ .Data.webauthn_challenge }}"),
-            rp: {
-              name: "{{ .Data.webauthn_rp_name }}"
-            },
-            user: {
-              id: str_to_uint8_array("{{ .Data.webauthn_user_id }}"),
-              name: "{{ .Data.webauthn_user_email }}",
-              displayName: "{{ .Data.webauthn_user_display_name }}"
-            },
-            authenticatorSelection: {
-              userVerification: "discouraged"
-            },
-            attestation: "direct",
-            pubKeyCredParams: [
-              {
-                type: "public-key",
-                alg: -7
-              }
-            ]
-          }
-        })
+        .create({publicKey: publicKeyOptions})
         .then(result => {
-          console.log(result);
-          var decoder = new TextDecoder('utf-8');
-          clientData = JSON.parse(decoder.decode(result.response.clientDataJSON));
-          console.log(clientData);
-          var attestationData = CBOR.decode(result.response.attestationObject);
-          var dv = new DataView(new ArrayBuffer(2));
-          var offset = attestationData.authData.slice(53, 55);
-          offset.forEach(function(v, i) {
-            dv.setUint8(i, v);
-          });
-          var credLength = dv.getUint16();
-          var credentialID = attestationData.authData.slice(55, credLength);
-          var pubkeyBytes = attestationData.authData.slice(55 + credLength);
-          var pubkeyDecoded = CBOR.decode(pubkeyBytes.buffer);
-          var pubkey = {
-           'id': result.id,
-           'type': result.type,
-           'client_type': clientData.type,
-           'client_origin': clientData.origin,
-           'client_challenge': clientData.challenge,
-           'key_type': pubkeyDecoded[1],
-           'key_algorithm': pubkeyDecoded[3],
-           'key_curve_type': pubkeyDecoded[-1],
-           'key_curve_x': btoa(String.fromCharCode.apply(null, pubkeyDecoded[-2])),
-           'key_curve_y': btoa(String.fromCharCode.apply(null, pubkeyDecoded[-3]))
-          };
-          console.log(pubkey);
-          var pubkeyJSON = JSON.stringify(pubkey);
-          console.log(pubkeyJSON);
+          response = parseNavigatorCredentialsCreateResponse(result);
+          console.log('navigator.credentials.create() response');
+          console.log(response);
         })
         .catch(err => {
           console.log(err);
+          err_msg = err.name + ': ' + err.message;
+          console.log(err_msg)
         });
       } else {
-        // TODO: add message that navigator.credentials is not supported
+        // TODO: 'navigator.credentials is not supported'
+        console.log('navigator.credentials is not supported')
       }
     }
     </script>
