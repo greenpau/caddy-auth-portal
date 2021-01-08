@@ -87,6 +87,7 @@ func ServeSettings(w http.ResponseWriter, r *http.Request, opts map[string]inter
 								} else {
 									operation := make(map[string]interface{})
 									operation["name"] = "add_mfa_token"
+									operation["token_type"] = "app"
 									operation["username"] = claims.Subject
 									operation["email"] = claims.Email
 									for k, v := range secrets {
@@ -141,7 +142,8 @@ func ServeSettings(w http.ResponseWriter, r *http.Request, opts map[string]inter
 									resp.Data["status_reason"] = fmt.Sprintf("Bad Request: %s", err)
 								} else {
 									operation := make(map[string]interface{})
-									operation["name"] = "add_mfa_u2f_token"
+									operation["name"] = "add_mfa_token"
+									operation["token_type"] = "u2f"
 									operation["username"] = claims.Subject
 									operation["email"] = claims.Email
 									for k, v := range secrets {
@@ -534,14 +536,13 @@ func validateAddU2FTokenForm(r *http.Request) (map[string]string, error) {
 	if err := r.ParseForm(); err != nil {
 		return nil, fmt.Errorf("Failed parsing submitted form")
 	}
-	for _, k := range []string{"webauthn"} {
+	for _, k := range []string{"webauthn_register", "webauthn_challenge"} {
 		if r.PostFormValue(k) == "" {
 			return nil, fmt.Errorf("Required form %s field not found", k)
 		}
+		resp[k] = r.PostFormValue(k)
 	}
-
 	return resp, nil
-
 }
 
 func validateAddMfaTokenForm(r *http.Request) (map[string]string, error) {

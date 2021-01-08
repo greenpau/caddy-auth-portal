@@ -35,15 +35,9 @@ import (
 )
 
 var (
-	globalAuthenticator  *Authenticator
 	emailRegexPattern    = regexp.MustCompile("^[a-zA-Z0-9.+\\._~-]{1,61}@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$")
 	usernameRegexPattern = regexp.MustCompile("^[a-zA-Z0-9.+\\._~-]{1,61}$")
 )
-
-func init() {
-	globalAuthenticator = NewAuthenticator()
-	return
-}
 
 // UserGroup represent the binding between BaseDN and a serarch filter.
 // Upon successful authentation for the combination, a user gets
@@ -96,7 +90,7 @@ func NewDatabaseBackend() *Backend {
 	b := &Backend{
 		Method:        "ldap",
 		TokenProvider: jwtconfig.NewCommonTokenConfig(),
-		Authenticator: globalAuthenticator,
+		Authenticator: NewAuthenticator(),
 	}
 	return b
 }

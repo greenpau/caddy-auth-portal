@@ -450,6 +450,14 @@
                   <h1>Add U2F Security Key</h1>
                   <p>Please insert your U2F (USB, NFC, or Bluetooth) Security Key, e.g. Yubikey.</p>
                   <p>Then, please click "Register" button below.</p>
+                  <div class="input-field">
+                    <input id="comment" name="comment" type="text" class="validate" pattern="[A-Za-z0-9 -]{4,25}"
+                      title="Authentication code should contain 4-25 characters and consists of A-Z, a-z, 0-9, space, and dash characters."
+                      required />
+                    <label for="comment">Comment</label>
+                  </div>
+                  <input class="hide" id="webauthn_register" name="webauthn_register" type="text" />
+                  <input class="hide" id="webauthn_challenge" name="webauthn_challenge" type="text" value="{{ .Data.webauthn_challenge }}" />
                   <button id="mfa-add-u2f-button" type="button" name="action" onclick="register_u2f_token()" class="btn waves-effect waves-light navbtn active navbtn-last app-btn">
                     <i class="las la-plus-circle left app-btn-icon"></i>
                     <span class="app-btn-text">Register</span>
@@ -598,15 +606,40 @@
 		}
 
     function parseAttestationObjectAttestationStatement(attStmt) {
+      // See Packed Attestation Statement Format for details
+      // https://www.w3.org/TR/webauthn-1/#packed-attestation
       console.log("attStmt");
       console.log(attStmt);
-      // Algorithms, see IANA COSE Algorithms registry
-      // https://www.iana.org/assignments/cose/cose.xhtml#algorithms
-      // -7: ES256 (ECDSA w/ SHA-256)
-      // -257: RS256 (RSASSA-PKCS1-v1_5 using SHA-256)
       response = {
+        // Algorithms, see IANA COSE Algorithms registry
+        // https://www.iana.org/assignments/cose/cose.xhtml#algorithms
+        // -7: ES256 (ECDSA w/ SHA-256)
+        // -257: RS256 (RSASSA-PKCS1-v1_5 using SHA-256)
         "alg": attStmt.alg
+			}
+
+      if (!('sig' in attStmt)) {
+        throw "sig not found in attestation statement";
       }
+      // A byte string containing the attestation signature
+      response["sig"] = uint8array_to_base64(attStmt.sig);
+
+      if ('x5c' in attStmt) {
+				// Handle non-ECDAA attestation type
+        var certChain = [];
+        // The elements of this array contain attestnCert and its
+        // certificate chain, each encoded in X.509 format. The attestation
+        // certificate attestnCert MUST be the first element in the array.
+        response["x5c"] = []
+        attStmt.x5c.forEach(item => response.x5c.push(uint8array_to_base64(item)));
+      } else {
+				if ('ecdaaKeyId' in attStmt) {
+					// Handle ECDAA attestation type
+				} else {
+          throw "ecdaaKeyId not found in attestation statement";
+				}
+      }
+
       return response
     }
 
@@ -759,6 +792,10 @@
           response = parseNavigatorCredentialsCreateResponse(result);
           console.log('navigator.credentials.create() response');
           console.log(response);
+          jresponse = btoa(JSON.stringify(response));
+          console.log(jresponse);
+          document.getElementById("webauthn_register").value = jresponse;
+          document.getElementById("mfa-add-u2f-form").submit();
         })
         .catch(err => {
           console.log(err);

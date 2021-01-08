@@ -401,16 +401,16 @@ func (b *Backend) Do(opts map[string]interface{}) error {
 	case "delete_public_key":
 	case "add_mfa_token", "delete_mfa_token":
 		b.logger.Debug(
-			"detected unsupported backend operation",
+			"detected supported backend operation",
 			zap.String("op", op),
 			zap.Any("params", opts),
 		)
 	default:
-		//b.logger.Debug(
-		//	"detected unsupported backend operation",
-		//	zap.String("op", op),
-		//	zap.Any("params", opts),
-		//)
+		b.logger.Error(
+			"detected unsupported backend operation",
+			zap.String("op", op),
+			zap.Any("params", opts),
+		)
 		return fmt.Errorf("Unsupported backend operation")
 	}
 	if b.Authenticator == nil {
