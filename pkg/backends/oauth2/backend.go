@@ -19,21 +19,21 @@ import (
 	//"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
+	"net"
+	"net/http"
+	"net/url"
+	"strconv"
+	"strings"
+	"time"
+
 	jwtclaims "github.com/greenpau/caddy-auth-jwt/pkg/claims"
 	jwtconfig "github.com/greenpau/caddy-auth-jwt/pkg/config"
 	"github.com/greenpau/caddy-auth-portal/pkg/errors"
 	"github.com/greenpau/caddy-auth-portal/pkg/utils"
 	"github.com/greenpau/go-identity"
-	"github.com/satori/go.uuid"
+	uuid "github.com/satori/go.uuid"
 	"go.uber.org/zap"
-	"io/ioutil"
-	"net"
-	"net/http"
-	"net/url"
-	"regexp"
-	"strconv"
-	"strings"
-	"time"
 )
 
 // Backend represents authentication provider with OAuth 2.0 backend.
@@ -302,8 +302,6 @@ func (b *Backend) Authenticate(opts map[string]interface{}) (map[string]interfac
 				}
 			}
 
-			// Add additional roles, if necessary
-			b.supplementClaims(claims)
 			resp["claims"] = claims
 			b.logger.Debug(
 				"received OAuth 2.0 authorization server access token",
@@ -554,70 +552,6 @@ func (b *Backend) fetchAccessToken(redirectURI, state, code string) (map[string]
 		}
 	}
 	return data, nil
-}
-
-func (b *Backend) supplementClaims(claims *jwtclaims.UserClaims) {
-	if len(b.UserRoleMapList) < 1 {
-		return
-	}
-
-	var userID string
-
-	switch b.Provider {
-	case "github":
-		if claims.Subject == "" {
-			return
-		}
-		userID = claims.Subject
-	default:
-		if claims.Email == "" {
-			return
-		}
-		userID = claims.Email
-	}
-
-	roles := []string{}
-	roleMap := make(map[string]interface{})
-	for _, roleName := range claims.Roles {
-		roleMap[roleName] = true
-		roles = append(roles, roleName)
-	}
-
-	for _, entry := range b.UserRoleMapList {
-		if entry == nil {
-			continue
-		}
-		entryEmail := entry["email"].(string)
-		entryMatchType := entry["match"].(string)
-
-		switch entryMatchType {
-		case "regex":
-			// Perform regex match
-			matched, err := regexp.MatchString(entryEmail, userID)
-			if err != nil {
-				continue
-			}
-			if !matched {
-				continue
-			}
-		case "exact":
-			// Perform exact match
-			if entryEmail != userID {
-				continue
-			}
-		default:
-			continue
-		}
-		entryRoles := entry["roles"].([]interface{})
-		for _, r := range entryRoles {
-			roleName := r.(string)
-			if _, exists := roleMap[roleName]; !exists {
-				roleMap[roleName] = true
-				roles = append(roles, roleName)
-			}
-		}
-	}
-	claims.Roles = roles
 }
 
 func newBrowser() (*http.Client, error) {

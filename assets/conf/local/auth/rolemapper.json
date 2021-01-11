@@ -1,0 +1,9 @@
+[
+    {
+        "email": "webadmin@localdomain.local",
+        "match": "exact",
+        "roles": [
+            "fileadminlocaldomain"
+        ]
+    }
+]

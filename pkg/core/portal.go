@@ -30,10 +30,11 @@ import (
 	"github.com/greenpau/caddy-auth-portal/pkg/cookies"
 	"github.com/greenpau/caddy-auth-portal/pkg/handlers"
 	"github.com/greenpau/caddy-auth-portal/pkg/registration"
+	"github.com/greenpau/caddy-auth-portal/pkg/rolemapper"
 	"github.com/greenpau/caddy-auth-portal/pkg/ui"
 	"github.com/greenpau/caddy-auth-portal/pkg/utils"
 	"github.com/greenpau/go-identity"
-	"github.com/satori/go.uuid"
+	uuid "github.com/satori/go.uuid"
 	"go.uber.org/zap"
 )
 
@@ -66,6 +67,7 @@ type AuthPortal struct {
 	UserRegistrationDatabase *identity.Database           `json:"-"`
 	Cookies                  *cookies.Cookies             `json:"cookies,omitempty"`
 	Backends                 []backends.Backend           `json:"backends,omitempty"`
+	RoleMappers              rolemapper.RoleMapper        `json:"rolemapping,omitempty"`
 	TokenProvider            *jwtconfig.CommonTokenConfig `json:"jwt,omitempty"`
 	EnableSourceIPTracking   bool                         `json:"source_ip_tracking,omitempty"`
 	TokenValidator           *jwtvalidator.TokenValidator `json:"-"`
@@ -81,6 +83,7 @@ func (p *AuthPortal) Configure(upstreamOptions map[string]interface{}) error {
 		return fmt.Errorf("configuration requires valid logger")
 	}
 	p.logger = upstreamOptions["logger"].(*zap.Logger)
+	p.RoleMappers.Logger = p.logger
 	p.startedAt = time.Now().UTC()
 	if err := PortalManager.Register(p); err != nil {
 		return fmt.Errorf(
@@ -299,6 +302,8 @@ func (p *AuthPortal) ServeHTTP(w http.ResponseWriter, r *http.Request, upstreamO
 			}
 
 			claims := resp["claims"].(*jwtclaims.UserClaims)
+			p.RoleMappers.Logger = p.logger
+			p.RoleMappers.ApplyRoleMapToClaims(claims, backend.GetRealm())
 			claims.ID = reqID
 			claims.Issuer = utils.GetCurrentURL(r)
 			if p.EnableSourceIPTracking {
@@ -350,6 +355,8 @@ func (p *AuthPortal) ServeHTTP(w http.ResponseWriter, r *http.Request, upstreamO
 							)
 						} else {
 							claims := resp["claims"].(*jwtclaims.UserClaims)
+							p.RoleMappers.Logger = p.logger
+							p.RoleMappers.ApplyRoleMapToClaims(claims, backend.GetRealm())
 							claims.ID = reqID
 							claims.Issuer = utils.GetCurrentURL(r)
 							if p.EnableSourceIPTracking {

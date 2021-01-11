@@ -1,0 +1,74 @@
+{
+  http_port     8080
+  https_port    8443
+  debug
+}
+
+localhost, 127.0.0.1 {
+  route /auth* {
+    auth_portal {
+      backends {
+        local_backend1 {
+          method local
+          path assets/conf/local/auth/user_db.json
+          realm firstlocal
+        }
+        local_backend2 {
+          method local
+          path assets/conf/local/auth/user_db.json
+          realm secondlocal
+
+          # these only apply to this "secondlocal" realm
+          # this is an extension of what was coded for only the oauth2 backend
+          user "^webadmin" regex add role secondlocal_regex
+          user webadmin@localdomain.local add role secondlocal_add
+        }
+      }
+      rolemapping {
+        # these are global to all backends
+        user "^webadmin" regex add role rolemapping_regex
+        user webadmin@localdomain.local add role rolemapping_add
+
+        path assets/conf/local/auth/rolemapper.json
+      }
+    }
+  }
+
+  route /prometheus* {
+    jwt {
+      primary yes
+      trusted_tokens {
+        static_secret {
+          token_name access_token
+          token_secret 0e2fdcf8-6868-41a7-884b-7308795fc286
+        }
+      }
+      auth_url /auth
+      allow roles anonymous guest admin
+      allow roles superadmin
+      allow roles AzureAD_Administrator AzureAD_Editor AzureAD_Viewer
+      allow roles everyone Everyone
+    }
+    uri strip_prefix /prometheus
+    reverse_proxy http://127.0.0.1:9080
+  }
+
+  route /alertmanager* {
+    jwt
+    uri strip_prefix /alertmanager
+    reverse_proxy http://127.0.0.1:9083
+  }
+
+  route /myapp* {
+    jwt
+    respond * "myapp" 200
+  }
+
+  route /version* {
+    respond * "1.0.0" 200
+  }
+
+  route {
+    redir https://{hostport}/auth 302
+  }
+}

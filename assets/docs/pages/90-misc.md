@@ -131,3 +131,56 @@ Replaces:
       ...
     }
 ```
+
+### Adding Role Claims globally
+
+The Caddyfile `rolemapping` { `user` } directive allows adding roles to
+a user based on the user's email.
+
+These mappings apply to all authentication backends in an auth_portal, and match on the `email`
+claim.
+
+A user with email claim of `contoso.com` would get an additional `superuser` role.
+
+```
+          user jsmith@contoso.com add role superuser
+```
+
+A user with the email address beginning with `jsmith` would get additional roles.
+Specifically, it would be viewer, editor, and admin.
+
+```
+          user "^greenpau" regex add roles viewer editor admin
+```
+
+All users with `contoso.com` email address would get "employee" role:
+
+```
+          user "@contoso.com$" regex add role employee
+
+```
+
+The user role mapping can also be managed using a json file specified using the 
+`path` directive, using the following format:
+
+```
+[
+  { email: "jsmith@contoso.com", match: "exact", roles: ["superuser"] },
+  { email: "^greenpau", match: "regex", roles: ["viewer", "editor", "admin"] },
+  { email: "@contoso.com$", match: "regex", roles: ["employee"] },
+]
+```
+
+For example, your Caddyfile may be as follows:
+
+```
+myapp.localdomain.local, localhost, 127.0.0.1 {
+  route /auth* {
+    auth_portal {
+      path /auth
+      rolemapping {
+        user "^greenpau" regex add role superuser
+        user jsmith@contoso.com add role superuser
+        path /config/caddy/rolemapping/map.json
+      }
+```

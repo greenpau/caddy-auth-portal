@@ -27,6 +27,7 @@ import (
 	"github.com/greenpau/caddy-auth-portal/pkg/cookies"
 	"github.com/greenpau/caddy-auth-portal/pkg/core"
 	"github.com/greenpau/caddy-auth-portal/pkg/registration"
+	"github.com/greenpau/caddy-auth-portal/pkg/rolemapper"
 	"github.com/greenpau/caddy-auth-portal/pkg/ui"
 	"github.com/greenpau/caddy-auth-portal/pkg/utils"
 
@@ -140,6 +141,87 @@ func parseCaddyfileAuthPortal(h httpcaddyfile.Helper) ([]httpcaddyfile.ConfigVal
 					return nil, h.Errf("auth backend %s directive failed to compile to JSON: %s", rootDirective, err.Error())
 				}
 				portal.Backends = append(portal.Backends, backend)
+			case "rolemapping":
+				// for mapping from claims to add extra roles to the claim
+				// rolemapping {
+				// 	   user admin@localdomain.local add role adminlocaldomain
+				//     user "home.org.au$" regex add role homeorgau
+				// }
+				roleMapping := make([]rolemapper.RoleMap, 1, 1)
+				roleMappingPaths := []string{}
+				for nesting := h.Nesting(); h.NextBlock(nesting); {
+					claimType := h.Val()
+					switch claimType {
+					case "path":
+						roleMappingPaths = append(roleMappingPaths, h.RemainingArgs()...)
+					case "user":
+						userArgs := h.RemainingArgs()
+						if len(userArgs) < 4 {
+							return nil, h.Errf("auth rolemapping subdirective %s is missing arguments", claimType)
+						}
+						var userRoles []string
+						var userEmail string
+						var userMatchType string
+						var ptr int
+						// Get email address pattern
+						if userArgs[ptr] == "" {
+							return nil, h.Errf("auth rolemapping subdirective %s is malformed, empty email", claimType)
+						}
+						userEmail = userArgs[ptr]
+						ptr++
+						// Search for the indicator of whether it is exact or regex match
+						switch userArgs[ptr] {
+						case "regex":
+							userMatchType = userArgs[ptr]
+							if _, err := regexp.Compile(userEmail); err != nil {
+								return nil, h.Errf(
+									"auth rolemapping subdirective %s is malformed, failed to compile regex: %s",
+									claimType, err,
+								)
+							}
+							ptr++
+						case "exact":
+							userMatchType = userArgs[ptr]
+							ptr++
+						default:
+							userMatchType = "exact"
+						}
+
+						// Next, search for add argument
+						if userArgs[ptr] != "add" {
+							return nil, h.Errf(
+								"auth rolemapping subdirective %s is malformed: add (expected) vs %s (received)",
+								claimType, userArgs[ptr],
+							)
+						}
+						ptr++
+						// Next, the only supported values are role and roles
+						switch userArgs[ptr] {
+						case "role", "roles":
+							ptr++
+						default:
+							return nil, h.Errf(
+								"auth rolemapping subdirective %s is malformed: role/roles (expected) vs %s (received)",
+								claimType, userArgs[2],
+							)
+						}
+						if ptr >= len(userArgs) {
+							return nil, h.Errf(
+								"auth rolemapping subdirective %s is malformed, not enough arguments: %v",
+								claimType, userArgs,
+							)
+						}
+						userRoles = userArgs[ptr:]
+
+						roleMapping = append(roleMapping, rolemapper.RoleMap{
+							Email: userEmail,
+							Match: userMatchType,
+							Roles: userRoles,
+						})
+					}
+				}
+				portal.RoleMappers.AddStaticImpl(roleMapping)
+				portal.RoleMappers.AddFileImpl(roleMappingPaths)
 			case "backends":
 				for nesting := h.Nesting(); h.NextBlock(nesting); {
 					backendName := h.Val()
@@ -147,6 +229,7 @@ func parseCaddyfileAuthPortal(h httpcaddyfile.Helper) ([]httpcaddyfile.ConfigVal
 					backendProps["name"] = backendName
 					backendDisabled := false
 					var backendAuthMethod string
+					var roleMapping []rolemapper.RoleMap
 					for subNesting := h.Nesting(); h.NextBlock(subNesting); {
 						backendArg := h.Val()
 						switch backendArg {
@@ -224,17 +307,12 @@ func parseCaddyfileAuthPortal(h httpcaddyfile.Helper) ([]httpcaddyfile.ConfigVal
 								)
 							}
 							userRoles = userArgs[ptr:]
-							// Finally, amend the existing mapping
-							if _, exists := backendProps["user_roles"]; !exists {
-								backendProps["user_roles"] = make([]map[string]interface{}, 1, 1)
-							}
-							userRoleMap := make(map[string]interface{})
-							userRoleMap["email"] = userEmail
-							userRoleMap["match"] = userMatchType
-							userRoleMap["roles"] = userRoles
-							userRoleMaps := backendProps["user_roles"].([]map[string]interface{})
-							userRoleMaps = append(userRoleMaps, userRoleMap)
-							backendProps["user_roles"] = userRoleMaps
+
+							roleMapping = append(roleMapping, rolemapper.RoleMap{
+								Email: userEmail,
+								Match: userMatchType,
+								Roles: userRoles,
+							})
 						case "disabled":
 							backendDisabled = true
 							break
@@ -325,6 +403,12 @@ func parseCaddyfileAuthPortal(h httpcaddyfile.Helper) ([]httpcaddyfile.ConfigVal
 							return nil, h.Errf("auth backend %s subdirective failed to compile backend from JSON: %s", backendName, err.Error())
 						}
 						portal.Backends = append(portal.Backends, *backend)
+						// need to add the realm to each roleMapping so it only applies to this oauth2 backend
+						for i, v := range roleMapping {
+							v.Realms = []string{backendProps["realm"].(string)}
+							roleMapping[i] = v
+						}
+						portal.RoleMappers.AddStaticImpl(roleMapping)
 					}
 				}
 			case "jwt_token_file", "jwt_token_rsa_file":
