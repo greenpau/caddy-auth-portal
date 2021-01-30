@@ -32,3 +32,56 @@ Before sending your pull requests, make sure you followed this list.
 1. Open an issue to discuss your PR
 2. Ensure you read appropriate Contributor License Agreement (CLA)
 3. Run unit tests
+
+## Development Environment
+
+The contribution to `portal` and `jwt` plugins requires setting up a development
+environment. The following steps allow developers to test Caddy server with
+the plugins using local source code.
+
+First, designate directory for building caddy with plugins, e.g. `tmpcaddydev`.
+
+```bash
+mkdir -p ~/tmpcaddydev
+cd ~/tmpcaddydev
+```
+
+Second, fork the following repositories in Github into to your own Github
+handle, e.g. `anonymous`:
+
+* `https://github.com/greenpau/caddy-auth-portal` => `https://github.com/anonymous/caddy-auth-portal`
+* `https://github.com/greenpau/caddy-auth-jwt` => `https://github.com/anonymous/caddy-auth-jwt`
+* `https://github.com/greenpau/caddy-trace` => `https://github.com/anonymous/caddy-trace`
+
+Provided you are in `tmpcaddydev` directory, clone the forked repositories:
+
+```bash
+git clone git@github.com:anonymous/caddy-auth-portal.git
+git clone git@github.com:anonymous/caddy-auth-jwt.git
+git clone git@github.com:anonymous/caddy-trace.git
+```
+
+Next, browse to `caddy-auth-portal` and run the following `make` command to install
+various dependencies:
+
+```bash
+cd caddy-auth-portal
+make dep
+```
+
+Once all the necessary packages are installed, you should be ready to compile
+`caddy` using the local source code. Run:
+
+```bash
+make
+```
+
+The above make command creates `xcaddy-caddy-auth-portal` directory in `tmpcaddydev`.
+Then, it starts building `caddy` and referencing locally sources plugins.
+
+After the build, the resultant binary will be in `bin/` directory. You can
+then test it with your own configuration files.
+
+```bash
+bin/caddy run -config /etc/gatekeeper/Caddyfile | jq
+```
