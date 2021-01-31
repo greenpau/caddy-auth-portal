@@ -111,6 +111,13 @@ func parseCaddyfileAuthPortal(h httpcaddyfile.Helper) ([]httpcaddyfile.ConfigVal
 			case "cookie_path":
 				args := h.RemainingArgs()
 				portal.Cookies.Path = args[0]
+			case "cookie_lifetime":
+				args := h.RemainingArgs()
+				lifetime, err := strconv.Atoi(args[0])
+				if err != nil {
+					return nil, h.Errf("%s argument value conversion failed: %s", rootDirective, err)
+				}
+				portal.Cookies.Lifetime = lifetime
 			case "path":
 				args := h.RemainingArgs()
 				portal.AuthURLPath = args[0]
