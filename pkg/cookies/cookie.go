@@ -15,14 +15,16 @@
 package cookies
 
 import (
+	"fmt"
 	"strings"
 )
 
 // Cookies represent a common set of configuration settings
 // applicable to the cookies issued by the plugin.
 type Cookies struct {
-	Domain string `json:"domain,omitempty"`
-	Path   string `json:"path,omitempty"`
+	Domain   string `json:"domain,omitempty"`
+	Path     string `json:"path,omitempty"`
+	Lifetime int    `json:"lifetime,omitempty"`
 }
 
 // GetAttributes returns cookie attributes.
@@ -35,6 +37,9 @@ func (c *Cookies) GetAttributes() string {
 		sb.WriteString(" Path=" + c.Path + ";")
 	} else {
 		sb.WriteString(" Path=/;")
+	}
+	if c.Lifetime != 0 {
+		sb.WriteString(" Max-Age=" + fmt.Sprint(c.Lifetime) + ";")
 	}
 	sb.WriteString(" Secure; HttpOnly;")
 	return sb.String()
