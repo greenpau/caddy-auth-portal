@@ -33,7 +33,7 @@ func ServeSessionLogoff(w http.ResponseWriter, r *http.Request, opts map[string]
 	)
 
 	for _, cookieName := range cookieNames {
-		w.Header().Add("Set-Cookie", cookieName+"=delete;"+cookies.GetDeleteAttributes()+" expires=Thu, 01 Jan 1970 00:00:00 GMT")
+		w.Header().Add("Set-Cookie", cookies.GetDeleteCookie(cookieName))
 	}
 	if v, exists := opts["redirect_url"]; exists {
 		w.Header().Set("Location", authURLPath+"?redirect_url="+v.(string))

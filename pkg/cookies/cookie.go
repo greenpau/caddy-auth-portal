@@ -27,9 +27,10 @@ type Cookies struct {
 	Lifetime int    `json:"lifetime,omitempty"`
 }
 
-// GetAttributes returns cookie attributes.
-func (c *Cookies) GetAttributes() string {
+// GetCookie returns raw cookie string from key-value input.
+func (c *Cookies) GetCookie(k, v string) string {
 	var sb strings.Builder
+	sb.WriteString(k + "=" + v + ";")
 	if c.Domain != "" {
 		sb.WriteString(" Domain=" + c.Domain + ";")
 	}
@@ -45,9 +46,11 @@ func (c *Cookies) GetAttributes() string {
 	return sb.String()
 }
 
-// GetDeleteAttributes returns cookie attributes for delete action.
-func (c *Cookies) GetDeleteAttributes() string {
+// GetDeleteCookie returns raw cookie with attributes for delete action.
+func (c *Cookies) GetDeleteCookie(s string) string {
 	var sb strings.Builder
+	sb.WriteString(s)
+	sb.WriteString("=delete;")
 	if c.Domain != "" {
 		sb.WriteString(" Domain=" + c.Domain + ";")
 	}
@@ -56,5 +59,6 @@ func (c *Cookies) GetDeleteAttributes() string {
 	} else {
 		sb.WriteString(" Path=/;")
 	}
+	sb.WriteString(" Expires=Thu, 01 Jan 1970 00:00:00 GMT;")
 	return sb.String()
 }

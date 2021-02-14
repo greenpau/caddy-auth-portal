@@ -18,6 +18,7 @@ import (
 	"encoding/json"
 	"github.com/caddyserver/caddy/v2/caddytest"
 	_ "github.com/greenpau/caddy-auth-jwt"
+	_ "github.com/greenpau/caddy-trace"
 	"io/ioutil"
 	"net/http"
 	"net/url"
@@ -25,6 +26,51 @@ import (
 	"testing"
 	"time"
 )
+
+func initCaddyTester(t *testing.T, rules []string) (*caddytest.Tester, map[string]string, error) {
+	scheme := "https"
+	host := "127.0.0.1"
+	securePort := "8443"
+	authPath := "auth"
+	hostPort := host + ":" + securePort
+	baseURL := scheme + "://" + hostPort
+	tester := caddytest.NewTester(t)
+	configFile := "assets/conf/local/Caddyfile"
+	configContent, err := ioutil.ReadFile(configFile)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	lines := []string{}
+	for _, line := range strings.Split(string(configContent), "\n") {
+		for _, rule := range rules {
+			if strings.HasPrefix(rule, "uncomment:") {
+				uncommentLine := strings.TrimPrefix(rule, "uncomment:")
+				if strings.Contains(line, uncommentLine) {
+					line = strings.Replace(line, "#", "", 1)
+				}
+			}
+		}
+		// t.Logf("line %d: %s", i, line)
+		lines = append(lines, line)
+	}
+
+	tester.InitServer(strings.Join(lines, "\n"), "caddyfile")
+	params := make(map[string]string)
+	params["version_path"] = baseURL + "/version"
+	params["auth_path"] = baseURL + "/" + authPath
+	return tester, params, nil
+}
+
+func initAuthRequest(authPath string) *http.Request {
+	req, _ := http.NewRequest(
+		"POST",
+		authPath,
+		strings.NewReader("username=webadmin&password=password123&realm=local"),
+	)
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	return req
+}
 
 func TestLocalCaddyfile(t *testing.T) {
 	scheme := "https"
@@ -162,5 +208,37 @@ func TestShortLocalCaddyfile(t *testing.T) {
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	resp := tester.AssertResponseCode(req, 200)
 	t.Logf("%v", resp)
+	time.Sleep(1 * time.Second)
+}
+
+func TestCookieLifetime(t *testing.T) {
+	rules := []string{
+		"uncomment:cookie_lifetime 900",
+	}
+	tester, config, err := initCaddyTester(t, rules)
+	if err != nil {
+		t.Fatalf("failed to init caddy tester instance: %s", err)
+	}
+	tester.AssertGetResponse(config["version_path"], 200, "1.0.0")
+	authReq := initAuthRequest(config["auth_path"])
+	resp := tester.AssertResponseCode(authReq, 200)
+	t.Logf("%v", resp)
+	// TODO(greenpau): validate cookie lifetime
+	/*
+		cookieFound := false
+		for _, c := range tester.Client.Jar.Cookies(authReq.URL) {
+			t.Logf("received cookie: %s", c.Raw)
+			if c.Name != "access_token" {
+				continue
+			}
+			if c.MaxAge != 900 {
+				t.Fatalf("cookie max age is not 900: %s", c.String())
+			}
+			cookieFound = true
+		}
+		if !cookieFound {
+			t.Fatal("desired cookie not found")
+		}
+	*/
 	time.Sleep(1 * time.Second)
 }

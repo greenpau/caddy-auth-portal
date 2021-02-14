@@ -342,6 +342,8 @@ github.com/gostaticanalysis/analysisutil v0.0.0-20190318220348-4088753ea4d3/go.m
 github.com/gostaticanalysis/analysisutil v0.0.3/go.mod h1:eEOZF4jCKGi+aprrirO9e7WKB3beBRtWgqGunKl6pKE=
 github.com/greenpau/caddy-auth-jwt v1.2.5 h1:SVmLMjKCfp30mncHlEBvFrqwJDp4+LVZo+Fj9h6QtUg=
 github.com/greenpau/caddy-auth-jwt v1.2.5/go.mod h1:LnXbAS+OKE+4poWGbMhBdPNmMPB/ed7Wn9m22bXRkOg=
+github.com/greenpau/caddy-trace v1.1.5 h1:Ab7+HwSRL0dmsCYPvfSdiJ/iSC8y7Wf6wfHocry541I=
+github.com/greenpau/caddy-trace v1.1.5/go.mod h1:nGhGuDLh2C4BYMWGeRrEomQ6W1uwqNWMgAtBBqz2MNQ=
 github.com/greenpau/go-identity v1.0.19 h1:SnD/LrSIoH35VZk4IskHD1Zm9+cms4Iu+QfjxNNgnU4=
 github.com/greenpau/go-identity v1.0.19/go.mod h1:++pwfuoXgXJQM1PFtiHTH9fMlbgOY42Hs5wSwoQ3JK0=
 github.com/greenpau/versioned v1.0.23 h1:ICqCoTG8Xv92BV+bKs52d86pDF/e0zhk3LLELsYMpl4=

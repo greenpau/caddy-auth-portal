@@ -160,7 +160,7 @@ func (p *AuthPortal) ServeHTTP(w http.ResponseWriter, r *http.Request, upstreamO
 		foundQueryOptions := false
 		if redirectURL, exists := q["redirect_url"]; exists {
 			if !strings.HasSuffix(redirectURL[0], ".css") && !strings.HasSuffix(redirectURL[0], ".js") {
-				w.Header().Set("Set-Cookie", redirectToToken+"="+redirectURL[0]+";"+p.Cookies.GetAttributes())
+				w.Header().Set("Set-Cookie", p.Cookies.GetCookie(redirectToToken, redirectURL[0]))
 				foundQueryOptions = true
 			}
 		}

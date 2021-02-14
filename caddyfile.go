@@ -117,6 +117,9 @@ func parseCaddyfileAuthPortal(h httpcaddyfile.Helper) ([]httpcaddyfile.ConfigVal
 				if err != nil {
 					return nil, h.Errf("%s argument value conversion failed: %s", rootDirective, err)
 				}
+				if lifetime < 1 {
+					return nil, h.Errf("%s argument value must be greater than zero", rootDirective)
+				}
 				portal.Cookies.Lifetime = lifetime
 			case "path":
 				args := h.RemainingArgs()

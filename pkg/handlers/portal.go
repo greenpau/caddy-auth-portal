@@ -46,7 +46,7 @@ func ServePortal(w http.ResponseWriter, r *http.Request, opts map[string]interfa
 				zap.String("redirect_url", redirectURL.String()),
 			)
 			w.Header().Set("Location", redirectURL.String())
-			w.Header().Add("Set-Cookie", redirectToToken+"=delete;"+cookies.GetDeleteAttributes()+" expires=Thu, 01 Jan 1970 00:00:00 GMT")
+			w.Header().Add("Set-Cookie", cookies.GetDeleteCookie(redirectToToken))
 			w.WriteHeader(303)
 			return nil
 		}

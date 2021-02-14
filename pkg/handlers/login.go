@@ -55,7 +55,7 @@ func ServeLogin(w http.ResponseWriter, r *http.Request, opts map[string]interfac
 	// Remove tokens when authentication failed
 	if opts["auth_credentials_found"].(bool) && !opts["authenticated"].(bool) {
 		for _, k := range []string{tokenProvider.TokenName} {
-			w.Header().Add("Set-Cookie", k+"=delete;"+cookies.GetDeleteAttributes()+" expires=Thu, 01 Jan 1970 00:00:00 GMT")
+			w.Header().Add("Set-Cookie", cookies.GetDeleteCookie(k))
 		}
 	}
 
@@ -109,7 +109,7 @@ func ServeLogin(w http.ResponseWriter, r *http.Request, opts map[string]interfac
 			if opts["authenticated"].(bool) {
 				opts["user_token"] = userToken
 				w.Header().Set("Authorization", "Bearer "+userToken)
-				w.Header().Set("Set-Cookie", tokenProvider.TokenName+"="+userToken+";"+cookies.GetAttributes())
+				w.Header().Set("Set-Cookie", cookies.GetCookie(tokenProvider.TokenName, userToken))
 			}
 		}
 	}
@@ -129,7 +129,7 @@ func ServeLogin(w http.ResponseWriter, r *http.Request, opts map[string]interfac
 					zap.String("redirect_url", redirectURL.String()),
 				)
 				w.Header().Set("Location", redirectURL.String())
-				w.Header().Add("Set-Cookie", redirectToToken+"=delete;"+cookies.GetDeleteAttributes()+" expires=Thu, 01 Jan 1970 00:00:00 GMT")
+				w.Header().Add("Set-Cookie", cookies.GetDeleteCookie(redirectToToken))
 				w.WriteHeader(302)
 				return nil
 			}

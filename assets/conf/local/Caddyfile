@@ -6,8 +6,12 @@
 
 127.0.0.1, localhost {
   route /auth* {
+    trace tag="testing" response_debug=yes uri_filter="^/auth$"
     auth_portal {
       path /auth
+      #cookie_domain contoso.com
+      #cookie_path /
+      #cookie_lifetime 900
       backends {
         local_backend {
           method local

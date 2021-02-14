@@ -69,12 +69,15 @@ clean:
 qtest:
 	@echo "Perform quick tests ..."
 	@#time richgo test  $(VERBOSE) -coverprofile=.coverage/coverage.out -run TestLocalConfig ./*.go
-	@time richgo test $(VERBOSE) -coverprofile=.coverage/coverage.out -run TestLocalCaddyfile ./*.go
+	@#time richgo test $(VERBOSE) -coverprofile=.coverage/coverage.out -run TestLocalCaddyfile ./*.go
 	@#go test $(VERBOSE) -coverprofile=.coverage/coverage.out -run TestLdapConfig ./*.go
 	@#go test $(VERBOSE) -coverprofile=.coverage/coverage.out -run TestLdapCaddyfile ./*.go
 	@#go test $(VERBOSE) -coverprofile=.coverage/coverage.out -run TestSamlCaddyfile ./*.go
 	@#time richgo test $(VERBOSE) -coverprofile=.coverage/coverage.out -run TestGetSourceAddress ./*.go
 	@#time richgo test $(VERBOSE) -coverprofile=.coverage/coverage.out -run TestNewUserInterface ./pkg/ui/*.go
+	@#time richgo test $(VERBOSE) -coverprofile=.coverage/coverage.out -run TestCookies ./pkg/cookies/*.go
+	@time richgo test $(VERBOSE) -coverprofile=.coverage/coverage.out -run TestCookieLifetime ./*.go
+	@go tool cover -html=.coverage/coverage.out -o .coverage/coverage.html
 
 dep:
 	@echo "Making dependencies check ..."

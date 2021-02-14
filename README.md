@@ -235,6 +235,8 @@ for more information.
 * `cookie_path`: adds the **Path** attribute to a cookie. It determines the
   URL path that must exist in the requested URL in order to send
   the Cookie header.
+* `cookie_lifetime`: sets the number of seconds until the cookie expires.
+  The directive sets "Max-Age" cookie attribute.
 
 ### JWT Tokens
 
