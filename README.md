@@ -12,8 +12,9 @@ Please see other relevant plugins:
 * [caddy-trace](https://github.com/greenpau/caddy-trace)
 
 Download Caddy with the plugins enabled:
-* <a href="https://caddyserver.com/download?os=linux&arch=amd64&p=github.com%2Fgreenpau%2Fcaddy-trace%40v1.1.5&p=github.com%2Fgreenpau%2Fcaddy-auth-jwt%40v1.2.6&p=github.        com%2Fgreenpau%2Fcaddy-auth-portal%40v1.4.2" target="_blank">linux/amd64</a>
-* <a href="https://caddyserver.com/download?os=windows&arch=amd64&p=github.com%2Fgreenpau%2Fcaddy-trace%40v1.1.5&p=github.com%2Fgreenpau%2Fcaddy-auth-jwt%40v1.2.6&p=github.    com%2Fgreenpau%2Fcaddy-auth-portal%40v1.4.2" target="_blank">windows/amd64</a>
+
+* <a href="https://caddyserver.com/api/download?os=linux&arch=amd64&p=github.com%2Fgreenpau%2Fcaddy-auth-jwt%40v1.2.6&p=github.com%2Fgreenpau%2Fcaddy-auth-portal%40v1.4.2&p=github.com%2Fgreenpau%2Fcaddy-trace%40v1.1.5" target="_blank">linux/amd64</a>
+* <a href="https://caddyserver.com/api/download?os=windows&arch=amd64&p=github.com%2Fgreenpau%2Fcaddy-auth-jwt%40v1.2.6&p=github.com%2Fgreenpau%2Fcaddy-auth-portal%40v1.4.2&p=github.com%2Fgreenpau%2Fcaddy-trace%40v1.1.5" target="_blank">windows/amd64</a>
 
 Please show your appreciation for this work and :star: :star: :star:
 
