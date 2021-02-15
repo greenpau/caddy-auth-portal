@@ -16,12 +16,17 @@ package cache
 
 import (
 	"errors"
+	"fmt"
 	"github.com/greenpau/caddy-auth-portal/pkg/utils"
 	"sync"
 	"time"
 )
 
 const sandboxIDCharset = "abcdefghijklmnopqrstuvwxyz0123456789"
+const defaultCleanupInternal int = 60
+const defaultMaxEntryLifetime int64 = 300
+const minCleanupInternal int = 0
+const minMaxEntryLifetime int64 = 60
 
 // SandboxCacheEntry is an entry in SandboxCache.
 type SandboxCacheEntry struct {
@@ -39,33 +44,78 @@ type SandboxCache struct {
 	cleanupInternal int
 	// The maximum number of seconds the sandbox entry is available to a user.
 	maxEntryLifetime int64
-	Entries          map[string]*SandboxCacheEntry
+	// If set to true, then the cache is being managed.
+	managed bool
+	// exit channel
+	exit    chan bool
+	Entries map[string]*SandboxCacheEntry
 }
 
 // NewSandboxCache returns SandboxCache instance.
-func NewSandboxCache() *SandboxCache {
+func NewSandboxCache(opts map[string]interface{}) (*SandboxCache, error) {
 	c := &SandboxCache{
-		cleanupInternal:  60,
-		maxEntryLifetime: 300,
+		cleanupInternal:  defaultCleanupInternal,
+		maxEntryLifetime: defaultMaxEntryLifetime,
 		Entries:          make(map[string]*SandboxCacheEntry),
+		exit:             make(chan bool),
 	}
+	if opts != nil {
+		for k, v := range opts {
+			switch k {
+			case "cleanup_interval":
+				switch v.(type) {
+				case int:
+					c.cleanupInternal = v.(int)
+				default:
+					return nil, fmt.Errorf("invalid sandbox cache configuration option %s value type %T", k, v)
+				}
+			case "max_entry_lifetime":
+				switch v.(type) {
+				case int:
+					c.maxEntryLifetime = int64(v.(int))
+				default:
+					return nil, fmt.Errorf("invalid sandbox cache configuration option %s value type %T", k, v)
+				}
+			default:
+				return nil, fmt.Errorf("unsupported sandbox cache configuration option %s = %v", k, v)
+			}
+		}
+	}
+
+	if c.cleanupInternal < 1 {
+		return nil, fmt.Errorf("sandbox cache cleanup interval must be equal to or greater than %d", minCleanupInternal)
+	}
+	if c.maxEntryLifetime < 60 {
+		return nil, fmt.Errorf("sandbox cache max entry lifetime must be equal to or greater than %d seconds", minMaxEntryLifetime)
+	}
+
 	go manageSandboxCache(c)
-	return c
+	return c, nil
 }
 
 func manageSandboxCache(c *SandboxCache) {
+	c.managed = true
 	intervals := time.NewTicker(time.Second * time.Duration(c.cleanupInternal))
 	for range intervals.C {
 		if c == nil {
-			return
-		}
-		c.mu.RLock()
-		if c.Entries == nil {
-			c.mu.RUnlock()
 			continue
 		}
-		c.mu.RUnlock()
 		c.mu.Lock()
+		select {
+		case <-c.exit:
+			c.managed = false
+			break
+		default:
+			break
+		}
+		if !c.managed {
+			c.mu.Unlock()
+			break
+		}
+		if c.Entries == nil {
+			c.mu.Unlock()
+			continue
+		}
 		deleteList := []string{}
 		for sandboxID, entry := range c.Entries {
 			if err := entry.Valid(c.maxEntryLifetime); err != nil {
@@ -81,6 +131,16 @@ func manageSandboxCache(c *SandboxCache) {
 		c.mu.Unlock()
 	}
 	return
+}
+
+// GetCleanupInterval returns cleanup interval.
+func (c *SandboxCache) GetCleanupInterval() int {
+	return c.cleanupInternal
+}
+
+// GetMaxEntryLifetime returns max entry lifetime.
+func (c *SandboxCache) GetMaxEntryLifetime() int64 {
+	return c.maxEntryLifetime
 }
 
 // Add adds data to the cache.
@@ -122,6 +182,7 @@ func (c *SandboxCache) Get(sandboxID string) (string, error) {
 	return "", errors.New("sandbox id not found")
 }
 
+// Valid checks whether SandboxCacheEntry is non-authenticated and not expired.
 func (e *SandboxCacheEntry) Valid(max int64) error {
 	if e.authenticated {
 		return errors.New("sandbox id already authenticated")

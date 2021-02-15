@@ -77,6 +77,7 @@ qtest:
 	@#time richgo test $(VERBOSE) -coverprofile=.coverage/coverage.out -run TestNewUserInterface ./pkg/ui/*.go
 	@#time richgo test $(VERBOSE) -coverprofile=.coverage/coverage.out -run TestCookies ./pkg/cookies/*.go
 	@#time richgo test $(VERBOSE) -coverprofile=.coverage/coverage.out -run TestCookieLifetime ./*.go
+	@#time richgo test -v -coverprofile=.coverage/coverage.out -run TestSandboxCache ./pkg/cache/sandbox*.go
 	@time richgo test -v -coverprofile=.coverage/coverage.out ./pkg/cache/sandbox*.go
 	@go tool cover -html=.coverage/coverage.out -o .coverage/coverage.html
 

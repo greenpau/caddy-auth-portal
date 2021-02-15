@@ -50,7 +50,8 @@ var sandboxCache *cache.SandboxCache
 
 func init() {
 	sessionCache = cache.NewSessionCache()
-	sandboxCache = cache.NewSandboxCache()
+	sandboxCache, _ = cache.NewSandboxCache(nil)
+
 	PortalManager = &AuthPortalManager{}
 }
 
@@ -85,6 +86,14 @@ func (p *AuthPortal) Configure(upstreamOptions map[string]interface{}) error {
 	}
 	p.logger = upstreamOptions["logger"].(*zap.Logger)
 	p.startedAt = time.Now().UTC()
+
+	if sandboxCache == nil {
+		return fmt.Errorf(
+			"authentication provider registration error, instance %s, error: %s",
+			p.Name, "sandbox cache is nil",
+		)
+	}
+
 	if err := PortalManager.Register(p); err != nil {
 		return fmt.Errorf(
 			"authentication provider registration error, instance %s, error: %s",
