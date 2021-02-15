@@ -44,6 +44,7 @@ type BackendDriver interface {
 	Authenticate(map[string]interface{}) (map[string]interface{}, error)
 	ConfigureLogger(*zap.Logger) error
 	ConfigureTokenProvider(*jwtconfig.CommonTokenConfig) error
+	ConfigureGlobalOptions(map[string]interface{}) error
 	ConfigureAuthenticator() error
 	Validate() error
 	Do(map[string]interface{}) error
@@ -82,6 +83,19 @@ func (b *Backend) Configure(opts map[string]interface{}) error {
 	if err := b.driver.ConfigureTokenProvider(opts["token_provider"].(*jwtconfig.CommonTokenConfig)); err != nil {
 		return err
 	}
+	globalOpts := make(map[string]interface{})
+	for k, v := range opts {
+		if k == "logger" || k == "token_provider" {
+			continue
+		}
+		globalOpts[k] = v
+	}
+	if len(globalOpts) > 0 {
+		if err := b.driver.ConfigureGlobalOptions(globalOpts); err != nil {
+			return err
+		}
+	}
+
 	if err := b.driver.ConfigureAuthenticator(); err != nil {
 		return err
 	}

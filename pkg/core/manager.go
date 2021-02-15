@@ -225,6 +225,9 @@ func (m *AuthPortalManager) Register(p *AuthPortal) error {
 		backendOptions := make(map[string]interface{})
 		backendOptions["logger"] = p.logger
 		backendOptions["token_provider"] = p.TokenProvider
+		if p.RequireMFA {
+			backendOptions["require_mfa"] = true
+		}
 		if err := backend.Configure(backendOptions); err != nil {
 			return fmt.Errorf("%s: backend configuration error: %s", p.Name, err)
 		}
@@ -678,6 +681,10 @@ func (m *AuthPortalManager) Provision(name string) error {
 			backendOptions := make(map[string]interface{})
 			backendOptions["logger"] = p.logger
 			backendOptions["token_provider"] = p.TokenProvider
+			if p.RequireMFA {
+				backendOptions["require_mfa"] = true
+			}
+
 			if err := backend.Configure(backendOptions); err != nil {
 				return fmt.Errorf("%s: backend configuration error: %s", p.Name, err)
 			}

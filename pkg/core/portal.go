@@ -46,9 +46,11 @@ const (
 var PortalManager *AuthPortalManager
 
 var sessionCache *cache.SessionCache
+var sandboxCache *cache.SandboxCache
 
 func init() {
 	sessionCache = cache.NewSessionCache()
+	sandboxCache = cache.NewSandboxCache()
 	PortalManager = &AuthPortalManager{}
 }
 
@@ -68,6 +70,7 @@ type AuthPortal struct {
 	Backends                 []backends.Backend           `json:"backends,omitempty"`
 	TokenProvider            *jwtconfig.CommonTokenConfig `json:"jwt,omitempty"`
 	EnableSourceIPTracking   bool                         `json:"source_ip_tracking,omitempty"`
+	RequireMFA               bool                         `json:"require_mfa,omitempty"`
 	TokenValidator           *jwtvalidator.TokenValidator `json:"-"`
 	logger                   *zap.Logger
 	uiFactory                *ui.UserInterfaceFactory
@@ -243,6 +246,9 @@ func (p *AuthPortal) ServeHTTP(w http.ResponseWriter, r *http.Request, upstreamO
 	case strings.HasPrefix(urlPath, "portal"):
 		opts["flow"] = "portal"
 		return handlers.ServePortal(w, r, opts)
+	case strings.HasPrefix(urlPath, "sandbox"):
+		opts["flow"] = "sandbox"
+		return handlers.ServeSandbox(w, r, opts)
 	case strings.HasPrefix(urlPath, "saml"), strings.HasPrefix(urlPath, "x509"), strings.HasPrefix(urlPath, "oauth2"):
 		urlPathParts := strings.Split(urlPath, "/")
 		if len(urlPathParts) < 2 {
@@ -361,6 +367,28 @@ func (p *AuthPortal) ServeHTTP(w http.ResponseWriter, r *http.Request, upstreamO
 								"backend_realm":  backend.GetRealm(),
 								"backend_method": backend.GetMethod(),
 							})
+							// Check whether this authenticated request requires
+							// MFA in the sandbox environment
+							if claims.Metadata != nil {
+								if v, exists := claims.Metadata["mfa_required"]; exists {
+									if v.(bool) {
+										sandboxID, err := sandboxCache.Add(claims.ID)
+										if err != nil {
+											opts["message"] = "Internal Server Error. Please Contact Support"
+											opts["status_code"] = 500
+											log.Warn(
+												"Failed to get sandbox id",
+												zap.String("request_id", reqID),
+												zap.String("error", "no matching auth backend found"),
+											)
+											return handlers.ServeLogin(w, r, opts)
+										}
+										w.Header().Set("Location", path.Join(p.AuthURLPath, "sandbox", sandboxID))
+										w.WriteHeader(302)
+										return nil
+									}
+								}
+							}
 							opts["user_claims"] = claims
 							opts["authenticated"] = true
 							opts["status_code"] = 200

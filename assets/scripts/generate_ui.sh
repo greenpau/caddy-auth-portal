@@ -15,6 +15,7 @@ _PAGES[${#_PAGES[@]}]="whoami"
 _PAGES[${#_PAGES[@]}]="register"
 _PAGES[${#_PAGES[@]}]="generic"
 _PAGES[${#_PAGES[@]}]="settings"
+_PAGES[${#_PAGES[@]}]="sandbox"
 
 printf "package ui\n\n" > ${UI_FILE}
 printf "// PageTemplates stores UI templates.\n" >> ${UI_FILE}

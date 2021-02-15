@@ -193,3 +193,8 @@ func (b *Backend) GetPublicKeys(opts map[string]interface{}) ([]*identity.Public
 func (b *Backend) GetMfaTokens(opts map[string]interface{}) ([]*identity.MfaToken, error) {
 	return nil, fmt.Errorf("Unsupported backend operation")
 }
+
+// ConfigureGlobalOptions configures the Backend with upstream configuration options.
+func (b *Backend) ConfigureGlobalOptions(opts map[string]interface{}) error {
+	return nil
+}

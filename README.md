@@ -11,6 +11,10 @@ Please see other relevant plugins:
 * [caddy-auth-jwt](https://github.com/greenpau/caddy-auth-jwt)
 * [caddy-trace](https://github.com/greenpau/caddy-trace)
 
+Download Caddy with the plugins enabled:
+* <a href="https://caddyserver.com/api/download?os=linux&arch=amd64&p=github.com%2Fgreenpau%2Fcaddy-trace%40v1.1.5&p=github.com%2Fgreenpau%2Fcaddy-auth-jwt%40v1.2.6&p=github.        com%2Fgreenpau%2Fcaddy-auth-portal%40v1.4.2" target="_blank">linux/amd64</a>
+* <a href="https://caddyserver.com/api/download?os=windows&arch=amd64&p=github.com%2Fgreenpau%2Fcaddy-trace%40v1.1.5&p=github.com%2Fgreenpau%2Fcaddy-auth-jwt%40v1.2.6&p=github.    com%2Fgreenpau%2Fcaddy-auth-portal%40v1.4.2" target="_blank">windows/amd64</a>
+
 Please show your appreciation for this work and :star: :star: :star:
 
 Please ask questions either here or via LinkedIn. I am happy to help you! @greenpau
@@ -23,6 +27,7 @@ Please ask questions either here or via LinkedIn. I am happy to help you! @green
   * [User Identity](#user-identity)
   * [User Settings](#user-settings)
   * [Multi-Factor Authentication MFA](#multi-factor-authentication-mfa)
+    * [Enabling MFA](#enabling-mfa)
     * [Add MFA Authenticator Application](#add-mfa-authenticator-application)
   * [Theming](#theming)
 * [Authorization Cookie](#authorization-cookie)
@@ -135,6 +140,23 @@ The following screenshot is from `/auth/settings/` endpoint:
 
 ### Multi-Factor Authentication MFA
 
+#### Enabling MFA
+
+MFA can be enabled globally and on per-backend basis via `require mfa` directive.
+
+```
+        local_backend {
+          method local
+          path /etc/gatekeeper/auth/local/users_db.json
+          realm local
+          require mfa
+        }
+```
+
+Currently, the MFA requirement can be applied only to `local` backend type.
+
+Importantly, a user may choose to enable MFA via the user's settings page.
+
 #### Add MFA Authenticator Application
 
 The following screenshot is from `/auth/settings/mfa/add/app` endpoint:
@@ -184,6 +206,7 @@ Each theme must have a set of default pages:
 * `register`
 * `whoami`
 * `settings`
+* `sandbox`
 
 The plain text templates are being stored in `assets/templates/<THEME>/<PAGE>.template`.
 
@@ -194,6 +217,7 @@ assets/templates/basic/portal.template
 assets/templates/basic/register.template
 assets/templates/basic/whoami.template
 assets/templates/basic/settings.template
+assets/templates/basic/sandbox.template
 ```
 
 These templates are the parts of `pkg/ui/pages.go`. They are compiled in the

@@ -61,3 +61,15 @@ func GetRandomEncodedStringFromRange(a, b int) string {
 	s := GetRandomStringFromRange(a, b)
 	return base32.StdEncoding.EncodeToString([]byte(s))
 }
+
+// GetRandomStringFromRangeWithCharset generates random string of a random length. The
+// random lenght is bounded by a and b. The charset is provided.
+func GetRandomStringFromRangeWithCharset(a, b int, cs string) string {
+	var i int
+	if a > b {
+		i = rand.Intn(a-b) + b
+	} else {
+		i = rand.Intn(b-a) + a
+	}
+	return gen(i, cs)
+}

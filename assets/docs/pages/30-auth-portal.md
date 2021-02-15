@@ -26,6 +26,23 @@ The following screenshot is from `/auth/settings/` endpoint:
 
 ### Multi-Factor Authentication MFA
 
+#### Enabling MFA
+
+MFA can be enabled globally and on per-backend basis via `require mfa` directive.
+
+```
+        local_backend {
+          method local
+          path /etc/gatekeeper/auth/local/users_db.json
+          realm local
+          require mfa
+        }
+```
+
+Currently, the MFA requirement can be applied only to `local` backend type.
+
+Importantly, a user may choose to enable MFA via the user's settings page.
+
 #### Add MFA Authenticator Application
 
 The following screenshot is from `/auth/settings/mfa/add/app` endpoint:
@@ -75,6 +92,7 @@ Each theme must have a set of default pages:
 * `register`
 * `whoami`
 * `settings`
+* `sandbox`
 
 The plain text templates are being stored in `assets/templates/<THEME>/<PAGE>.template`.
 
@@ -85,6 +103,7 @@ assets/templates/basic/portal.template
 assets/templates/basic/register.template
 assets/templates/basic/whoami.template
 assets/templates/basic/settings.template
+assets/templates/basic/sandbox.template
 ```
 
 These templates are the parts of `pkg/ui/pages.go`. They are compiled in the

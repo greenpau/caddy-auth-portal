@@ -41,6 +41,7 @@ type Backend struct {
 	Method        string                       `json:"method,omitempty"`
 	Realm         string                       `json:"realm,omitempty"`
 	Path          string                       `json:"path,omitempty"`
+	RequireMFA    bool                         `json:"require_mfa,omitempty"`
 	TokenProvider *jwtconfig.CommonTokenConfig `json:"-"`
 	Authenticator *Authenticator               `json:"-"`
 	logger        *zap.Logger
@@ -59,10 +60,11 @@ func NewDatabaseBackend() *Backend {
 
 // Authenticator represents database connector.
 type Authenticator struct {
-	db     *identity.Database
-	mux    sync.Mutex
-	path   string
-	logger *zap.Logger
+	db         *identity.Database
+	mux        sync.Mutex
+	path       string
+	requireMFA bool
+	logger     *zap.Logger
 }
 
 // NewAuthenticator returns an instance of Authenticator.
@@ -120,7 +122,11 @@ func (sa *Authenticator) CreateUser(userName, userPwd, userEmail string, userCla
 func (sa *Authenticator) Configure() error {
 	sa.mux.Lock()
 	defer sa.mux.Unlock()
-	sa.logger.Info("local backend configuration", zap.String("db_path", sa.path))
+	sa.logger.Info(
+		"local backend configuration",
+		zap.String("db_path", sa.path),
+		zap.Bool("require_mfa", sa.requireMFA),
+	)
 	fileInfo, err := os.Stat(sa.path)
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -262,6 +268,7 @@ func (b *Backend) ConfigureAuthenticator() error {
 		b.Authenticator = NewAuthenticator()
 	}
 	b.Authenticator.SetPath(b.Path)
+	b.Authenticator.requireMFA = b.RequireMFA
 	b.Authenticator.logger = b.logger
 	if err := b.Authenticator.Configure(); err != nil {
 		return err
@@ -321,6 +328,12 @@ func (b *Backend) Authenticate(opts map[string]interface{}) (map[string]interfac
 	if statusCode == 200 {
 		claims.Origin = b.TokenProvider.TokenOrigin
 		claims.ExpiresAt = time.Now().Add(time.Duration(b.TokenProvider.TokenLifetime) * time.Second).Unix()
+		if b.RequireMFA {
+			if claims.Metadata == nil {
+				claims.Metadata = make(map[string]interface{})
+			}
+			claims.Metadata["mfa_required"] = true
+		}
 		resp["claims"] = claims
 		return resp, nil
 	}
@@ -466,4 +479,25 @@ func (b *Backend) GetMfaTokens(opts map[string]interface{}) ([]*identity.MfaToke
 		return nil, err
 	}
 	return keys, nil
+}
+
+// ConfigureGlobalOptions configures the Backend with upstream configuration options.
+func (b *Backend) ConfigureGlobalOptions(opts map[string]interface{}) error {
+	if opts == nil {
+		return nil
+	}
+	for k, v := range opts {
+		switch k {
+		case "require_mfa":
+			switch v.(type) {
+			case bool:
+				b.RequireMFA = v.(bool)
+			default:
+				return fmt.Errorf("invalid configuration option %s value type %T", k, v)
+			}
+		default:
+			return fmt.Errorf("unsupported configuration option %s = %v", k, v)
+		}
+	}
+	return nil
 }

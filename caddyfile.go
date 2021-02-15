@@ -50,6 +50,7 @@ func init() {
 //		     method <local>
 //		     file <file_path>
 //		     realm <name>
+//           require mfa
 //	       }
 //	     }
 //
@@ -71,6 +72,7 @@ func init() {
 //
 //       cookie_domain <name>
 //       cookie_path <name>
+//       cookie_lifetime <seconds>
 //
 //       registration {
 //         disabled <on|off>
@@ -79,6 +81,8 @@ func init() {
 //         dropbox <file/path/to/registration/dir/>
 //         require accept_terms
 //       }
+//
+//       require mfa
 //
 //     }
 //
@@ -321,6 +325,18 @@ func parseCaddyfileAuthPortal(h httpcaddyfile.Helper) ([]httpcaddyfile.ConfigVal
 							backendProps["acs_urls"] = acsURLs
 						case "scopes":
 							backendProps["scopes"] = h.RemainingArgs()
+						case "require":
+
+							if !h.NextArg() {
+								return nil, h.Errf("auth backend %s subdirective %s has no value", backendName, backendArg)
+							}
+							requirement := h.Val()
+							switch requirement {
+							case "mfa":
+								backendProps["require_mfa"] = true
+							default:
+								return nil, h.Errf("auth backend %s subdirective %s contains unsupported requirement %s", backendName, backendArg, requirement)
+							}
 						default:
 							return nil, h.Errf("unknown auth backend %s subdirective: %s", backendName, backendArg)
 						}
@@ -604,6 +620,17 @@ func parseCaddyfileAuthPortal(h httpcaddyfile.Helper) ([]httpcaddyfile.ConfigVal
 					portal.EnableSourceIPTracking = true
 				default:
 					return nil, h.Errf("unsupported directive for %s: %s", rootDirective, args)
+				}
+			case "require":
+				if !h.NextArg() {
+					return nil, h.Errf("%s directive has no value", rootDirective)
+				}
+				requirement := h.Val()
+				switch requirement {
+				case "mfa":
+					portal.RequireMFA = true
+				default:
+					return nil, h.Errf("%s directive contains unsupported requirement %s", rootDirective, requirement)
 				}
 			default:
 				return nil, h.Errf("unsupported root directive: %s", rootDirective)
