@@ -25,26 +25,13 @@ func ServeSandbox(w http.ResponseWriter, r *http.Request, opts map[string]interf
 	reqID := opts["request_id"].(string)
 	log := opts["logger"].(*zap.Logger)
 	ui := opts["ui"].(*ui.UserInterfaceFactory)
-	//cookies := opts["cookies"].(*cookies.Cookies)
-	// authURLPath := opts["auth_url_path"].(string)
-	//redirectToToken := opts["redirect_token_name"].(string)
 
-	/*
-		if !opts["authenticated"].(bool) {
-			w.Header().Set("Location", authURLPath)
-			w.WriteHeader(302)
-			return nil
-		}
-	*/
-
-	// Display main authentication portal page
+	// Display sandbox page
 	resp := ui.GetArgs()
 	resp.Title = "Sandbox"
-	resp.Data["sandbox_id"] = "foobar"
-	// resp.Data["sandbox_action"] = "register"
-	//resp.Data["registration_required"] = "yes"
-	resp.Data["sandbox_action"] = "register"
-	resp.Data["registration_required"] = "yes"
+	resp.Data["id"] = opts["sandbox_id"].(string)
+	resp.Data["view"] = opts["sandbox_view"].(string)
+	resp.Data["action"] = opts["sandbox_action"].(string)
 
 	content, err := ui.Render("sandbox", resp)
 	if err != nil {

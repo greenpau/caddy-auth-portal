@@ -32,6 +32,7 @@ const minMaxEntryLifetime int64 = 60
 type SandboxCacheEntry struct {
 	sessionID     string
 	createdAt     time.Time
+	landed        bool
 	used          bool
 	authenticated bool
 }
@@ -177,6 +178,47 @@ func (c *SandboxCache) Get(sandboxID string) (string, error) {
 		if err := entry.Valid(c.maxEntryLifetime); err != nil {
 			return "", err
 		}
+		return entry.sessionID, nil
+	}
+	return "", errors.New("sandbox id not found")
+}
+
+// Land returns cached data entry and sets landed attribute to true.
+func (c *SandboxCache) Land(sandboxID string) (string, error) {
+	if err := parseSandboxID(sandboxID); err != nil {
+		return "", err
+	}
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if entry, exists := c.Entries[sandboxID]; exists {
+		if err := entry.Valid(c.maxEntryLifetime); err != nil {
+			return "", err
+		}
+		if entry.landed {
+			return "", errors.New("sandbox id already landed, detected reuse attempt")
+		}
+		entry.landed = true
+		return entry.sessionID, nil
+	}
+	return "", errors.New("sandbox id not found")
+}
+
+// Use returns cached data entry and sets landed and used attributes to true.
+func (c *SandboxCache) Use(sandboxID string) (string, error) {
+	if err := parseSandboxID(sandboxID); err != nil {
+		return "", err
+	}
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if entry, exists := c.Entries[sandboxID]; exists {
+		if err := entry.Valid(c.maxEntryLifetime); err != nil {
+			return "", err
+		}
+		if entry.used {
+			return "", errors.New("sandbox id already used, detected reuse attempt")
+		}
+		entry.landed = true
+		entry.used = true
 		return entry.sessionID, nil
 	}
 	return "", errors.New("sandbox id not found")

@@ -151,7 +151,7 @@ func (sa *Authenticator) Configure() error {
 
 // AuthenticateUser checks the database for the presence of a username/email
 // and password and returns user claims.
-func (sa *Authenticator) AuthenticateUser(userInput, password string) (*jwtclaims.UserClaims, int, error) {
+func (sa *Authenticator) AuthenticateUser(userInput, password string, authOpts map[string]interface{}) (*jwtclaims.UserClaims, int, error) {
 	var user *identity.User
 	var err error
 	sa.mux.Lock()
@@ -162,13 +162,15 @@ func (sa *Authenticator) AuthenticateUser(userInput, password string) (*jwtclaim
 		user, err = sa.db.GetUserByUsername(userInput)
 	}
 	if err != nil {
+		sa.db.AuthenticateDummyUser(password)
 		return nil, 401, fmt.Errorf("user identity not found")
 	}
 	if user == nil {
+		sa.db.AuthenticateDummyUser(password)
 		return nil, 500, fmt.Errorf("user identity is nil")
 	}
 
-	userMap, authenticated, err := sa.db.AuthenticateUser(user.Username, password)
+	userMap, authenticated, err := sa.db.AuthenticateUser(user.Username, password, authOpts)
 	if err != nil {
 		return nil, 401, err
 	}
@@ -323,7 +325,11 @@ func (b *Backend) Authenticate(opts map[string]interface{}) (map[string]interfac
 		resp["code"] = 500
 		return resp, fmt.Errorf("local backend is nil")
 	}
-	claims, statusCode, err := b.Authenticator.AuthenticateUser(kv["username"], kv["password"])
+	authOpts := make(map[string]interface{})
+	if b.RequireMFA {
+		authOpts["require_mfa"] = true
+	}
+	claims, statusCode, err := b.Authenticator.AuthenticateUser(kv["username"], kv["password"], authOpts)
 	resp["code"] = statusCode
 	if statusCode == 200 {
 		claims.Origin = b.TokenProvider.TokenOrigin

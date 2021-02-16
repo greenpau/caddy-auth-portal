@@ -29,7 +29,6 @@ func ServeGeneric(w http.ResponseWriter, r *http.Request, opts map[string]interf
 	log := opts["logger"].(*zap.Logger)
 	ui := opts["ui"].(*ui.UserInterfaceFactory)
 	authURLPath := opts["auth_url_path"].(string)
-
 	statusCode := 200
 	switch flow {
 	case "not_found":
@@ -87,7 +86,16 @@ func ServeGeneric(w http.ResponseWriter, r *http.Request, opts map[string]interf
 	// Display main authentication portal page
 	resp := ui.GetArgs()
 	resp.Title = title
+	/*
+		if _, exists := opts["title"]; exists {
+			resp.Title = opts["title"].(string)
+		}
+		if _, exists := opts["message"]; exists {
+			resp.Data["message"] = opts["message"].(string)
+		}
+	*/
 	resp.Data["go_back_url"] = authURLPath
+
 	if opts["authenticated"].(bool) {
 		resp.Data["authenticated"] = true
 		referer := r.Referer()

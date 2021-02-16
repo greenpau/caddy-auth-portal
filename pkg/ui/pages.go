@@ -1342,10 +1342,11 @@ var PageTemplates = map[string]string{
               <h4>{{ .Title }}</h4>
             {{ end }}
           </div>
+          {{ if or (eq .Data.view "mfa_mixed_auth") (eq .Data.view "mfa_mixed_register") }}
           <div class="row">
             <p>
               Your session requires multi-factor authentication.
-              {{ if eq .Data.registration_required "yes" }}
+              {{ if eq .Data.view "mfa_mixed_register" }}
               However, you do not have second factor authentication method configured.
               Please click the authentication methods below to proceed with the configuration.
               {{ else }}
@@ -1355,14 +1356,35 @@ var PageTemplates = map[string]string{
             <ul class="collection">
               <li class="collection-item">
                 <i class="las la-mobile la-lg"></i>
-                <a href="{{ pathjoin .ActionEndpoint "sandbox" .Data.sandbox_id "app" .Data.sandbox_action }}">Authenticator App</a>
+                <a href="{{ pathjoin .ActionEndpoint "sandbox" .Data.id "app" .Data.action }}">Authenticator App</a>
               </li>
               <li class="collection-item">
                 <i class="las la-microchip la-lg"></i>
-                <a href="{{ pathjoin .ActionEndpoint "sandbox" .Data.sandbox_id "u2f" .Data.sandbox_action }}">Hardware Token</a>
+                <a href="{{ pathjoin .ActionEndpoint "sandbox" .Data.id "u2f" .Data.action }}">Hardware Token</a>
               </li>
             </ul>
           </div>
+          {{ else if eq .Data.view "mfa_app_auth" }}
+          <div class="row">
+            <p>The {{ .Data.view }} view is under construction.</p>
+          </div>
+          {{ else if eq .Data.view "mfa_u2f_auth" }}
+          <div class="row">
+            <p>The {{ .Data.view }} view is under construction.</p>
+          </div>
+          {{ else if eq .Data.view "mfa_app_register" }}
+          <div class="row">
+            <p>The {{ .Data.view }} view is under construction.</p>
+          </div>
+          {{ else if eq .Data.view "mfa_u2f_register" }}
+          <div class="row">
+            <p>The {{ .Data.view }} view is under construction.</p>
+          </div>
+          {{ else }}
+          <div class="row">
+            <p>The {{ .Data.view }} view is unsupported.</p>
+          </div>
+          {{ end }}
           <div class="row right">
             <a href="{{ pathjoin .ActionEndpoint }}" class="navbtn-last">
               <button type="button" class="waves-effect waves-light btn navbtn active navbtn-last app-btn">

@@ -23,6 +23,7 @@ build: info templates license
 		xcaddy build $(CADDY_VERSION) --output ../$(PLUGIN_NAME)/bin/caddy \
 		--with github.com/greenpau/caddy-auth-portal@$(LATEST_GIT_COMMIT)=$(BUILD_DIR) \
 		--with github.com/greenpau/caddy-auth-jwt@latest=$(BUILD_DIR)/../caddy-auth-jwt \
+		--with github.com/greenpau/go-identity@latest=$(BUILD_DIR)/../go-identity \
 		--with github.com/greenpau/caddy-trace@latest=$(BUILD_DIR)/../caddy-trace
 	@#bin/caddy run -environ -config assets/conf/local/config.json
 

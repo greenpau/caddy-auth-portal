@@ -52,6 +52,7 @@ handle, e.g. `anonymous`:
 * `https://github.com/greenpau/caddy-auth-portal` => `https://github.com/anonymous/caddy-auth-portal`
 * `https://github.com/greenpau/caddy-auth-jwt` => `https://github.com/anonymous/caddy-auth-jwt`
 * `https://github.com/greenpau/caddy-trace` => `https://github.com/anonymous/caddy-trace`
+* `https://github.com/greenpau/go-identity` => `https://github.com/anonymous/go-identity`
 
 Provided you are in `tmpcaddydev` directory, clone the forked repositories:
 
@@ -59,6 +60,7 @@ Provided you are in `tmpcaddydev` directory, clone the forked repositories:
 git clone git@github.com:anonymous/caddy-auth-portal.git
 git clone git@github.com:anonymous/caddy-auth-jwt.git
 git clone git@github.com:anonymous/caddy-trace.git
+git clone git@github.com:anonymous/go-identity.git
 ```
 
 Next, browse to `caddy-auth-portal` and run the following `make` command to install
