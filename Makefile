@@ -26,6 +26,7 @@ build: info templates license
 		--with github.com/greenpau/go-identity@latest=$(BUILD_DIR)/../go-identity \
 		--with github.com/greenpau/caddy-trace@latest=$(BUILD_DIR)/../caddy-trace
 	@#bin/caddy run -environ -config assets/conf/local/config.json
+	@echo "build: OK"
 
 info:
 	@echo "Version: $(PLUGIN_VERSION), Branch: $(GIT_BRANCH), Revision: $(GIT_COMMIT)"
@@ -94,10 +95,13 @@ dep:
 license:
 	@addlicense -c "Paul Greenberg greenpau@outlook.com" -y 2020 pkg/*/*/*.go pkg/*/*.go *.go
 
-release: license
-	@echo "Making release"
+mod:
+	@echo "Verifying modules"
 	@go mod tidy
 	@go mod verify
+
+release: info mod license
+	@echo "Making release"
 	@if [ $(GIT_BRANCH) != "main" ]; then echo "cannot release to non-main branch $(GIT_BRANCH)" && false; fi
 	@git diff-index --quiet HEAD -- || ( echo "git directory is dirty, commit changes first" && git status && false )
 	@versioned -patch

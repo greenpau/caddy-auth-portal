@@ -45,7 +45,7 @@
                 </div>
                 <div class="col s8">
                   <div class="input-field app-input-field">
-                    <input id="username" name="username" type="text" class="validate">
+                    <input id="username" name="username" type="text" class="validate" autocorrect="off" autocapitalize="off" required />
                   </div>
                 </div>
               </div>
@@ -57,7 +57,7 @@
                 </div>
                 <div class="col s8">
                   <div class="input-field app-input-field">
-                    <input id="password" name="password" type="password" class="validate">
+                    <input id="password" name="password" type="password" class="validate" autocorrect="off" autocapitalize="off" required />
                   </div>
                 </div>
               </div>

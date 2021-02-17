@@ -28,7 +28,9 @@
               <span class="card-title center-align">
                 <div class="section app-header">
                   {{ if .LogoURL }}
-                  <img class="d-block mx-auto mb-2" src="{{ .LogoURL }}" alt="{{ .LogoDescription }}" width="72" height="72">
+                  <a href="{{ pathjoin .ActionEndpoint }}">
+                    <img class="d-block mx-auto mb-2" src="{{ .LogoURL }}" alt="{{ .LogoDescription }}" width="72" height="72">
+                  </a>
                   {{ end }}
                   <h4>{{ .Title }}</h4>
                 </div>

@@ -1,0 +1,75 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "make docs",
+            "type": "shell",
+            "command": "make docs",
+            "presentation": {
+                "showReuseMessage": false,
+                "reveal": "silent"
+            }
+        },
+        {
+            "label": "make templates",
+            "type": "shell",
+            "command": "make templates",
+            "presentation": {
+                "showReuseMessage": false,
+                "reveal": "silent"
+            }
+        },
+        {
+            "label": "make license",
+            "type": "shell",
+            "command": "make license",
+            "presentation": {
+                "showReuseMessage": false,
+                "reveal": "silent"
+            },
+            "dependsOn": [
+                "make templates"
+            ]
+        },
+        {
+            "label": "make local build",
+            "type": "shell",
+            "command": "make",
+            "dependsOrder": "sequence",
+            "dependsOn": [
+                "make license",
+                "make docs"
+            ],
+            "problemMatcher": [],
+            "presentation": {
+                "showReuseMessage": false
+            }
+        },
+        {
+            "label": "run server",
+            "type": "shell",
+            "command": "bin/caddy",
+            "args": [
+                "run",
+                "-config",
+                "/etc/gatekeeper/Caddyfile"
+            ],
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": true,
+                "panel": "shared",
+                "showReuseMessage": true,
+                "clear": false
+            },
+            "problemMatcher": [],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "dependsOn": [
+                "make local build"
+            ]
+        }
+    ]
+}

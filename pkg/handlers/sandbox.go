@@ -28,7 +28,7 @@ func ServeSandbox(w http.ResponseWriter, r *http.Request, opts map[string]interf
 
 	// Display sandbox page
 	resp := ui.GetArgs()
-	resp.Title = "Sandbox"
+	resp.Title = "Multi-Factor Authentication"
 	resp.Data["id"] = opts["sandbox_id"].(string)
 	resp.Data["view"] = opts["sandbox_view"].(string)
 	resp.Data["action"] = opts["sandbox_action"].(string)

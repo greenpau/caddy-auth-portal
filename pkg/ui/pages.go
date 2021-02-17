@@ -63,7 +63,7 @@ var PageTemplates = map[string]string{
                 </div>
                 <div class="col s8">
                   <div class="input-field app-input-field">
-                    <input id="username" name="username" type="text" class="validate">
+                    <input id="username" name="username" type="text" class="validate" autocorrect="off" autocapitalize="off" required />
                   </div>
                 </div>
               </div>
@@ -75,7 +75,7 @@ var PageTemplates = map[string]string{
                 </div>
                 <div class="col s8">
                   <div class="input-field app-input-field">
-                    <input id="password" name="password" type="password" class="validate">
+                    <input id="password" name="password" type="password" class="validate" autocorrect="off" autocapitalize="off" required />
                   </div>
                 </div>
               </div>
@@ -465,7 +465,9 @@ var PageTemplates = map[string]string{
               <span class="card-title center-align">
                 <div class="section app-header">
                   {{ if .LogoURL }}
-                  <img class="d-block mx-auto mb-2" src="{{ .LogoURL }}" alt="{{ .LogoDescription }}" width="72" height="72">
+                  <a href="{{ pathjoin .ActionEndpoint }}">
+                    <img class="d-block mx-auto mb-2" src="{{ .LogoURL }}" alt="{{ .LogoDescription }}" width="72" height="72">
+                  </a>
                   {{ end }}
                   <h4>{{ .Title }}</h4>
                 </div>
@@ -1320,30 +1322,76 @@ var PageTemplates = map[string]string{
     <!-- Matrialize CSS -->
     <link rel="stylesheet" href="{{ pathjoin .ActionEndpoint "/assets/materialize-css/css/materialize.css" }}" />
     <link rel="stylesheet" href="{{ pathjoin .ActionEndpoint "/assets/google-webfonts/roboto.css" }}" />
+    <link rel="stylesheet" href="{{ pathjoin .ActionEndpoint "/assets/google-webfonts/montserrat.css" }}" />
     <link rel="stylesheet" href="{{ pathjoin .ActionEndpoint "/assets/line-awesome/line-awesome.css" }}" />
     <link rel="stylesheet" href="{{ pathjoin .ActionEndpoint "/assets/css/styles.css" }}" />
     {{ if eq .Data.ui_options.custom_css_required "yes" }}
     <link rel="stylesheet" href="{{ pathjoin .ActionEndpoint "/assets/css/custom.css" }}" />
     {{ end }}
+  <style>
+.mfa-app-auth-form{
+  text-align: center;
+}
+
+.mfa-app-auth-ctrl{
+  margin-bottom: 2em;
+}
+
+.mfa-app-auth-passcode {
+  all: inherit;
+  border-style: none !important;
+  font-size: 2.5em !important;
+  font-family: 'Montserrat', sans-serif;
+  font-weight: 600;
+  letter-spacing: 0.25em;
+  text-align: center;
+}
+
+/* Remove bottom border from input on focus */
+input.mfa-app-auth-passcode:focus {
+  border-bottom: none !important;
+  box-shadow: none !important;
+  outline: none !important;
+}
+
+.mfa-app-auth-btn {
+  text-align: center;
+  margin-bottom: 0.5em;
+}
+
+/* Add left margin to the buttons, except the first one */
+.mfa-app-auth-btn button:not(:first-child) {
+  margin-left: 0.5em;
+}
+
+.mfa-auth-help-text p {
+  font-weight: 300;
+}
+
+.mfa-auth-help-menu p {
+  font-weight: 500;
+}
+  </style>
+
   </head>
   <body class="app-body">
     <div class="container">
       <div class="row">
-        <div class="col s12 m6 offset-m3 l4 offset-l4 app-card-container">
+        <div class="col s12 m8 offset-m2 l4 offset-l4 app-card-container">
           <div class="row app-header center">
             {{ if .LogoURL }}
-            <div class="col">
-              <img class="d-block mx-auto mb-2" src="{{ .LogoURL }}" alt="{{ .LogoDescription }}" width="72" height="72">
+            <div class"row center">
+              <a href="{{ pathjoin .ActionEndpoint }}">
+                <img class="d-block mx-auto mb-2" src="{{ .LogoURL }}" alt="{{ .LogoDescription }}" width="72" height="72">
+              </a>
             </div>
-            <div class="col">
-              <h4>{{ .Title }}</h4>
-            </div>
-            {{ else }}
-              <h4>{{ .Title }}</h4>
             {{ end }}
+            <div class"row center">
+              <h5>{{ .Title }}</h5>
+            </div>
           </div>
           {{ if or (eq .Data.view "mfa_mixed_auth") (eq .Data.view "mfa_mixed_register") }}
-          <div class="row">
+          <div class="row center">
             <p>
               Your session requires multi-factor authentication.
               {{ if eq .Data.view "mfa_mixed_register" }}
@@ -1353,6 +1401,8 @@ var PageTemplates = map[string]string{
               Please click the appropriate second factor authentication method to proceed further.
               {{ end }}
             </p>
+          </div>
+          <div class="row">
             <ul class="collection">
               <li class="collection-item">
                 <i class="las la-mobile la-lg"></i>
@@ -1366,11 +1416,81 @@ var PageTemplates = map[string]string{
           </div>
           {{ else if eq .Data.view "mfa_app_auth" }}
           <div class="row">
-            <p>The {{ .Data.view }} view is under construction.</p>
+            <form class="mfa-app-auth-form"
+                  action="{{ pathjoin .ActionEndpoint "sandbox" .Data.id "app" .Data.action }}"
+                  method="POST"
+                  autocomplete="off"
+                  >
+              <div class="mfa-app-auth-ctrl">
+                <input class="mfa-app-auth-passcode" id="passcode" name="passcode" type="text" class="validate" pattern="[0-9]{4,8}"
+                       title="Passcode should contain 4, 6, or 8 characters and consists of 0-9 characters."
+                       placeholder="______"
+                       autocorrect="off"
+                       autocapitalize="off"
+                       required />
+              </div>
+              <input id="sandbox_id" name="sandbox_id" type="hidden" value="{{ .Data.id }}" />
+              <div class="mfa-app-auth-btn">
+                <button type="reset" name="reset" class="btn waves-effect waves-light navbtn active navbtn-last red lighten-1">
+                  <i class="las la-redo-alt left app-btn-icon"></i>
+                </button>
+                <button type="submit" name="submit" class="btn waves-effect waves-light navbtn active navbtn-last">
+                  <i class="las la-check-square left app-btn-icon"></i>
+                  <span class="app-btn-text">Verify</span>
+                </button>
+              </div>
+            </form>
+            <div class="mfa-auth-help-text">
+              <p>
+                Open the two-factor authentication app on your device to view your
+                authentication code and verify your identity.
+              </p>
+            </div>
+            <div class="mfa-auth-help-menu">
+              <p>Having issues?</p>
+              <ul>
+                <li>
+                  <i class="las la-lock-open"></i>
+                  <a href="{{ pathjoin .ActionEndpoint "sandbox" .Data.id "app" "recovery" }}">
+                    Enter a two-factor recovery code
+                  </a>
+                </li>
+                <li>
+                  <i class="las la-question"></i>
+                  <a href="{{ pathjoin .ActionEndpoint "help" }}">
+                    Contact support
+                  </a>
+                </li>
+              </ul>
+            </div>
           </div>
           {{ else if eq .Data.view "mfa_u2f_auth" }}
           <div class="row">
-            <p>The {{ .Data.view }} view is under construction.</p>
+            <form class="mfa-u2f-auth-form"
+                  action="{{ pathjoin .ActionEndpoint "sandbox" .Data.id "u2f" .Data.action }}"
+                  method="POST"
+                  autocomplete="off"
+                  >
+              <input id="u2f_auth_request" name="u2f_auth_request" type="hidden" value="" />
+              <input id="sandbox_id" name="sandbox_id" type="hidden" value="{{ .Data.id }}" />
+            </form>
+            <div class="mfa-auth-help-text">
+              <p>
+                Insert your hardware token into a USB port. When prompted, touch,
+                or otherwise trigger the hardware token.
+              </p>
+            </div>
+            <div class="mfa-auth-help-menu">
+              <p>Having issues?</p>
+              <ul>
+                <li>
+                  <i class="las la-question"></i>
+                  <a href="{{ pathjoin .ActionEndpoint "help" }}">
+                    Contact support
+                  </a>
+                </li>
+              </ul>
+            </div>
           </div>
           {{ else if eq .Data.view "mfa_app_register" }}
           <div class="row">
@@ -1380,19 +1500,27 @@ var PageTemplates = map[string]string{
           <div class="row">
             <p>The {{ .Data.view }} view is under construction.</p>
           </div>
+          {{ else if eq .Data.view "mfa_u2f_register_success" }}
+          <div class="row">
+            <p>The {{ .Data.view }} view is under construction.</p>
+          </div>
+          {{ else if eq .Data.view "mfa_u2f_register_error" }}
+          <div class="row">
+            <p>The {{ .Data.view }} view is under construction.</p>
+          </div>
+          {{ else if eq .Data.view "mfa_u2f_auth_success" }}
+          <div class="row">
+            <p>The {{ .Data.view }} view is under construction.</p>
+          </div>
+          {{ else if eq .Data.view "mfa_u2f_auth_error" }}
+          <div class="row">
+            <p>The {{ .Data.view }} view is under construction.</p>
+          </div>
           {{ else }}
           <div class="row">
             <p>The {{ .Data.view }} view is unsupported.</p>
           </div>
           {{ end }}
-          <div class="row right">
-            <a href="{{ pathjoin .ActionEndpoint }}" class="navbtn-last">
-              <button type="button" class="waves-effect waves-light btn navbtn active navbtn-last app-btn">
-                <i class="las la-sign-out-alt left app-btn-icon"></i>
-                <span class="app-btn-text">Exit</span>
-              </button>
-            </a>
-          </div>
         </div>
       </div>
     </div>

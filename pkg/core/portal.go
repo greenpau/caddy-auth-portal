@@ -33,7 +33,7 @@ import (
 	"github.com/greenpau/caddy-auth-portal/pkg/ui"
 	"github.com/greenpau/caddy-auth-portal/pkg/utils"
 	"github.com/greenpau/go-identity"
-	"github.com/satori/go.uuid"
+	uuid "github.com/satori/go.uuid"
 	"go.uber.org/zap"
 )
 
@@ -272,9 +272,41 @@ func (p *AuthPortal) ServeHTTP(w http.ResponseWriter, r *http.Request, upstreamO
 		var claims *jwtclaims.UserClaims
 		var sandboxAuthFailed bool
 
+		// TODO: remove start
+		// opts["sandbox_id"] = "78t0rlcs7e03b1ga64kuz09igvfa0u3vn5r8q3bl6hwzroptjmrelabmwf1uko0w7y91bm6"
+		// opts["sandbox_view"] = "mfa_mixed_register"
+		// opts["sandbox_view"] = "mfa_mixed_auth"
+		// opts["sandbox_view"] = "mfa_app_auth"
+		// opts["sandbox_view"] = "mfa_u2f_auth"
+		// opts["sandbox_view"] = "mfa_app_register"
+		// opts["sandbox_view"] = "mfa_u2f_register"
+
+		// opts["sandbox_action"] = "auth"
+		// opts["sandbox_action"] = "register"
+		// return handlers.ServeSandbox(w, r, opts)
+
+		// TODO: remove end
+
 		opts["flow"] = "sandbox"
 		urlPathParts := strings.Split(urlPath, "/")
 		urlPathPartsLength := len(urlPathParts)
+		if urlPathPartsLength < 2 || urlPathPartsLength > 5 {
+			// Malformed URI path
+			opts["status_code"] = 401
+			opts["flow"] = "auth_failed"
+			opts["authenticated"] = false
+			log.Warn(
+				"Malformed sandbox authentication request",
+				zap.String("request_id", reqID),
+				zap.String("error", "malformed uri path"),
+				zap.Int("uri_parts", urlPathPartsLength),
+			)
+			return handlers.ServeGeneric(w, r, opts)
+		}
+
+		sandboxID := urlPathParts[1]
+
+		// determine authentication or registration flow
 		switch urlPathPartsLength {
 		case 2:
 			reqSandboxView = "mfa_tbd"
@@ -291,7 +323,7 @@ func (p *AuthPortal) ServeHTTP(w http.ResponseWriter, r *http.Request, upstreamO
 			default:
 				sandboxAuthFailed = true
 			}
-		case 4:
+		case 4, 5:
 			switch urlPathParts[3] {
 			case "auth":
 				switch urlPathParts[2] {
@@ -326,6 +358,16 @@ func (p *AuthPortal) ServeHTTP(w http.ResponseWriter, r *http.Request, upstreamO
 			sandboxAuthFailed = true
 		}
 
+		// handle check for success/error messages
+		if !sandboxAuthFailed && (urlPathPartsLength == 5) {
+			switch urlPathParts[4] {
+			case "success", "error":
+				reqSandboxView = fmt.Sprintf("%s_%s", reqSandboxView, urlPathParts[4])
+			default:
+				sandboxAuthFailed = true
+			}
+		}
+
 		if sandboxAuthFailed {
 			// Malformed URI path
 			opts["status_code"] = 401
@@ -339,8 +381,7 @@ func (p *AuthPortal) ServeHTTP(w http.ResponseWriter, r *http.Request, upstreamO
 			return handlers.ServeGeneric(w, r, opts)
 		}
 
-		sandboxID := urlPathParts[1]
-		sessionID, err = sandboxCache.Use(sandboxID)
+		sessionID, err = sandboxCache.Get(sandboxID)
 		if err != nil {
 			// Sandbox cache entry with session ID to claims ID
 			// mapping not found
@@ -369,7 +410,8 @@ func (p *AuthPortal) ServeHTTP(w http.ResponseWriter, r *http.Request, upstreamO
 			return handlers.ServeGeneric(w, r, opts)
 		}
 
-		if v, exists := sessionData["claims"]; !exists {
+		rawClaims, exists := sessionData["claims"]
+		if !exists {
 			// Session cache entry did not have claims
 			opts["status_code"] = 401
 			opts["flow"] = "auth_failed"
@@ -380,9 +422,8 @@ func (p *AuthPortal) ServeHTTP(w http.ResponseWriter, r *http.Request, upstreamO
 				zap.String("error", "claims not found"),
 			)
 			return handlers.ServeGeneric(w, r, opts)
-		} else {
-			claims = v.(*jwtclaims.UserClaims)
 		}
+		claims = rawClaims.(*jwtclaims.UserClaims)
 
 		if claims.Metadata == nil {
 			// Session cache entry did not have metadata for user claims
@@ -436,12 +477,15 @@ func (p *AuthPortal) ServeHTTP(w http.ResponseWriter, r *http.Request, upstreamO
 		// Check whether the requested sandbox view is supported by MFA configuration metadata
 		if reqSandboxView == "mfa_tbd" {
 			if mfaConfig["mfa_app_configured"] {
-				reqSandboxView = "mfa_mixed_auth"
-				sandboxAction = "auth"
-			} else {
-				reqSandboxView = "mfa_mixed_register"
-				sandboxAction = "register"
+				// redirect from tbd to mixed auth
+				w.Header().Set("Location", path.Join(p.AuthURLPath, "sandbox", sandboxID, "auth"))
+				w.WriteHeader(302)
+				return nil
 			}
+			// redirect from tbd to mixed register
+			w.Header().Set("Location", path.Join(p.AuthURLPath, "sandbox", sandboxID, "register"))
+			w.WriteHeader(302)
+			return nil
 		}
 
 		sandboxView = reqSandboxView
@@ -453,7 +497,9 @@ func (p *AuthPortal) ServeHTTP(w http.ResponseWriter, r *http.Request, upstreamO
 			}
 			if !mfaConfig["mfa_app_configured"] {
 				sandboxAuthFailed = true
+				break
 			}
+			sandboxAction = "auth"
 		case "mfa_u2f_auth":
 			if !mfaConfig["mfa_u2f_configured"] {
 				sandboxAuthFailed = true
@@ -461,32 +507,43 @@ func (p *AuthPortal) ServeHTTP(w http.ResponseWriter, r *http.Request, upstreamO
 			}
 			if !mfaConfig["mfa_u2f_configured"] {
 				sandboxAuthFailed = true
+				break
 			}
+			sandboxAction = "auth"
 		case "mfa_mixed_auth":
 			if !mfaConfig["mfa_configured"] {
 				sandboxAuthFailed = true
 				break
 			}
 			if mfaConfig["mfa_app_configured"] && mfaConfig["mfa_u2f_configured"] {
+				sandboxAction = "auth"
 				break
 			}
 			if mfaConfig["mfa_app_configured"] {
-				sandboxView = "mfa_app_auth"
-				break
+				// redirect from mixed auth to app auth
+				w.Header().Set("Location", path.Join(p.AuthURLPath, "sandbox", sandboxID, "app/auth"))
+				w.WriteHeader(302)
+				return nil
 			}
-			sandboxView = "mfa_u2f_auth"
+			// redirect from mixed auth to u2f auth
+			w.Header().Set("Location", path.Join(p.AuthURLPath, "sandbox", sandboxID, "u2f/auth"))
+			w.WriteHeader(302)
+			return nil
 		case "mfa_app_register", "mfa_u2f_register", "mfa_mixed_register":
 			if mfaConfig["mfa_configured"] {
 				sandboxAuthFailed = true
 				break
 			}
+			sandboxAction = "register"
 		default:
-			sandboxAuthFailed = true
-			log.Warn(
-				"Failed to determine appropriate view",
-				zap.String("request_id", reqID),
-				zap.String("error", fmt.Sprintf("unsupported sandbox view %s", reqSandboxView)),
-			)
+			if !strings.HasSuffix(reqSandboxView, "_success") && !strings.HasSuffix(reqSandboxView, "_error") {
+				sandboxAuthFailed = true
+				log.Warn(
+					"Failed to determine appropriate view",
+					zap.String("request_id", reqID),
+					zap.String("error", fmt.Sprintf("unsupported sandbox view %s", reqSandboxView)),
+				)
+			}
 		}
 
 		if sandboxAuthFailed {
@@ -497,12 +554,85 @@ func (p *AuthPortal) ServeHTTP(w http.ResponseWriter, r *http.Request, upstreamO
 		}
 
 		if r.Method == "POST" {
+			// set the sandbox entries to used
+			switch sandboxView {
+			case "mfa_app_auth", "mfa_u2f_auth", "mfa_app_register", "mfa_u2f_register":
+				_, err = sandboxCache.Use(sandboxID)
+				if err != nil {
+					log.Warn(
+						"Failed to get sandbox id to claims mapping",
+						zap.String("request_id", reqID),
+						zap.String("error", err.Error()),
+						zap.String("sandbox_id", sandboxID),
+						zap.String("sandbox_view", sandboxView),
+					)
+					opts["status_code"] = 401
+					opts["flow"] = "auth_failed"
+					opts["authenticated"] = false
+					return handlers.ServeGeneric(w, r, opts)
+				}
+			}
 			// handle registration and authentication submissions
+			switch sandboxView {
+			case "mfa_app_auth":
+				w.Header().Set("Location", path.Join(p.AuthURLPath, "sandbox", sandboxID, "app/auth/error"))
+				w.WriteHeader(302)
+				return nil
+			case "mfa_u2f_auth":
+				w.Header().Set("Location", path.Join(p.AuthURLPath, "sandbox", sandboxID, "u2f/auth/error"))
+				w.WriteHeader(302)
+				return nil
+			case "mfa_app_register":
+				w.Header().Set("Location", path.Join(p.AuthURLPath, "sandbox", sandboxID, "app/register/error"))
+				w.WriteHeader(302)
+				return nil
+			case "mfa_u2f_register":
+				w.Header().Set("Location", path.Join(p.AuthURLPath, "sandbox", sandboxID, "u2f/register/error"))
+				w.WriteHeader(302)
+				return nil
+			default:
+				log.Warn(
+					"Malformed request",
+					zap.String("request_id", reqID),
+					zap.String("error", "unsupported POST endpoint"),
+					zap.String("sandbox_id", sandboxID),
+					zap.String("sandbox_view", sandboxView),
+				)
+				opts["status_code"] = 401
+				opts["flow"] = "auth_failed"
+				opts["authenticated"] = false
+				return handlers.ServeGeneric(w, r, opts)
+			}
+
+			// opts["sandbox_id"] = sandboxID
+			// opts["sandbox_view"] = sandboxView
+			// opts["sandbox_action"] = sandboxAction
 		}
 
 		opts["sandbox_id"] = sandboxID
 		opts["sandbox_view"] = sandboxView
 		opts["sandbox_action"] = sandboxAction
+
+		if r.Method == "GET" {
+			// set the sandbox entries to landed
+			switch sandboxView {
+			case "mfa_app_auth", "mfa_u2f_auth", "mfa_app_register", "mfa_u2f_register":
+				_, err = sandboxCache.Land(sandboxID)
+				if err != nil {
+					log.Warn(
+						"Failed to get sandbox id to claims mapping",
+						zap.String("request_id", reqID),
+						zap.String("error", err.Error()),
+						zap.String("sandbox_id", sandboxID),
+						zap.String("sandbox_view", sandboxView),
+					)
+					opts["status_code"] = 401
+					opts["flow"] = "auth_failed"
+					opts["authenticated"] = false
+					return handlers.ServeGeneric(w, r, opts)
+				}
+			}
+		}
 
 		return handlers.ServeSandbox(w, r, opts)
 	case strings.HasPrefix(urlPath, "saml"), strings.HasPrefix(urlPath, "x509"), strings.HasPrefix(urlPath, "oauth2"):
