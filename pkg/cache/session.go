@@ -17,9 +17,10 @@ package cache
 import (
 	"errors"
 	"fmt"
-	jwtclaims "github.com/greenpau/caddy-auth-jwt/pkg/claims"
 	"sync"
 	"time"
+
+	jwtclaims "github.com/greenpau/caddy-auth-jwt/pkg/claims"
 )
 
 const defaultSessionCleanupInternal int = 60

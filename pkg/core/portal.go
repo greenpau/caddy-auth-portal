@@ -39,6 +39,7 @@ import (
 
 const (
 	redirectToToken = "AUTH_PORTAL_REDIRECT_URL"
+	sandboxToken    = "AUTH_PORTAL_SANDBOX"
 )
 
 // PortalManager is the global authentication provider pool.
@@ -227,28 +228,14 @@ func (p *AuthPortal) ServeHTTP(w http.ResponseWriter, r *http.Request, upstreamO
 					zap.String("error", err.Error()),
 				)
 			} else {
-				sessionDataOpts := make(map[string]string)
-				for _, k := range []string{"backend_method", "backend_name", "backend_realm"} {
-					if _, exists := sessionData[k]; !exists {
-						sessionDataOpts = nil
-						break
-					}
-					sessionDataOpts[k] = sessionData[k].(string)
-				}
-				if len(sessionDataOpts) > 0 {
-					for _, backend := range p.Backends {
-						if backend.GetRealm() != sessionDataOpts["backend_realm"] {
-							continue
-						}
-						if backend.GetName() != sessionDataOpts["backend_name"] {
-							continue
-						}
-						if backend.GetMethod() != sessionDataOpts["backend_method"] {
-							continue
-						}
-						opts["backend"] = &backend
-						break
-					}
+				if b, err := p.GetBackend(sessionData); err != nil {
+					log.Warn(
+						"Failed to get session id backend",
+						zap.String("request_id", reqID),
+						zap.String("error", err.Error()),
+					)
+				} else {
+					opts["backend"] = b
 				}
 			}
 			if _, exists := opts["backend"]; !exists {
@@ -271,21 +258,6 @@ func (p *AuthPortal) ServeHTTP(w http.ResponseWriter, r *http.Request, upstreamO
 		var mfaConfig map[string]bool
 		var claims *jwtclaims.UserClaims
 		var sandboxAuthFailed bool
-
-		// TODO: remove start
-		// opts["sandbox_id"] = "78t0rlcs7e03b1ga64kuz09igvfa0u3vn5r8q3bl6hwzroptjmrelabmwf1uko0w7y91bm6"
-		// opts["sandbox_view"] = "mfa_mixed_register"
-		// opts["sandbox_view"] = "mfa_mixed_auth"
-		// opts["sandbox_view"] = "mfa_app_auth"
-		// opts["sandbox_view"] = "mfa_u2f_auth"
-		// opts["sandbox_view"] = "mfa_app_register"
-		// opts["sandbox_view"] = "mfa_u2f_register"
-
-		// opts["sandbox_action"] = "auth"
-		// opts["sandbox_action"] = "register"
-		// return handlers.ServeSandbox(w, r, opts)
-
-		// TODO: remove end
 
 		opts["flow"] = "sandbox"
 		urlPathParts := strings.Split(urlPath, "/")
@@ -320,10 +292,12 @@ func (p *AuthPortal) ServeHTTP(w http.ResponseWriter, r *http.Request, upstreamO
 				// User gets prompted to register with the choice of both App and U2F authenticators
 				// i.e. /sandbox/:id/register
 				reqSandboxView = "mfa_mixed_register"
+			case "status":
+				reqSandboxView = "status"
 			default:
 				sandboxAuthFailed = true
 			}
-		case 4, 5:
+		case 4:
 			switch urlPathParts[3] {
 			case "auth":
 				switch urlPathParts[2] {
@@ -356,16 +330,6 @@ func (p *AuthPortal) ServeHTTP(w http.ResponseWriter, r *http.Request, upstreamO
 			}
 		default:
 			sandboxAuthFailed = true
-		}
-
-		// handle check for success/error messages
-		if !sandboxAuthFailed && (urlPathPartsLength == 5) {
-			switch urlPathParts[4] {
-			case "success", "error":
-				reqSandboxView = fmt.Sprintf("%s_%s", reqSandboxView, urlPathParts[4])
-			default:
-				sandboxAuthFailed = true
-			}
 		}
 
 		if sandboxAuthFailed {
@@ -535,18 +499,18 @@ func (p *AuthPortal) ServeHTTP(w http.ResponseWriter, r *http.Request, upstreamO
 				break
 			}
 			sandboxAction = "register"
+		case "status":
+			sandboxAction = "status"
 		default:
-			if !strings.HasSuffix(reqSandboxView, "_success") && !strings.HasSuffix(reqSandboxView, "_error") {
-				sandboxAuthFailed = true
-				log.Warn(
-					"Failed to determine appropriate view",
-					zap.String("request_id", reqID),
-					zap.String("error", fmt.Sprintf("unsupported sandbox view %s", reqSandboxView)),
-				)
-			}
+			sandboxAuthFailed = true
+			log.Warn(
+				"Failed to determine appropriate view",
+				zap.String("request_id", reqID),
+				zap.String("error", fmt.Sprintf("unsupported sandbox view %s", reqSandboxView)),
+			)
 		}
 
-		if sandboxAuthFailed {
+		if sandboxAuthFailed || (r.Method != "POST" && r.Method != "GET") {
 			opts["status_code"] = 401
 			opts["flow"] = "auth_failed"
 			opts["authenticated"] = false
@@ -557,37 +521,60 @@ func (p *AuthPortal) ServeHTTP(w http.ResponseWriter, r *http.Request, upstreamO
 			// set the sandbox entries to used
 			switch sandboxView {
 			case "mfa_app_auth", "mfa_u2f_auth", "mfa_app_register", "mfa_u2f_register":
-				_, err = sandboxCache.Use(sandboxID)
-				if err != nil {
+				if err := sandboxCache.Jump(sandboxID, "mfa", "submitted"); err != nil {
 					log.Warn(
 						"Failed to get sandbox id to claims mapping",
 						zap.String("request_id", reqID),
 						zap.String("error", err.Error()),
 						zap.String("sandbox_id", sandboxID),
 						zap.String("sandbox_view", sandboxView),
+						zap.String("sandbox_action", sandboxAction),
 					)
 					opts["status_code"] = 401
 					opts["flow"] = "auth_failed"
 					opts["authenticated"] = false
 					return handlers.ServeGeneric(w, r, opts)
 				}
+				sessionDataBackend, err := p.GetBackend(sessionData)
+				if err != nil {
+					log.Warn(
+						"Failed to get session id backend",
+						zap.String("request_id", reqID),
+						zap.String("error", err.Error()),
+						zap.String("sandbox_id", sandboxID),
+						zap.String("sandbox_view", sandboxView),
+						zap.String("sandbox_action", sandboxAction),
+					)
+					opts["status_code"] = 401
+					opts["flow"] = "auth_failed"
+					opts["authenticated"] = false
+					return handlers.ServeGeneric(w, r, opts)
+				}
+				opts["backend"] = sessionDataBackend
 			}
+
 			// handle registration and authentication submissions
+			opts["user_claims"] = claims
+			opts["sandbox_cache"] = sandboxCache
+
 			switch sandboxView {
 			case "mfa_app_auth":
-				w.Header().Set("Location", path.Join(p.AuthURLPath, "sandbox", sandboxID, "app/auth/error"))
-				w.WriteHeader(302)
-				return nil
-			case "mfa_u2f_auth":
-				w.Header().Set("Location", path.Join(p.AuthURLPath, "sandbox", sandboxID, "u2f/auth/error"))
-				w.WriteHeader(302)
-				return nil
-			case "mfa_app_register":
-				w.Header().Set("Location", path.Join(p.AuthURLPath, "sandbox", sandboxID, "app/register/error"))
-				w.WriteHeader(302)
-				return nil
-			case "mfa_u2f_register":
-				w.Header().Set("Location", path.Join(p.AuthURLPath, "sandbox", sandboxID, "u2f/register/error"))
+			case "mfa_u2f_auth", "mfa_app_register", "mfa_u2f_register":
+				if err := sandboxCache.Jump(sandboxID, "mfa", "denied"); err != nil {
+					log.Warn(
+						"Failed to get sandbox id to claims mapping",
+						zap.String("request_id", reqID),
+						zap.String("error", err.Error()),
+						zap.String("sandbox_id", sandboxID),
+						zap.String("sandbox_view", sandboxView),
+						zap.String("sandbox_action", sandboxAction),
+					)
+					opts["status_code"] = 401
+					opts["flow"] = "auth_failed"
+					opts["authenticated"] = false
+					return handlers.ServeGeneric(w, r, opts)
+				}
+				w.Header().Set("Location", path.Join(p.AuthURLPath, "sandbox", sandboxID, "status"))
 				w.WriteHeader(302)
 				return nil
 			default:
@@ -597,6 +584,7 @@ func (p *AuthPortal) ServeHTTP(w http.ResponseWriter, r *http.Request, upstreamO
 					zap.String("error", "unsupported POST endpoint"),
 					zap.String("sandbox_id", sandboxID),
 					zap.String("sandbox_view", sandboxView),
+					zap.String("sandbox_action", sandboxAction),
 				)
 				opts["status_code"] = 401
 				opts["flow"] = "auth_failed"
@@ -612,13 +600,13 @@ func (p *AuthPortal) ServeHTTP(w http.ResponseWriter, r *http.Request, upstreamO
 		opts["sandbox_id"] = sandboxID
 		opts["sandbox_view"] = sandboxView
 		opts["sandbox_action"] = sandboxAction
+		opts["user_claims"] = claims
 
 		if r.Method == "GET" {
-			// set the sandbox entries to landed
 			switch sandboxView {
 			case "mfa_app_auth", "mfa_u2f_auth", "mfa_app_register", "mfa_u2f_register":
-				_, err = sandboxCache.Land(sandboxID)
-				if err != nil {
+				// set the sandbox entries to landed
+				if err := sandboxCache.Jump(sandboxID, "mfa", "landed"); err != nil {
 					log.Warn(
 						"Failed to get sandbox id to claims mapping",
 						zap.String("request_id", reqID),
@@ -634,6 +622,68 @@ func (p *AuthPortal) ServeHTTP(w http.ResponseWriter, r *http.Request, upstreamO
 			}
 		}
 
+		if sandboxAction == "status" {
+			// determine where the user met the necessary sandbox criteria
+			// to obtain access token.
+			complete, nextStep, err := sandboxCache.Next(sandboxID)
+			if err != nil {
+				log.Warn(
+					"Failed to get next sandbox step",
+					zap.String("request_id", reqID),
+					zap.String("error", err.Error()),
+					zap.String("sandbox_id", sandboxID),
+					zap.String("sandbox_view", sandboxView),
+				)
+				opts["status_code"] = 401
+				opts["flow"] = "auth_failed"
+				opts["authenticated"] = false
+				w.Header().Set("Set-Cookie", p.Cookies.GetDeleteSandboxCookie(sandboxToken))
+				return handlers.ServeGeneric(w, r, opts)
+			}
+
+			if complete {
+				// The sandbox authentication is complete.
+				sessionDataBackend, err := p.GetBackend(sessionData)
+				if err != nil {
+					log.Warn(
+						"Failed to get session id backend",
+						zap.String("request_id", reqID),
+						zap.String("error", err.Error()),
+						zap.String("sandbox_id", sandboxID),
+						zap.String("sandbox_view", sandboxView),
+						zap.String("sandbox_action", sandboxAction),
+					)
+					opts["status_code"] = 401
+					opts["flow"] = "auth_failed"
+					opts["authenticated"] = false
+					return handlers.ServeGeneric(w, r, opts)
+				}
+				opts["backend"] = sessionDataBackend
+				opts["flow"] = "login"
+				opts["authenticated"] = true
+				opts["status_code"] = 200
+				log.Debug("Authentication succeeded",
+					zap.String("request_id", reqID),
+					zap.String("sandbox_id", sandboxID),
+					zap.Any("user", claims),
+				)
+				w.Header().Set("Set-Cookie", p.Cookies.GetDeleteSandboxCookie(sandboxToken))
+				return handlers.ServeLogin(w, r, opts)
+			}
+
+			// Received the next step.
+			log.Warn(
+				"Proceeding to the next sandbox step",
+				zap.String("request_id", reqID),
+				zap.Any("claims", claims),
+				zap.String("sandbox_id", sandboxID),
+				zap.String("sandbox_view", sandboxView),
+				zap.String("sandbox_step", nextStep),
+			)
+			w.Header().Set("Location", path.Join(p.AuthURLPath, "sandbox", sandboxID, nextStep))
+			w.WriteHeader(302)
+			return nil
+		}
 		return handlers.ServeSandbox(w, r, opts)
 	case strings.HasPrefix(urlPath, "saml"), strings.HasPrefix(urlPath, "x509"), strings.HasPrefix(urlPath, "oauth2"):
 		urlPathParts := strings.Split(urlPath, "/")
@@ -756,23 +806,30 @@ func (p *AuthPortal) ServeHTTP(w http.ResponseWriter, r *http.Request, upstreamO
 							// Check whether this authenticated request requires
 							// MFA in the sandbox environment
 							if claims.Metadata != nil {
-								if v, exists := claims.Metadata["mfa_required"]; exists {
-									if v.(bool) {
-										sandboxID, err := sandboxCache.Add(claims.ID)
-										if err != nil {
-											opts["message"] = "Internal Server Error. Please Contact Support"
-											opts["status_code"] = 500
-											log.Warn(
-												"Failed to add sandbox id to claims mapping",
-												zap.String("request_id", reqID),
-												zap.String("error", err.Error()),
-											)
-											return handlers.ServeLogin(w, r, opts)
+								sandboxHurdleNames := []string{}
+								for _, k := range []string{"mfa_required", "accept_terms_required"} {
+									if v, exists := claims.Metadata[k]; exists {
+										if v.(bool) {
+											sandboxHurdleNames = append(sandboxHurdleNames, k)
 										}
-										w.Header().Set("Location", path.Join(p.AuthURLPath, "sandbox", sandboxID))
-										w.WriteHeader(302)
-										return nil
 									}
+								}
+								if len(sandboxHurdleNames) > 0 {
+									sandboxData, err := sandboxCache.Add(claims.ID, sandboxHurdleNames)
+									if err != nil {
+										opts["message"] = "Internal Server Error. Please Contact Support"
+										opts["status_code"] = 500
+										log.Warn(
+											"Failed to add sandbox id to claims mapping",
+											zap.String("request_id", reqID),
+											zap.String("error", err.Error()),
+										)
+										return handlers.ServeLogin(w, r, opts)
+									}
+									w.Header().Set("Set-Cookie", p.Cookies.GetSandboxCookie(sandboxToken, sandboxData["secret"], 600))
+									w.Header().Set("Location", path.Join(p.AuthURLPath, "sandbox", sandboxData["id"]))
+									w.WriteHeader(302)
+									return nil
 								}
 							}
 							opts["user_claims"] = claims

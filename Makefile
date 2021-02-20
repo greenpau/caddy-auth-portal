@@ -11,7 +11,7 @@ VERBOSE:=-v
 ifdef TEST
 	TEST:="-run ${TEST}"
 endif
-CADDY_VERSION="v2.2.0"
+CADDY_VERSION="v2.3.0"
 
 all: build
 
@@ -41,10 +41,10 @@ linter:
 	@for f in `find ./pkg -type f -name '*.go'`; do echo $$f; go fmt $$f; golint -set_exit_status $$f; done
 	@echo "PASS: golint"
 
-test: templates covdir linter docs
+test: templates license covdir linter docs
 	@go test $(VERBOSE) -coverprofile=.coverage/coverage.out ./...
 
-ctest: templates covdir linter
+ctest: templates license covdir linter
 	@time richgo test $(VERBOSE) $(TEST) -coverprofile=.coverage/coverage.out ./...
 
 covdir:
@@ -80,6 +80,8 @@ qtest:
 	@#time richgo test $(VERBOSE) -coverprofile=.coverage/coverage.out -run TestCookies ./pkg/cookies/*.go
 	@#time richgo test $(VERBOSE) -coverprofile=.coverage/coverage.out -run TestCookieLifetime ./*.go
 	@#time richgo test -v -coverprofile=.coverage/coverage.out -run TestSandboxCache ./pkg/cache/sandbox*.go
+	@#time richgo test -v -coverprofile=.coverage/coverage.out -run TestNewSandboxCache ./pkg/cache/sandbox*.go
+	@#time richgo test -v -coverprofile=.coverage/coverage.out -run TestNewSandboxHurdle ./pkg/cache/sandbox*.go
 	@time richgo test -v -coverprofile=.coverage/coverage.out ./pkg/cache/sandbox*.go
 	@go tool cover -html=.coverage/coverage.out -o .coverage/coverage.html
 

@@ -614,7 +614,7 @@ var PageTemplates = map[string]string{
                       <textarea id="key1" name="key1" class="hljs shell-textarea"></textarea>
                   </div>
                   <div class="input-field">
-                    <input placeholder="Comment" name="comment1" id="comment1" type="text" class="validate">
+                    <input placeholder="Comment" name="comment1" id="comment1" type="text" autocorrect="off" autocapitalize="off" autocomplete="off" class="validate">
                   </div>
                   <div class="right">
                     <button type="submit" name="submit" class="btn waves-effect waves-light navbtn active navbtn-last app-btn">
@@ -701,7 +701,7 @@ var PageTemplates = map[string]string{
                       <textarea id="key1" name="key1" class="hljs shell-textarea"></textarea>
                   </div>
                   <div class="input-field">
-                    <input placeholder="Comment" name="comment1" id="comment1" type="text" class="validate">
+                    <input placeholder="Comment" name="comment1" id="comment1" type="text" autocorrect="off" autocapitalize="off" autocomplete="off" class="validate">
                   </div>
                   <div class="right">
                     <button type="submit" name="submit" class="btn waves-effect waves-light navbtn active navbtn-last app-btn">
@@ -821,18 +821,21 @@ var PageTemplates = map[string]string{
                     <div class="input-field">
                       <input id="comment" name="comment" type="text" class="validate" pattern="[A-Za-z0-9 -]{4,25}"
                         title="Authentication code should contain 4-25 characters and consists of A-Z, a-z, 0-9, space, and dash characters."
+                        autocorrect="off" autocapitalize="off" autocomplete="off"
                         required />
                       <label for="comment">Comment</label>
                     </div>
                     <div class="input-field">
                       <input id="code1" name="code1" type="text" class="validate" pattern="[0-9]{6}"
                         title="Authentication code should contain 6 characters and consists of 0-9 characters."
+                        autocorrect="off" autocapitalize="off" autocomplete="off"
                         required />
                       <label for="code1">Authentication Code 1</label>
                     </div>
                     <div class="input-field">
                       <input id="code2" name="code2" type="text" class="validate" pattern="[0-9]{6}"
                         title="Authentication code should contain 6 characters and consists of 0-9 characters."
+                        autocorrect="off" autocapitalize="off" autocomplete="off"
                         required />
                       <label for="code2">Authentication Code 2</label>
                     </div>
@@ -888,6 +891,7 @@ var PageTemplates = map[string]string{
                     <div class="input-field">
                       <input id="passcode" name="passcode" type="text" class="validate" pattern="[0-9]{6}"
                         title="Passcode should contain 6 characters and consists of 0-9 characters."
+                        autocorrect="off" autocapitalize="off" autocomplete="off"
                         required />
                       <label for="passcode">Passcode</label>
                     </div>
@@ -950,6 +954,7 @@ var PageTemplates = map[string]string{
                   <div class="input-field">
                     <input id="comment" name="comment" type="text" class="validate" pattern="[A-Za-z0-9 -]{4,25}"
                       title="Authentication code should contain 4-25 characters and consists of A-Z, a-z, 0-9, space, and dash characters."
+                      autocorrect="off" autocapitalize="off" autocomplete="off"
                       required />
                     <label for="comment">Comment</label>
                   </div>
@@ -995,15 +1000,15 @@ var PageTemplates = map[string]string{
                     <p>If you want to change your password, please provide your current password and 
                     </p>
                     <div class="input-field">
-                      <input id="secret1" name="secret1" type="password" required />
+                      <input id="secret1" name="secret1" type="password" autocorrect="off" autocapitalize="off" autocomplete="off" required />
                       <label for="secret1">Current Password</label>
                     </div>
                     <div class="input-field">
-                      <input id="secret2" name="secret2" type="password" required />
+                      <input id="secret2" name="secret2" type="password" autocorrect="off" autocapitalize="off" autocomplete="off" required />
                       <label for="secret2">New Password</label>
                     </div>
                     <div class="input-field">
-                      <input id="secret3" name="secret3" type="password" required />
+                      <input id="secret3" name="secret3" type="password" autocorrect="off" autocapitalize="off" autocomplete="off" required />
                       <label for="secret3">Confirm New Password</label>
                     </div>
                   </div>
@@ -1425,8 +1430,7 @@ input.mfa-app-auth-passcode:focus {
                 <input class="mfa-app-auth-passcode" id="passcode" name="passcode" type="text" class="validate" pattern="[0-9]{4,8}"
                        title="Passcode should contain 4, 6, or 8 characters and consists of 0-9 characters."
                        placeholder="______"
-                       autocorrect="off"
-                       autocapitalize="off"
+                       autocorrect="off" autocapitalize="off" autocomplete="off"
                        required />
               </div>
               <input id="sandbox_id" name="sandbox_id" type="hidden" value="{{ .Data.id }}" />

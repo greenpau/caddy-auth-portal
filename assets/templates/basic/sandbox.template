@@ -115,8 +115,7 @@ input.mfa-app-auth-passcode:focus {
                 <input class="mfa-app-auth-passcode" id="passcode" name="passcode" type="text" class="validate" pattern="[0-9]{4,8}"
                        title="Passcode should contain 4, 6, or 8 characters and consists of 0-9 characters."
                        placeholder="______"
-                       autocorrect="off"
-                       autocapitalize="off"
+                       autocorrect="off" autocapitalize="off" autocomplete="off"
                        required />
               </div>
               <input id="sandbox_id" name="sandbox_id" type="hidden" value="{{ .Data.id }}" />

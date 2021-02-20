@@ -24,11 +24,12 @@ import (
 	jwtclaims "github.com/greenpau/caddy-auth-jwt/pkg/claims"
 	jwtconfig "github.com/greenpau/caddy-auth-jwt/pkg/config"
 
+	"time"
+
 	"github.com/greenpau/caddy-auth-portal/pkg/cookies"
 	"github.com/greenpau/caddy-auth-portal/pkg/ui"
 	"github.com/greenpau/caddy-auth-portal/pkg/utils"
 	"go.uber.org/zap"
-	"time"
 )
 
 // ServeLogin returns login page or performs authentication.
@@ -68,6 +69,18 @@ func ServeLogin(w http.ResponseWriter, r *http.Request, opts map[string]interfac
 		claims := opts["user_claims"].(*jwtclaims.UserClaims)
 		claims.Issuer = utils.GetCurrentURL(r)
 		claims.IssuedAt = time.Now().Unix()
+		if claims.Metadata != nil {
+			for k := range claims.Metadata {
+				switch k {
+				case "mfa_app_configured", "mfa_configured", "mfa_u2f_configured":
+					delete(claims.Metadata, k)
+				case "mfa_required":
+					claims.Metadata["mfa_authenticated"] = true
+					delete(claims.Metadata, k)
+				}
+			}
+		}
+
 		var userToken string
 		var tokenError error
 		switch tokenProvider.TokenSignMethod {

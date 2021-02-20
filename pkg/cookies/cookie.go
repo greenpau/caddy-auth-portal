@@ -62,3 +62,19 @@ func (c *Cookies) GetDeleteCookie(s string) string {
 	sb.WriteString(" Expires=Thu, 01 Jan 1970 00:00:00 GMT;")
 	return sb.String()
 }
+
+// GetSandboxCookie returns short-lived raw cookie string from key-value input.
+func (c *Cookies) GetSandboxCookie(k, v string, age int) string {
+	var sb strings.Builder
+	sb.WriteString(k + "=" + v + ";")
+	sb.WriteString(" Path=/;")
+	sb.WriteString(fmt.Sprintf(" Max-Age=%d;", age))
+	sb.WriteString(" Secure; HttpOnly;")
+	return sb.String()
+}
+
+// GetDeleteSandboxCookie returns raw cookie with attributes for delete action
+// for sandbox cookie.
+func (c *Cookies) GetDeleteSandboxCookie(s string) string {
+	return fmt.Sprintf("%s=delete; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT;", s)
+}

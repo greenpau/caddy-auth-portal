@@ -16,10 +16,13 @@ package cache
 
 import (
 	"errors"
-	"github.com/greenpau/caddy-auth-portal/pkg/utils"
+	"fmt"
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/google/go-cmp/cmp"
+	"github.com/greenpau/caddy-auth-portal/pkg/utils"
 )
 
 func TestParseSandboxID(t *testing.T) {
@@ -71,6 +74,95 @@ func TestParseSandboxID(t *testing.T) {
 				return
 			}
 			t.Logf("test %d PASS: received valid sandbox id", i)
+		})
+	}
+}
+
+func TestNewSandboxHurdle(t *testing.T) {
+	tests := []struct {
+		name      string
+		opts      map[string]interface{}
+		hurdle    *SandboxHurdle
+		shouldErr bool
+		err       error
+	}{
+		{
+			name: "invalid foobar option",
+			opts: map[string]interface{}{
+				"foo": "bar",
+			},
+			shouldErr: true,
+			err:       errors.New("unsupported sandbox hurdle configuration option foo = bar"),
+		},
+		{
+			name: "invalid init_step option type",
+			opts: map[string]interface{}{
+				"init_step": true,
+			},
+			shouldErr: true,
+			err:       errors.New("invalid sandbox hurdle configuration option init_step value type bool"),
+		},
+		{
+			name: "invalid init_step option with out of range number",
+			opts: map[string]interface{}{
+				"init_step": 100,
+			},
+			shouldErr: true,
+			err:       errors.New("invalid sandbox hurdle configuration option init_step value out of range 100"),
+		},
+
+		{
+			name: "invalid init_step option with unsupported keyword",
+			opts: map[string]interface{}{
+				"init_step": "foobar",
+			},
+			shouldErr: true,
+			err:       errors.New("invalid sandbox hurdle configuration option init_step unsupported value foobar"),
+		},
+
+		{
+			name: "valid hurdle with init_step",
+			opts: map[string]interface{}{
+				"init_step": "routed",
+			},
+			hurdle: &SandboxHurdle{
+				name:    "foobar",
+				step:    1,
+				verdict: 0,
+			},
+		},
+		{
+			name: "valid hurdle",
+			hurdle: &SandboxHurdle{
+				name:    "foobar",
+				step:    0,
+				verdict: 0,
+			},
+		},
+	}
+
+	for i, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Logf("test %d: %s", i, tc.name)
+			h, err := NewSandboxHurdle("foobar", tc.opts)
+			if tc.shouldErr && err == nil {
+				t.Fatalf("test %d FAIL: expected error, but got success", i)
+			}
+			if !tc.shouldErr && err != nil {
+				t.Fatalf("test %d FAIL: expected success, but got error: %s", i, err)
+			}
+			if tc.shouldErr {
+				if err.Error() != tc.err.Error() {
+					t.Fatalf("test %d FAIL: unexpected error, got: %v, expected: %v", i, err, tc.err)
+				}
+				t.Logf("test %d PASS: received expected error: %s", i, err)
+				return
+			}
+
+			if diff := cmp.Diff(tc.hurdle, h, cmp.AllowUnexported(SandboxHurdle{})); diff != "" {
+				t.Fatalf("test %d: mismatch (-want +got):\n%s", i, diff)
+			}
+			t.Logf("test %d PASS: created sandbox cache entry hurdle", i)
 		})
 	}
 }
@@ -176,11 +268,35 @@ func TestSandboxCache(t *testing.T) {
 	}
 
 	sessionID := "foobar"
+	hurdleNames := []string{"mfa_required", "accept_terms_required"}
 
-	sandboxID, err := c.Add(sessionID)
+	sandboxData, err := c.Add(sessionID, nil)
+	if err == nil {
+		t.Fatalf("FAIL: expected error, but received success")
+	}
+	if err != nil {
+		experr := fmt.Errorf("no hurdle names found")
+		if err.Error() != experr.Error() {
+			t.Fatalf("FAIL: unexpected error, got: %v, expected: %v", err, experr)
+		}
+	}
+
+	sandboxData, err = c.Add(sessionID, []string{})
+	if err == nil {
+		t.Fatalf("FAIL: expected error, but received success")
+	}
+	if err != nil {
+		experr := fmt.Errorf("no hurdle names found")
+		if err.Error() != experr.Error() {
+			t.Fatalf("FAIL: unexpected error, got: %v, expected: %v", err, experr)
+		}
+	}
+
+	sandboxData, err = c.Add(sessionID, hurdleNames)
 	if err != nil {
 		t.Fatalf("FAIL: unexpected error when adding an entry: %s", err)
 	}
+	sandboxID := sandboxData["id"]
 
 	cachedSessionID, err := c.Get(sandboxID)
 	if err != nil {
@@ -214,15 +330,15 @@ func TestSandboxCache(t *testing.T) {
 	c.mu.Lock()
 	sandboxID = utils.GetRandomStringFromRangeWithCharset(64, 96, sandboxIDCharset)
 	c.Entries[sandboxID] = &SandboxCacheEntry{
-		sessionID:     "foo",
-		authenticated: true,
-		createdAt:     time.Now().UTC(),
+		sessionID: "foo",
+		createdAt: time.Now().UTC(),
+		closed:    true,
 	}
 	c.mu.Unlock()
 	if _, err = c.Get(sandboxID); err == nil {
 		t.Fatalf("FAIL: expected error getting expired sandbox id, but got success")
 	} else {
-		expError := errors.New("sandbox id already authenticated")
+		expError := errors.New("sandbox cached entry is no longer in use")
 		if err.Error() != expError.Error() {
 			t.Fatalf("FAIL: unexpected error while getting expired sandbox id, got: %v, expected: %v", err, expError)
 		}
@@ -232,10 +348,10 @@ func TestSandboxCache(t *testing.T) {
 	c.mu.Lock()
 	c.Entries = nil
 	c.mu.Unlock()
-	if _, err = c.Add(sessionID); err == nil {
+	if _, err = c.Add(sessionID, nil); err == nil {
 		t.Fatalf("FAIL: expected error adding to nil entries, but got success")
 	} else {
-		expError := errors.New("sandbox cache is not available")
+		expError := errors.New("no hurdle names found")
 		if err.Error() != expError.Error() {
 			t.Fatalf("FAIL: unexpected error while adding to nil entries, got: %v, expected: %v", err, expError)
 		}
@@ -258,9 +374,9 @@ func TestSandboxCache(t *testing.T) {
 	c.Entries = make(map[string]*SandboxCacheEntry)
 	sandboxID = utils.GetRandomStringFromRangeWithCharset(64, 96, sandboxIDCharset)
 	c.Entries[sandboxID] = &SandboxCacheEntry{
-		sessionID:     "foo",
-		authenticated: true,
-		createdAt:     time.Now().UTC(),
+		sessionID: "foo",
+		createdAt: time.Now().UTC(),
+		closed:    true,
 	}
 	sandboxID = utils.GetRandomStringFromRangeWithCharset(64, 96, sandboxIDCharset)
 	c.Entries[sandboxID] = &SandboxCacheEntry{

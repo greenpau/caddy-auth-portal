@@ -18,7 +18,6 @@ import (
 	"encoding/base64"
 	"fmt"
 	"net/http"
-	"strconv"
 	"strings"
 
 	jwtclaims "github.com/greenpau/caddy-auth-jwt/pkg/claims"
@@ -208,7 +207,10 @@ func ServeSettings(w http.ResponseWriter, r *http.Request, opts map[string]inter
 							case "app":
 								view = "mfa-test-app-status"
 								var passcodeValid bool
-								if tokenID, passcode, err := validateMfaAuthTokenForm(r); err != nil {
+								validateOpts := map[string]interface{}{
+									"validate_token_id": true,
+								}
+								if formData, err := validateMfaAuthTokenForm(r, validateOpts); err != nil {
 									resp.Data["status_reason"] = fmt.Sprintf("Bad Request: %s", err)
 								} else {
 									args := make(map[string]interface{})
@@ -219,10 +221,10 @@ func ServeSettings(w http.ResponseWriter, r *http.Request, opts map[string]inter
 										resp.Data["status_reason"] = fmt.Sprintf("%s", err)
 									} else {
 										for _, mfaToken := range mfaTokens {
-											if mfaToken.ID != tokenID {
+											if mfaToken.ID != formData["token_id"] {
 												continue
 											}
-											if err := mfaToken.ValidateCode(passcode); err == nil {
+											if err := mfaToken.ValidateCode(formData["passcode"]); err == nil {
 												passcodeValid = true
 												resp.Data["status"] = "SUCCESS"
 												resp.Data["status_reason"] = fmt.Sprintf("token %s validated successfully", mfaToken.ID)
@@ -444,201 +446,4 @@ func ServeSettings(w http.ResponseWriter, r *http.Request, opts map[string]inter
 	w.WriteHeader(200)
 	w.Write(content.Bytes())
 	return nil
-}
-
-func validatePasswordChangeForm(r *http.Request) (map[string]string, error) {
-	if r.Header.Get("Content-Type") != "application/x-www-form-urlencoded" {
-		return nil, fmt.Errorf("Unsupported content type")
-	}
-	if err := r.ParseForm(); err != nil {
-		return nil, fmt.Errorf("Failed parsing submitted form")
-	}
-	for _, k := range []string{"secret1", "secret2", "secret3"} {
-		if r.PostFormValue(k) == "" {
-			return nil, fmt.Errorf("Required form field not found")
-		}
-	}
-	if r.PostFormValue("secret1") == "" {
-		return nil, fmt.Errorf("Current password is empty")
-	}
-	if r.PostFormValue("secret2") == "" {
-		return nil, fmt.Errorf("New password is empty")
-	}
-	if r.PostFormValue("secret2") != r.PostFormValue("secret3") {
-		return nil, fmt.Errorf("New password mismatch")
-	}
-	if r.PostFormValue("secret1") == r.PostFormValue("secret2") {
-		return nil, fmt.Errorf("New password matches current password")
-	}
-	resp := make(map[string]string)
-	resp["current_password"] = r.PostFormValue("secret1")
-	resp["new_password"] = r.PostFormValue("secret2")
-	return resp, nil
-}
-
-func validateKeyInputForm(r *http.Request) (map[string]string, error) {
-	if r.Header.Get("Content-Type") != "application/x-www-form-urlencoded" {
-		return nil, fmt.Errorf("Unsupported content type")
-	}
-	if err := r.ParseForm(); err != nil {
-		return nil, fmt.Errorf("Failed parsing submitted form")
-	}
-	for _, k := range []string{"key1"} {
-		if r.PostFormValue(k) == "" {
-			return nil, fmt.Errorf("Required form field not found")
-		}
-	}
-	if r.PostFormValue("key1") == "" {
-		return nil, fmt.Errorf("Input is empty")
-	}
-	resp := make(map[string]string)
-	resp["key"] = r.PostFormValue("key1")
-	comment := r.PostFormValue("comment1")
-	comment = strings.TrimSpace(comment)
-	if comment != "" {
-		resp["comment"] = comment
-	}
-	return resp, nil
-}
-
-func validateMfaAuthTokenForm(r *http.Request) (string, string, error) {
-	if r.Header.Get("Content-Type") != "application/x-www-form-urlencoded" {
-		return "", "", fmt.Errorf("Unsupported content type")
-	}
-	if err := r.ParseForm(); err != nil {
-		return "", "", fmt.Errorf("Failed parsing submitted form")
-	}
-
-	passcode := r.PostFormValue("passcode")
-	passcode = strings.TrimSpace(passcode)
-	if passcode == "" {
-		return "", "", fmt.Errorf("Required form passcode field is empty")
-	}
-
-	if len(passcode) < 4 || len(passcode) > 8 {
-		return "", "", fmt.Errorf("MFA passcode is not 4-8 characters long")
-	}
-
-	tokenID := r.PostFormValue("token_id")
-	tokenID = strings.TrimSpace(tokenID)
-	if tokenID == "" {
-		return "", "", fmt.Errorf("Required form token_id field is empty")
-	}
-
-	return tokenID, passcode, nil
-}
-
-func validateAddU2FTokenForm(r *http.Request) (map[string]string, error) {
-	resp := make(map[string]string)
-	if r.Header.Get("Content-Type") != "application/x-www-form-urlencoded" {
-		return nil, fmt.Errorf("Unsupported content type")
-	}
-	if err := r.ParseForm(); err != nil {
-		return nil, fmt.Errorf("Failed parsing submitted form")
-	}
-	for _, k := range []string{"webauthn_register", "webauthn_challenge"} {
-		if r.PostFormValue(k) == "" {
-			return nil, fmt.Errorf("Required form %s field not found", k)
-		}
-		resp[k] = r.PostFormValue(k)
-	}
-	return resp, nil
-}
-
-func validateAddMfaTokenForm(r *http.Request) (map[string]string, error) {
-	resp := make(map[string]string)
-	if r.Header.Get("Content-Type") != "application/x-www-form-urlencoded" {
-		return nil, fmt.Errorf("Unsupported content type")
-	}
-	if err := r.ParseForm(); err != nil {
-		return nil, fmt.Errorf("Failed parsing submitted form")
-	}
-	for _, k := range []string{"code1", "code2", "secret", "type"} {
-		if r.PostFormValue(k) == "" {
-			return nil, fmt.Errorf("Required form %s field not found", k)
-		}
-	}
-
-	// Codes
-	var code1, code2 string
-	for _, i := range []string{"1", "2"} {
-		code := r.PostFormValue("code" + i)
-		if code == "" {
-			return nil, fmt.Errorf("MFA code %s is empty", i)
-		}
-		if len(code) < 4 || len(code) > 8 {
-			return nil, fmt.Errorf("MFA code %s is not 4-8 characters", i)
-		}
-		if i == "1" {
-			code1 = code
-			continue
-		}
-		code2 = code
-		if code2 == code1 {
-			return nil, fmt.Errorf("MFA code 1 and 2 match")
-		}
-		if len(code2) != len(code1) {
-			return nil, fmt.Errorf("MFA code 1 and 2 have different length")
-		}
-	}
-	resp["code1"] = code1
-	resp["code2"] = code2
-
-	// Comment
-	comment := r.PostFormValue("comment")
-	if comment != "" {
-		resp["comment"] = comment
-	}
-	// Secret
-	secret := r.PostFormValue("secret")
-	if secret == "" {
-		return nil, fmt.Errorf("MFA secret is empty")
-	}
-	resp["secret"] = secret
-
-	// Type
-	secretType := r.PostFormValue("type")
-	switch secretType {
-	case "":
-		return nil, fmt.Errorf("MFA type is empty")
-	case "totp":
-	default:
-		return nil, fmt.Errorf("MFA type is unsupported")
-	}
-	resp["type"] = secretType
-
-	// Period
-	period := r.PostFormValue("period")
-	if period == "" {
-		return nil, fmt.Errorf("MFA period is empty")
-	}
-	periodInt, err := strconv.Atoi(period)
-	if err != nil {
-		return nil, fmt.Errorf("MFA period is invalid")
-	}
-	if period != strconv.Itoa(periodInt) {
-		return nil, fmt.Errorf("MFA period is invalid")
-	}
-	if periodInt < 30 || periodInt > 180 {
-		return nil, fmt.Errorf("MFA period is invalid")
-	}
-	resp["period"] = period
-
-	// Digits
-	digits := r.PostFormValue("digits")
-	if digits == "" {
-		return nil, fmt.Errorf("MFA digits is empty")
-	}
-	digitsInt, err := strconv.Atoi(digits)
-	if err != nil {
-		return nil, fmt.Errorf("MFA digits is invalid")
-	}
-	if digits != strconv.Itoa(digitsInt) {
-		return nil, fmt.Errorf("MFA digits is invalid")
-	}
-	if digitsInt < 4 || digitsInt > 8 {
-		return nil, fmt.Errorf("MFA digits is invalid")
-	}
-	resp["digits"] = digits
-	return resp, nil
 }
