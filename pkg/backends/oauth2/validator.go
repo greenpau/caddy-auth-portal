@@ -83,7 +83,11 @@ func (b *Backend) validateAccessToken(state string, data map[string]interface{})
 	}
 
 	// Iterate over the received token and populate the fields
-	for _, k := range []string{"sub", "name", "email", "iat", "exp", "jti", "iss", "groups"} {
+	flatClaims := []string{
+		"sub", "name", "email", "iat", "exp", "jti",
+		"iss", "groups", "picture",
+	}
+	for _, k := range flatClaims {
 		if _, exists := tokenClaims[k]; !exists {
 			continue
 		}
@@ -96,9 +100,13 @@ func (b *Backend) validateAccessToken(state string, data map[string]interface{})
 			claims.Email = tokenClaims[k].(string)
 		case "iss":
 			claims.Origin = tokenClaims[k].(string)
+		case "picture":
+			claims.PictureURL = tokenClaims[k].(string)
 		}
 	}
-	for _, claimName := range []string{"roles", "role", "groups", "group"} {
+
+	nestedClaims := []string{"roles", "role", "groups", "group"}
+	for _, claimName := range nestedClaims {
 		if _, exists := tokenClaims[claimName]; exists {
 			switch tokenClaims[claimName].(type) {
 			case []interface{}:

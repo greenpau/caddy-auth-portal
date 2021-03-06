@@ -306,7 +306,7 @@ func (b *Backend) Authenticate(opts map[string]interface{}) (map[string]interfac
 			b.supplementClaims(claims)
 			resp["claims"] = claims
 			b.logger.Debug(
-				"received OAuth 2.0 authorization server access token",
+				"decoded claims from OAuth 2.0 authorization server access token",
 				zap.String("request_id", reqID),
 				zap.Any("claims", claims),
 			)
@@ -536,6 +536,12 @@ func (b *Backend) fetchAccessToken(redirectURI, state, code string) (map[string]
 	if err := json.Unmarshal(respBody, &data); err != nil {
 		return nil, err
 	}
+
+	b.logger.Debug(
+		"OAuth 2.0 access token response decoded",
+		zap.Any("body", data),
+	)
+
 	if _, exists := data["error"]; exists {
 		if v, exists := data["error_description"]; exists {
 			return nil, errors.ErrBackendOauthGetAccessTokenFailedDetailed.WithArgs(data["error"].(string), v.(string))
