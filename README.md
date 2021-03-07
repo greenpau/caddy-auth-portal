@@ -696,8 +696,8 @@ asset, e.g. `js`, `css`, etc.
 ```
 
 The above configuration would cause the plugin to read `/path/to/app/styles.css`
-and begin serving it at `AUTH_PORTAL/assets/css/app.css`, e.g.
-`https://localhost:8443/auth/assets/css/app.css`.
+and begin serving it with content type of `text/css`  at
+`AUTH_PORTAL/assets/css/app.css`, e.g. `https://localhost:8443/auth/assets/css/app.css`.
 
 [:arrow_up: Back to Top](#table-of-contents)
 
