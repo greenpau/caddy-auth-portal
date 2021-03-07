@@ -134,6 +134,10 @@ func (sa *Authenticator) Configure() error {
 			if err := sa.db.SaveToFile(sa.path); err != nil {
 				return fmt.Errorf("failed to create local database file at %s: %s", sa.path, err)
 			}
+			fileInfo, err = os.Stat(sa.path)
+			if err != nil {
+				return fmt.Errorf("failed to stat newly created local database file at %s: %s", sa.path, err)
+			}
 		} else {
 			return fmt.Errorf("failed obtaining information about local database file at %s: %s", sa.path, err)
 		}
