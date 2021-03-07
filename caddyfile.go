@@ -67,7 +67,10 @@ func init() {
 //	       portal_template <file_path>
 //	       logo_url <file_path|url_path>
 //	       logo_description <value>
-//         custom_css_path <path}url>
+//         custom_css_path <path>
+//         custom_js_path <path>
+//         custom_html_header_path <path>
+//         static_asset <uri> <content_type> <path>
 //	     }
 //
 //       cookie_domain <name>
@@ -564,6 +567,22 @@ func parseCaddyfileAuthPortal(h httpcaddyfile.Helper) ([]httpcaddyfile.ConfigVal
 								}
 								v = v[:headIndex] + string(b) + v[headIndex:]
 								ui.PageTemplates[k] = v
+							}
+						case "static_asset":
+							args := h.RemainingArgs()
+							if len(args) != 3 {
+								return nil, h.Errf("auth backend %s subdirective %s is malformed", rootDirective, subDirective)
+							}
+							prefix := "assets/"
+							assetURI := args[0]
+							assetContentType := args[1]
+							assetPath := args[2]
+							if !strings.HasPrefix(assetURI, prefix) {
+								return nil, h.Errf("auth backend %s subdirective %s URI must be prefixed with %s, got %s",
+									rootDirective, subDirective, prefix, assetURI)
+							}
+							if err := ui.StaticAssets.AddAsset(assetURI, assetContentType, assetPath); err != nil {
+								return nil, h.Errf("auth backend %s subdirective %s failed: %s", rootDirective, subDirective, err)
 							}
 						default:
 							return nil, h.Errf("unsupported subdirective for %s: %s", rootDirective, subDirective)

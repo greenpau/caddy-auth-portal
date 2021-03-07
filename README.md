@@ -48,6 +48,7 @@ Please ask questions either here or via LinkedIn. I am happy to help you! @green
   * [Custom Javascript](#custom-javascript)
   * [Portal Links](#portal-links)
   * [Custom Header](#custom-header)
+  * [Static Assets of Any Type](#static-assets-of-any-type)
 * [Local Authentication Backend](#local-authentication-backend)
   * [Configuration Primer](#configuration-primer)
   * [Identity Store](#identity-store)
@@ -554,6 +555,8 @@ https://chat.example.com {
 }
 ```
 
+[:arrow_up: Back to Top](#table-of-contents)
+
 ### User Registration
 
 The following Caddy configuration enables user registration.
@@ -676,6 +679,25 @@ to `<head>` section of the portal's pages:
         ...
       }
 ```
+
+[:arrow_up: Back to Top](#table-of-contents)
+
+### Static Assets of Any Type
+
+The following Caddyfile directive is capable of loading and serving any type of static
+asset, e.g. `js`, `css`, etc.
+
+```bash
+      ui {
+        ...
+        static_asset "assets/css/app.css" "text/css" /path/to/app/styles.css
+        ...
+      }
+```
+
+The above configuration would cause the plugin to read `/path/to/app/styles.css`
+and begin serving it at `AUTH_PORTAL/assets/css/app.css`, e.g.
+`https://localhost:8443/auth/assets/css/app.css`.
 
 [:arrow_up: Back to Top](#table-of-contents)
 
