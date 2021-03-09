@@ -16,6 +16,7 @@ package handlers
 
 import (
 	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"strings"
@@ -61,319 +62,335 @@ func ServeSettings(w http.ResponseWriter, r *http.Request, opts map[string]inter
 
 	switch view {
 	case "mfa":
-		if len(viewParts) > 1 {
-			switch viewParts[1] {
-			case "barcode":
-				if len(viewParts) < 3 {
-					log.Error("Failed rendering key code URI barcode", zap.String("request_id", reqID), zap.String("error", "malformed barcode url"))
-					w.Header().Set("Content-Type", "text/plain")
-					w.WriteHeader(400)
-					w.Write([]byte(`Bad Request`))
-					return fmt.Errorf("malformed barcode url")
-				}
-				opts["code_uri_encoded"] = strings.TrimSuffix(strings.Join(viewParts[2:], "/"), ".png")
-				return ServeBarcodeImage(w, r, opts)
-			case "add":
-				if len(viewParts) > 2 {
-					switch viewParts[2] {
-					case "app":
-						if r.Method == "POST" {
-							resp.Data["status"] = "FAIL"
-							if backend != nil {
-								if secrets, err := validateAddMfaTokenForm(r); err != nil {
-									resp.Data["status"] = "FAIL"
-									resp.Data["status_reason"] = fmt.Sprintf("Bad Request: %s", err)
-								} else {
-									operation := make(map[string]interface{})
-									operation["name"] = "add_mfa_token"
-									operation["token_type"] = "app"
-									operation["username"] = claims.Subject
-									operation["email"] = claims.Email
-									for k, v := range secrets {
-										operation[k] = v
-									}
-									if err := backend.Do(operation); err != nil {
-										resp.Data["status_reason"] = fmt.Sprintf("%s", err)
-									} else {
-										resp.Data["status"] = "SUCCESS"
-										resp.Data["status_reason"] = "MFA token has been added"
-									}
-								}
-							} else {
-								resp.Data["status_reason"] = "Authentication backend not found"
-							}
-							// view: mfa-add-app-status
-							view = strings.Join(viewParts, "-") + "-status"
-						} else {
-							secretText := utils.GetRandomStringFromRange(64, 92)
-
-							codeOpts := make(map[string]interface{})
-							codeOpts["secret"] = secretText
-							codeOpts["type"] = "totp"
-							codeOpts["label"] = "AUTHP:" + claims.Email
-							codeOpts["period"] = 30
-							codeOpts["issuer"] = "AUTHP"
-							codeOpts["digits"] = 6
-
-							resp.Data["mfa_type"] = "totp"
-							resp.Data["mfa_secret"] = secretText
-							resp.Data["mfa_period"] = "30"
-							resp.Data["mfa_digits"] = "6"
-
-							codeURI, codeErr = utils.GetCodeURI(codeOpts)
-							if codeErr != nil {
-								log.Error("Failed creating key code URI", zap.String("request_id", reqID), zap.String("error", codeErr.Error()))
-								w.Header().Set("Content-Type", "text/plain")
-								w.WriteHeader(500)
-								w.Write([]byte(`Internal Server Error`))
-								return codeErr
-							}
-							resp.Data["code_uri"] = codeURI
-							resp.Data["code_uri_encoded"] = base64.StdEncoding.EncodeToString([]byte(codeURI))
-							view = strings.Join(viewParts, "-")
-						}
-					case "u2f":
-						if r.Method == "POST" {
-							resp.Data["status"] = "FAIL"
-							if backend != nil {
-								if secrets, err := validateAddU2FTokenForm(r); err != nil {
-									resp.Data["status"] = "FAIL"
-									resp.Data["status_reason"] = fmt.Sprintf("Bad Request: %s", err)
-								} else {
-									operation := make(map[string]interface{})
-									operation["name"] = "add_mfa_token"
-									operation["token_type"] = "u2f"
-									operation["username"] = claims.Subject
-									operation["email"] = claims.Email
-									for k, v := range secrets {
-										operation[k] = v
-									}
-									if err := backend.Do(operation); err != nil {
-										resp.Data["status_reason"] = fmt.Sprintf("%s", err)
-									} else {
-										resp.Data["status"] = "SUCCESS"
-										resp.Data["status_reason"] = "MFA token has been added"
-									}
-								}
-							} else {
-								resp.Data["status_reason"] = "Authentication backend not found"
-							}
-							// view: mfa-add-u2f-status
-							view = strings.Join(viewParts, "-") + "-status"
-						} else {
-							resp.Data["webauthn_challenge"] = utils.GetRandomStringFromRange(64, 92)
-							resp.Data["webauthn_rp_name"] = "AUTHP"
-							resp.Data["webauthn_user_id"] = claims.ID
-							resp.Data["webauthn_user_email"] = claims.Email
-							if claims.Name == "" {
-								resp.Data["webauthn_user_display_name"] = claims.Subject
-							} else {
-								resp.Data["webauthn_user_display_name"] = claims.Name
-							}
-							view = strings.Join(viewParts, "-")
-						}
-					}
-				}
-			case "delete":
-				view = viewParts[0] + "-" + viewParts[1] + "-status"
-				resp.Data["status"] = "FAIL"
-				tokenID := viewParts[2]
-				if len(viewParts) != 3 {
-					resp.Data["status_reason"] = "malformed request"
-				} else {
-					if tokenID == "" {
-						resp.Data["status_reason"] = "token id not found"
-					} else {
-						operation := make(map[string]interface{})
-						operation["name"] = "delete_mfa_token"
-						operation["token_id"] = tokenID
-						operation["username"] = claims.Subject
-						operation["email"] = claims.Email
-						if err := backend.Do(operation); err != nil {
-							resp.Data["status_reason"] = fmt.Sprintf("failed deleting token id %s: %s", tokenID, err)
-						} else {
-							resp.Data["status"] = "SUCCESS"
-							resp.Data["status_reason"] = fmt.Sprintf("token id %s deleted successfully", tokenID)
-						}
-					}
-				}
-			case "test":
-				if len(viewParts) > 3 {
-					resp.Data["mfa_token_id"] = strings.TrimSpace(viewParts[3])
-					if r.Method == "POST" {
-						resp.Data["status"] = "FAIL"
-						if backend != nil {
-							switch viewParts[2] {
-							case "app":
-								view = "mfa-test-app-status"
-								var passcodeValid bool
-								validateOpts := map[string]interface{}{
-									"validate_token_id": true,
-								}
-								if formData, err := validateMfaAuthTokenForm(r, validateOpts); err != nil {
-									resp.Data["status_reason"] = fmt.Sprintf("Bad Request: %s", err)
-								} else {
-									args := make(map[string]interface{})
-									args["username"] = claims.Subject
-									args["email"] = claims.Email
-									mfaTokens, err := backend.GetMfaTokens(args)
-									if err != nil {
-										resp.Data["status_reason"] = fmt.Sprintf("%s", err)
-									} else {
-										for _, mfaToken := range mfaTokens {
-											if mfaToken.ID != formData["token_id"] {
-												continue
-											}
-											if err := mfaToken.ValidateCode(formData["passcode"]); err == nil {
-												passcodeValid = true
-												resp.Data["status"] = "SUCCESS"
-												resp.Data["status_reason"] = fmt.Sprintf("token %s validated successfully", mfaToken.ID)
-												break
-											}
-										}
-										if !passcodeValid {
-											resp.Data["status_reason"] = fmt.Sprintf("invalid passcode")
-										}
-									}
-								}
-							case "u2f":
-								view = "mfa-test-u2f-status"
-								resp.Data["status_reason"] = "Not implemented"
-							}
-						} else {
-							resp.Data["status_reason"] = "Authentication backend not found"
-						}
-					} else {
-						// Get token ID from path
-						switch viewParts[2] {
-						case "app":
-							view = "mfa-test-app"
-						case "u2f":
-							view = "mfa-test-u2f"
-						}
-					}
-				}
-			}
-		} else {
+		if len(viewParts) < 2 {
 			// Entry Page
 			args := make(map[string]interface{})
 			args["username"] = claims.Subject
 			args["email"] = claims.Email
 			mfaTokens, err := backend.GetMfaTokens(args)
 			if err != nil {
-				resp.Data["status"] = "failure"
+				resp.Data["status"] = "FAIL"
 				resp.Data["status_reason"] = fmt.Sprintf("%s", err)
-			} else {
-				if len(mfaTokens) > 0 {
-					resp.Data["mfa_tokens"] = mfaTokens
+				break
+			}
+			if len(mfaTokens) > 0 {
+				resp.Data["mfa_tokens"] = mfaTokens
+			}
+			break
+		}
+
+		switch viewParts[1] {
+		case "barcode":
+			if len(viewParts) < 3 {
+				log.Error("Failed rendering key code URI barcode", zap.String("request_id", reqID), zap.String("error", "malformed barcode url"))
+				w.Header().Set("Content-Type", "text/plain")
+				w.WriteHeader(400)
+				w.Write([]byte(`Bad Request`))
+				return fmt.Errorf("malformed barcode url")
+			}
+			opts["code_uri_encoded"] = strings.TrimSuffix(strings.Join(viewParts[2:], "/"), ".png")
+			return ServeBarcodeImage(w, r, opts)
+		case "add":
+			if len(viewParts) < 3 {
+				break
+			}
+			switch viewParts[2] {
+			case "app":
+				// Application Authenticator
+				if r.Method == "POST" {
+					// view: mfa-add-app-status
+					view = strings.Join(viewParts, "-") + "-status"
+					resp.Data["status"] = "FAIL"
+					if backend == nil {
+						resp.Data["status_reason"] = "Authentication backend not found"
+						break
+					}
+					// A user submitted add app authenticator form
+					secrets, err := validateAddMfaTokenForm(r)
+					if err != nil {
+						resp.Data["status_reason"] = fmt.Sprintf("Bad Request: %s", err)
+						break
+					}
+					operation := make(map[string]interface{})
+					operation["name"] = "add_mfa_token"
+					operation["type"] = "app"
+					operation["username"] = claims.Subject
+					operation["email"] = claims.Email
+					for k, v := range secrets {
+						operation[k] = v
+					}
+					if err := backend.Do(operation); err != nil {
+						resp.Data["status_reason"] = fmt.Sprintf("%s", err)
+						break
+					}
+					resp.Data["status"] = "SUCCESS"
+					resp.Data["status_reason"] = "MFA token has been added"
+					break
+				}
+				// A user arrived at add app authenticator form
+				secretText := utils.GetRandomStringFromRange(64, 92)
+
+				codeOpts := make(map[string]interface{})
+				codeOpts["secret"] = secretText
+				codeOpts["type"] = "totp"
+				codeOpts["label"] = "AUTHP:" + claims.Email
+				codeOpts["period"] = 30
+				codeOpts["issuer"] = "AUTHP"
+				codeOpts["digits"] = 6
+
+				resp.Data["mfa_label"] = "AUTHP"
+				resp.Data["mfa_comment"] = "My Authentication App"
+				resp.Data["mfa_email"] = claims.Email
+				resp.Data["mfa_type"] = "totp"
+				resp.Data["mfa_secret"] = secretText
+				resp.Data["mfa_period"] = "30"
+				resp.Data["mfa_digits"] = "6"
+
+				codeURI, codeErr = utils.GetCodeURI(codeOpts)
+				if codeErr != nil {
+					log.Error("Failed creating key code URI", zap.String("request_id", reqID), zap.String("error", codeErr.Error()))
+					w.Header().Set("Content-Type", "text/plain")
+					w.WriteHeader(500)
+					w.Write([]byte(`Internal Server Error`))
+					return codeErr
+				}
+				resp.Data["code_uri"] = codeURI
+				resp.Data["code_uri_encoded"] = base64.StdEncoding.EncodeToString([]byte(codeURI))
+				view = strings.Join(viewParts, "-")
+			case "u2f":
+				// U2F Token Authentication
+				if r.Method == "POST" {
+					// A user submits U2F token parameters.
+					view = strings.Join(viewParts, "-") + "-status"
+					resp.Data["status"] = "FAIL"
+					if backend == nil {
+						resp.Data["status_reason"] = "Authentication backend not found"
+						break
+					}
+					secrets, err := validateAddU2FTokenForm(r)
+					if err != nil {
+						resp.Data["status_reason"] = fmt.Sprintf("Bad Request: %s", err)
+						break
+					}
+					operation := make(map[string]interface{})
+					operation["name"] = "add_mfa_token"
+					operation["type"] = "u2f"
+					operation["username"] = claims.Subject
+					operation["email"] = claims.Email
+					for k, v := range secrets {
+						operation[k] = v
+					}
+					if err := backend.Do(operation); err != nil {
+						resp.Data["status_reason"] = fmt.Sprintf("%s", err)
+						break
+					}
+					resp.Data["status"] = "SUCCESS"
+					resp.Data["status_reason"] = "MFA token has been added"
+					break
+				}
+				// A user lands on add U2F token page.
+				resp.Data["webauthn_challenge"] = utils.GetRandomStringFromRange(64, 92)
+				resp.Data["webauthn_rp_name"] = "AUTHP"
+				resp.Data["webauthn_user_id"] = claims.ID
+				resp.Data["webauthn_user_email"] = claims.Email
+				resp.Data["webauthn_user_verification"] = "discouraged"
+				resp.Data["webauthn_attestation"] = "direct"
+				if claims.Name == "" {
+					resp.Data["webauthn_user_display_name"] = claims.Subject
+				} else {
+					resp.Data["webauthn_user_display_name"] = claims.Name
+				}
+				view = strings.Join(viewParts, "-")
+			}
+		case "delete":
+			view = viewParts[0] + "-" + viewParts[1] + "-status"
+			resp.Data["status"] = "FAIL"
+			tokenID := viewParts[2]
+			if len(viewParts) != 3 {
+				resp.Data["status_reason"] = "malformed request"
+				break
+			}
+			if tokenID == "" {
+				resp.Data["status_reason"] = "token id not found"
+				break
+			}
+			operation := make(map[string]interface{})
+			operation["name"] = "delete_mfa_token"
+			operation["token_id"] = tokenID
+			operation["username"] = claims.Subject
+			operation["email"] = claims.Email
+			err := backend.Do(operation)
+			if err != nil {
+				resp.Data["status_reason"] = fmt.Sprintf("failed deleting token id %s: %s", tokenID, err)
+				break
+			}
+			resp.Data["status"] = "SUCCESS"
+			resp.Data["status_reason"] = fmt.Sprintf("token id %s deleted successfully", tokenID)
+		case "test":
+			if len(viewParts) < 4 {
+				break
+			}
+			switch viewParts[2] {
+			case "app":
+				// A user arrived at test app authenticator form
+				tokenID, digits, err := validateTestMfaTokenURL(viewParts)
+				if err != nil {
+					view = "mfa-test-app-status"
+					resp.Data["status"] = "FAIL"
+					resp.Data["status_reason"] = err.Error()
+					resp.Data["mfa_token_id"] = tokenID
+					resp.Data["mfa_digits"] = digits
+					break
+				}
+				view = "mfa-test-app"
+				resp.Data["mfa_token_id"] = tokenID
+				resp.Data["mfa_digits"] = digits
+				if r.Method != "POST" {
+					break
+				}
+
+				// A user submitted passcode for verification
+				view = "mfa-test-app-status"
+				resp.Data["status"] = "FAIL"
+				if backend == nil {
+					resp.Data["status_reason"] = "Authentication backend not found"
+					break
+				}
+				var passcodeValid bool
+				validateOpts := map[string]interface{}{
+					"validate_token_id": true,
+				}
+				formData, err := validateMfaAuthTokenForm(r, validateOpts)
+				if err != nil {
+					resp.Data["status_reason"] = fmt.Sprintf("Bad Request: %s", err)
+					break
+				}
+				args := make(map[string]interface{})
+				args["username"] = claims.Subject
+				args["email"] = claims.Email
+				mfaTokens, err := backend.GetMfaTokens(args)
+				if err != nil {
+					resp.Data["status_reason"] = fmt.Sprintf("%s", err)
+					break
+				}
+				for _, mfaToken := range mfaTokens {
+					if mfaToken.ID != formData["token_id"] {
+						continue
+					}
+					if err := mfaToken.ValidateCode(formData["passcode"]); err == nil {
+						passcodeValid = true
+						resp.Data["status"] = "SUCCESS"
+						resp.Data["status_reason"] = fmt.Sprintf("token %s validated successfully", mfaToken.ID)
+						break
+					}
+				}
+				if !passcodeValid {
+					resp.Data["status_reason"] = fmt.Sprintf("invalid passcode")
+				}
+			case "u2f":
+				// A user arrived at test u2f token form
+				tokenID, err := validateTestMfaUniTokenURL(viewParts)
+				if err != nil {
+					view = "mfa-test-u2f-status"
+					resp.Data["status"] = "FAIL"
+					resp.Data["status_reason"] = err.Error()
+					resp.Data["mfa_token_id"] = tokenID
+					break
+				}
+				view = "mfa-test-u2f"
+				resp.Data["mfa_token_id"] = tokenID
+				if r.Method != "POST" {
+					// A user lands on test U2F token page.
+					resp.Data["webauthn_challenge"] = utils.GetRandomStringFromRange(64, 92)
+					resp.Data["webauthn_rp_name"] = "AUTHP"
+					resp.Data["webauthn_timeout"] = "60000"
+					resp.Data["webauthn_user_verification"] = "preferred"
+					resp.Data["webauthn_ext_uvm"] = "true"
+					resp.Data["webauthn_ext_loc"] = "false"
+					resp.Data["webauthn_tx_auth_simple"] = "Could you please verify yourself?"
+					break
+				}
+
+				// A user submitted passcode for verification
+				view = "mfa-test-u2f-status"
+				resp.Data["status"] = "FAIL"
+				if backend == nil {
+					resp.Data["status_reason"] = "Authentication backend not found"
+					break
+				}
+				var passcodeValid bool
+				/*
+					validateOpts := map[string]interface{}{
+						"validate_token_id": true,
+					}
+					formData, err := validateMfaAuthTokenForm(r, validateOpts)
+					if err != nil {
+						resp.Data["status_reason"] = fmt.Sprintf("Bad Request: %s", err)
+						break
+					}
+					args := make(map[string]interface{})
+					args["username"] = claims.Subject
+					args["email"] = claims.Email
+					mfaTokens, err := backend.GetMfaTokens(args)
+					if err != nil {
+						resp.Data["status_reason"] = fmt.Sprintf("%s", err)
+						break
+					}
+					for _, mfaToken := range mfaTokens {
+						if mfaToken.ID != formData["token_id"] {
+							continue
+						}
+						if err := mfaToken.ValidateCode(formData["passcode"]); err == nil {
+							passcodeValid = true
+							resp.Data["status"] = "SUCCESS"
+							resp.Data["status_reason"] = fmt.Sprintf("token %s validated successfully", mfaToken.ID)
+							break
+						}
+					}
+				*/
+				if !passcodeValid {
+					resp.Data["status_reason"] = fmt.Sprintf("verification failed")
 				}
 			}
 		}
 	case "password":
-		if len(viewParts) > 1 {
-			switch viewParts[1] {
-			case "edit":
-				if r.Method == "POST" {
-					resp.Data["status"] = "failure"
-					if backend != nil {
-						if secrets, err := validatePasswordChangeForm(r); err != nil {
-							resp.Data["status"] = "failure"
-							resp.Data["status_reason"] = "Bad Request"
-						} else {
-							operation := make(map[string]interface{})
-							operation["name"] = "password_change"
-							operation["username"] = claims.Subject
-							operation["email"] = claims.Email
-							for k, v := range secrets {
-								operation[k] = v
-							}
-							if err := backend.Do(operation); err != nil {
-								resp.Data["status_reason"] = fmt.Sprintf("%s", err)
-							} else {
-								resp.Data["status"] = "success"
-								resp.Data["status_reason"] = "Password has been changed"
-							}
-						}
-					} else {
-						resp.Data["status_reason"] = "Authentication backend not found"
-					}
-					view = strings.Join(viewParts, "-")
-				} else {
-					view = viewParts[0]
+		if len(viewParts) < 2 {
+			break
+		}
+		view = strings.Join(viewParts, "-")
+		switch viewParts[1] {
+		case "edit":
+			if r.Method == "POST" {
+				resp.Data["status"] = "FAIL"
+				if backend == nil {
+					resp.Data["status_reason"] = "Authentication backend not found"
+					break
 				}
-			default:
-				view = strings.Join(viewParts, "-")
+				secrets, err := validatePasswordChangeForm(r)
+				if err != nil {
+					resp.Data["status_reason"] = "Bad Request"
+					break
+				}
+				operation := make(map[string]interface{})
+				operation["name"] = "password_change"
+				operation["username"] = claims.Subject
+				operation["email"] = claims.Email
+				for k, v := range secrets {
+					operation[k] = v
+				}
+				if err := backend.Do(operation); err != nil {
+					resp.Data["status_reason"] = fmt.Sprintf("%s", err)
+					break
+				}
+				resp.Data["status"] = "SUCCESS"
+				resp.Data["status_reason"] = "Password has been changed"
+				break
 			}
+			view = viewParts[0]
 		}
 	case "sshkeys", "gpgkeys":
-		if len(viewParts) > 1 {
-			switch viewParts[1] {
-			case "add":
-				if r.Method == "POST" {
-					resp.Data["status"] = "FAIL"
-					if backend != nil {
-						if keys, err := validateKeyInputForm(r); err != nil {
-							resp.Data["status"] = "FAIL"
-							resp.Data["status_reason"] = "Bad Request"
-						} else {
-							operation := make(map[string]interface{})
-							switch view {
-							case "sshkeys":
-								operation["name"] = "add_ssh_key"
-							case "gpgkeys":
-								operation["name"] = "add_gpg_key"
-							}
-							operation["username"] = claims.Subject
-							operation["email"] = claims.Email
-							for k, v := range keys {
-								operation[k] = v
-							}
-							if err := backend.Do(operation); err != nil {
-								resp.Data["status_reason"] = fmt.Sprintf("%s", err)
-							} else {
-								resp.Data["status"] = "SUCCESS"
-								switch view {
-								case "sshkeys":
-									resp.Data["status_reason"] = "Public SSH key has been added"
-								case "gpgkeys":
-									resp.Data["status_reason"] = "GPG key has been added"
-								}
-							}
-						}
-					} else {
-						resp.Data["status_reason"] = "Authentication backend not found"
-					}
-					view = strings.Join(viewParts, "-") + "-status"
-				} else {
-					view = strings.Join(viewParts, "-")
-				}
-			case "delete":
-				view = viewParts[0] + "-" + viewParts[1] + "-status"
-				resp.Data["status"] = "FAIL"
-				keyID := viewParts[2]
-				if len(viewParts) != 3 {
-					resp.Data["status_reason"] = "malformed request"
-				} else {
-					if keyID == "" {
-						resp.Data["status_reason"] = "key id not found"
-					} else {
-						operation := make(map[string]interface{})
-						operation["name"] = "delete_public_key"
-						operation["key_id"] = keyID
-						operation["username"] = claims.Subject
-						operation["email"] = claims.Email
-						if err := backend.Do(operation); err != nil {
-							resp.Data["status_reason"] = fmt.Sprintf("failed deleting key id %s: %s", keyID, err)
-						} else {
-							resp.Data["status"] = "SUCCESS"
-							resp.Data["status_reason"] = fmt.Sprintf("key id %s deleted successfully", keyID)
-						}
-					}
-				}
-			default:
-				view = strings.Join(viewParts, "-")
-			}
-		} else {
+		view = strings.Join(viewParts, "-")
+		if len(viewParts) < 2 {
 			// Entry Page
 			args := make(map[string]interface{})
 			args["username"] = claims.Subject
@@ -386,48 +403,153 @@ func ServeSettings(w http.ResponseWriter, r *http.Request, opts map[string]inter
 			}
 			pubKeys, err := backend.GetPublicKeys(args)
 			if err != nil {
-				resp.Data["status"] = "failure"
+				resp.Data["status"] = "FAIL"
 				resp.Data["status_reason"] = fmt.Sprintf("%s", err)
-			} else {
-				if len(pubKeys) > 0 {
-					resp.Data[view] = pubKeys
-				}
+				break
 			}
+			if len(pubKeys) > 0 {
+				resp.Data[view] = pubKeys
+			}
+			break
+		}
+
+		switch viewParts[1] {
+		case "add":
+			view = strings.Join(viewParts, "-")
+			if r.Method == "POST" {
+				view = strings.Join(viewParts, "-") + "-status"
+				resp.Data["status"] = "FAIL"
+				if backend == nil {
+					resp.Data["status_reason"] = "Authentication backend not found"
+					break
+				}
+				keys, err := validateKeyInputForm(r)
+				if err != nil {
+					resp.Data["status_reason"] = "Bad Request"
+					break
+				}
+				operation := make(map[string]interface{})
+				switch viewParts[0] {
+				case "sshkeys":
+					operation["name"] = "add_ssh_key"
+				case "gpgkeys":
+					operation["name"] = "add_gpg_key"
+				}
+				operation["username"] = claims.Subject
+				operation["email"] = claims.Email
+				for k, v := range keys {
+					operation[k] = v
+				}
+				if err := backend.Do(operation); err != nil {
+					resp.Data["status_reason"] = fmt.Sprintf("%s", err)
+					break
+				}
+				resp.Data["status"] = "SUCCESS"
+				switch viewParts[0] {
+				case "sshkeys":
+					resp.Data["status_reason"] = "Public SSH key has been added"
+				case "gpgkeys":
+					resp.Data["status_reason"] = "GPG key has been added"
+				}
+				break
+			}
+		case "view":
+			view = viewParts[0] + "-" + viewParts[1]
+			resp.Data["status"] = "FAIL"
+			if len(viewParts) != 3 {
+				resp.Data["status_reason"] = "malformed request"
+				break
+			}
+			keyID := viewParts[2]
+			if keyID == "" {
+				resp.Data["status_reason"] = "key id not found"
+				break
+			}
+			args := make(map[string]interface{})
+			args["username"] = claims.Subject
+			args["email"] = claims.Email
+			switch viewParts[0] {
+			case "sshkeys":
+				args["key_usage"] = "ssh"
+			case "gpgkeys":
+				args["key_usage"] = "gpg"
+			}
+			pubKeys, err := backend.GetPublicKeys(args)
+			if err != nil {
+				resp.Data["status_reason"] = fmt.Sprintf("%s", err)
+				break
+			}
+			for _, k := range pubKeys {
+				if k.ID != keyID {
+					continue
+				}
+				prettyKey, err := json.MarshalIndent(k, "", "  ")
+				if err != nil {
+					resp.Data["status_reason"] = fmt.Sprintf("%s", err)
+					break
+				}
+				resp.Data["status"] = "SUCCESS"
+				resp.Data["key"] = string(prettyKey)
+				break
+			}
+			break
+		case "delete":
+			view = viewParts[0] + "-" + viewParts[1] + "-status"
+			resp.Data["status"] = "FAIL"
+			if len(viewParts) != 3 {
+				resp.Data["status_reason"] = "malformed request"
+				break
+			}
+			keyID := viewParts[2]
+			if keyID == "" {
+				resp.Data["status_reason"] = "key id not found"
+				break
+			}
+			operation := make(map[string]interface{})
+			operation["name"] = "delete_public_key"
+			operation["key_id"] = keyID
+			operation["username"] = claims.Subject
+			operation["email"] = claims.Email
+			if err := backend.Do(operation); err != nil {
+				resp.Data["status_reason"] = fmt.Sprintf("failed deleting key id %s: %s", keyID, err)
+				break
+			}
+			resp.Data["status"] = "SUCCESS"
+			resp.Data["status_reason"] = fmt.Sprintf("key id %s deleted successfully", keyID)
 		}
 	case "apikeys":
-		if len(viewParts) > 1 {
-			switch viewParts[1] {
-			case "add":
-				if r.Method == "POST" {
-					resp.Data["status"] = "failure"
-					if backend != nil {
-						if keys, err := validateKeyInputForm(r); err != nil {
-							resp.Data["status"] = "failure"
-							resp.Data["status_reason"] = "Bad Request"
-						} else {
-							operation := make(map[string]interface{})
-							operation["name"] = "add_api_key"
-							operation["username"] = claims.Subject
-							operation["email"] = claims.Email
-							for k, v := range keys {
-								operation[k] = v
-							}
-							if err := backend.Do(operation); err != nil {
-								resp.Data["status_reason"] = fmt.Sprintf("%s", err)
-							} else {
-								resp.Data["status"] = "success"
-								resp.Data["status_reason"] = "API key has been added"
-							}
-						}
-					} else {
-						resp.Data["status_reason"] = "Authentication backend not found"
-					}
-					view = strings.Join(viewParts, "-") + "-status"
-				} else {
-					view = strings.Join(viewParts, "-")
+		if len(viewParts) < 2 {
+			break
+		}
+		view = strings.Join(viewParts, "-")
+		switch viewParts[1] {
+		case "add":
+			if r.Method == "POST" {
+				view = strings.Join(viewParts, "-") + "-status"
+				resp.Data["status"] = "FAIL"
+				if backend == nil {
+					resp.Data["status_reason"] = "Authentication backend not found"
+					break
 				}
-			default:
-				view = strings.Join(viewParts, "-")
+				keys, err := validateKeyInputForm(r)
+				if err != nil {
+					resp.Data["status_reason"] = "Bad Request"
+					break
+				}
+				operation := make(map[string]interface{})
+				operation["name"] = "add_api_key"
+				operation["username"] = claims.Subject
+				operation["email"] = claims.Email
+				for k, v := range keys {
+					operation[k] = v
+				}
+				if err := backend.Do(operation); err != nil {
+					resp.Data["status_reason"] = fmt.Sprintf("%s", err)
+					break
+				}
+				resp.Data["status"] = "SUCCESS"
+				resp.Data["status_reason"] = "API key has been added"
+				break
 			}
 		}
 	}

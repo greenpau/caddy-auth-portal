@@ -511,11 +511,19 @@ var PageTemplates = map[string]string{
     <!-- Matrialize CSS -->
     <link rel="stylesheet" href="{{ pathjoin .ActionEndpoint "/assets/materialize-css/css/materialize.css" }}" />
     <link rel="stylesheet" href="{{ pathjoin .ActionEndpoint "/assets/google-webfonts/roboto.css" }}" />
+    {{ if or (eq .Data.view "mfa-add-app") (eq .Data.view "mfa-test-app") }}
+    <link rel="stylesheet" href="{{ pathjoin .ActionEndpoint "/assets/google-webfonts/montserrat.css" }}" />
+    {{ end }}
     <link rel="stylesheet" href="{{ pathjoin .ActionEndpoint "/assets/line-awesome/line-awesome.css" }}" />
+    {{ if or (eq .Data.view "sshkeys-add") (eq .Data.view "gpgkeys-add") (eq .Data.view "sshkeys-view") (eq .Data.view "gpgkeys-view") }}
     <link rel="stylesheet" href="{{ pathjoin .ActionEndpoint "/assets/highlight.js/css/atom-one-dark.min.css" }}" />
+    {{ end }}
     <link rel="stylesheet" href="{{ pathjoin .ActionEndpoint "/assets/css/styles.css" }}" />
     {{ if eq .Data.ui_options.custom_css_required "yes" }}
     <link rel="stylesheet" href="{{ pathjoin .ActionEndpoint "/assets/css/custom.css" }}" />
+    {{ end }}
+    {{ if or (eq .Data.view "mfa-add-app") (eq .Data.view "mfa-test-app") }}
+    <link rel="stylesheet" href="{{ pathjoin .ActionEndpoint "/assets/css/mfa_app.css" }}" />
     {{ end }}
   </head>
   <body class="app-body">
@@ -593,8 +601,8 @@ var PageTemplates = map[string]string{
                   </p>
                 </div>
                 <div class="card-action">
-                  <a href="{{ pathjoin $.ActionEndpoint "/settings/sshkeys/delete/" .ID }}">Delete</a>
-                  <a href="{{ pathjoin $.ActionEndpoint "/settings/sshkeys/get/" .ID }}">View</a>
+                  <a href="{{ pathjoin $.ActionEndpoint "/settings/sshkeys/delete" .ID }}">Delete</a>
+                  <a href="{{ pathjoin $.ActionEndpoint "/settings/sshkeys/view" .ID }}">View</a>
                 </div>
               </div>
               {{ end }}
@@ -611,7 +619,7 @@ var PageTemplates = map[string]string{
                   <h1>Add SSH Key</h1>
                   <p>Please paste your public SSH key here.</p>
                   <div class="input-field shell-textarea-wrapper">
-                      <textarea id="key1" name="key1" class="hljs shell-textarea"></textarea>
+                    <textarea id="key1" name="key1" class="hljs shell-textarea"></textarea>
                   </div>
                   <div class="input-field">
                     <input placeholder="Comment" name="comment1" id="comment1" type="text" autocorrect="off" autocapitalize="off" autocomplete="off" class="validate">
@@ -738,6 +746,28 @@ var PageTemplates = map[string]string{
             </div>
           </div>
           {{ end }}
+          {{ if or (eq .Data.view "sshkeys-view") (eq .Data.view "gpgkeys-view") }}
+          <div class="row">
+            <div class="col s12">
+              {{ if eq .Data.view "gpgkeys-view" }}
+              <h1>GPG Key</h1>
+              {{ else }}
+              <h1>SSH Key</h1>
+              {{ end }}
+              <pre><code class="language-json hljs">{{ .Data.key }}</code></pre>
+              {{ if eq .Data.view "gpgkeys-view" }}
+              <a href="{{ pathjoin .ActionEndpoint "/settings/gpgkeys" }}">
+              {{ else }}
+              <a href="{{ pathjoin .ActionEndpoint "/settings/sshkeys" }}">
+              {{ end }}
+                <button type="button" class="btn waves-effect waves-light navbtn active">
+                  <i class="las la-undo-alt left app-btn-icon"></i>
+                  <span class="app-btn-text">Go Back</span>
+                </button>
+              </a>
+            </div>
+          </div>
+          {{ end }}
           {{ if eq .Data.view "apikeys" }}
           <div class="row">
             <div class="col s12">
@@ -785,20 +815,24 @@ var PageTemplates = map[string]string{
                   <span class="card-title">{{ .Comment }}</span>
                   <p>
                     <b>ID</b>: {{ .ID }}<br/>
-                    <b>Type</b>: {{ .Type }}<br/>
+                    {{ if eq .Type "u2f" }}
+                    <b>Type</b>: Hardware/U2F Token<br/>
+                    {{ else }}
+                    <b>Type</b>: Authenticator App<br/>
                     <b>Algorithm</b>: {{ .Algorithm }}<br/>
                     <b>Period</b>: {{ .Period }} seconds<br/>
                     <b>Digits</b>: {{ .Digits }}<br/>
+                    {{ end }}
                     <b>Created At</b>: {{ .CreatedAt }}
                   </p>
                 </div>
                 <div class="card-action">
                   <a href="{{ pathjoin $.ActionEndpoint "/settings/mfa/delete/" .ID }}">Delete</a>
                   {{ if eq .Type "totp" }}
-                  <a href="{{ pathjoin $.ActionEndpoint "/settings/mfa/test/app/" .ID }}">Test</a>
+                  <a href="{{ pathjoin $.ActionEndpoint "/settings/mfa/test/app/" (printf "%d" .Digits) .ID }}">Test</a>
                   {{ end }}
                   {{ if eq .Type "u2f" }}
-                  <a href="{{ pathjoin $.ActionEndpoint "/settings/mfa/test/u2f/" .ID }}">Test</a>
+                  <a href="{{ pathjoin $.ActionEndpoint "/settings/mfa/test/u2f/generic" .ID }}">Test</a>
                   {{ end }}
                 </div>
               </div>
@@ -810,51 +844,104 @@ var PageTemplates = map[string]string{
           </div>
           {{ end }}
           {{ if eq .Data.view "mfa-add-app" }}
-            <form action="{{ pathjoin .ActionEndpoint "/settings/mfa/add/app" }}" method="POST">
+            <form id="mfa-add-app-form" action="{{ pathjoin .ActionEndpoint "/settings/mfa/add/app" }}" method="POST">
               <div class="row">
                 <h1>Add MFA Authenticator Application</h1>
-                <div class="row">
-                  <div class="col s12 m6 l6">
-                    <p>Please add your MFA authenticator application, e.g. Microsoft/Google Authenticator, Authy, etc.</p>
-                    <p>If your MFA application supports scanning QR codes, scan the QR code image.</p>
-                    <p>After adding this account to the MFA authenticator application, enter two consecutive authentication codes in the boxes below and click "Add".</p>
+                <div class="col s12 m11 l11">
+                  <div id="token-params">
+                    <h6 id="token-params-mode" class="hide">Token Parameters</h6>
+                    <p><b>Step 1</b>: Amend the label and comment associated with the authenticator.
+                      The label is what you would see in your authenticator app.
+                      The comment is what you would see in this portal.
+                    </p>
+                    <div class="input-field">
+                      <input id="label" name="label" type="text" class="validate" pattern="[A-Za-z0-9 -]{4,25}"
+                        title="Authentication code should contain 4-25 characters and consists of A-Z, a-z, 0-9, space, and dash characters."
+                        maxlength="25"
+                        autocorrect="off" autocapitalize="off" autocomplete="off"
+                        value="{{ .Data.mfa_label }}"
+                        required />
+                      <label for="label">Label</label>
+                    </div>
                     <div class="input-field">
                       <input id="comment" name="comment" type="text" class="validate" pattern="[A-Za-z0-9 -]{4,25}"
                         title="Authentication code should contain 4-25 characters and consists of A-Z, a-z, 0-9, space, and dash characters."
+                        maxlength="25"
                         autocorrect="off" autocapitalize="off" autocomplete="off"
+                        value="{{ .Data.mfa_comment }}"
                         required />
                       <label for="comment">Comment</label>
                     </div>
-                    <div class="input-field">
-                      <input id="code1" name="code1" type="text" class="validate" pattern="[0-9]{6}"
-                        title="Authentication code should contain 6 characters and consists of 0-9 characters."
-                        autocorrect="off" autocapitalize="off" autocomplete="off"
-                        required />
-                      <label for="code1">Authentication Code 1</label>
+                    <p><b>Step 1a</b> (<i>optional</i>): If necessary, click
+                      <a href="#advanced-setup-mode" onclick="toggleAdvancedSetupMode()">here</a> to customize default values.
+                    </p>
+                    <div id="advanced-setup-all" class="hide">
+                      <h6 id="advanced-setup-mode" class="hide">Advanced Setup Mode</h6>
+                      <div id="advanced-setup-secret" class="input-field">
+                        <input id="secret" name="secret" type="text" class="validate" pattern="[A-Za-z0-9]{10,100}"
+                          title="Token secret should contain 10-200 characters and consists of A-Z and 0-9 characters only."
+                          autocorrect="off" autocapitalize="off" autocomplete="off"
+                          maxlength="100"
+                          value="{{ .Data.mfa_secret }}"
+                          required />
+                        <label for="secret">Token Secret</label>
+                      </div>
+                      <div id="advanced-setup-period" class="input-field">
+                        <select id="period" name="period" class="browser-default">
+                          <option value="15" {{ if eq .Data.mfa_period "15" }} selected{{ end }}>15 Seconds Lifetime</option>
+                          <option value="30" {{ if eq .Data.mfa_period "30" }} selected{{ end }}>30 Seconds Lifetime</option>
+                          <option value="60" {{ if eq .Data.mfa_period "60" }} selected{{ end }}>60 Seconds Lifetime</option>
+                          <option value="90" {{ if eq .Data.mfa_period "90" }} selected{{ end }}>90 Seconds Lifetime</option>
+                        </select>
+                      </div>
+                      <div id="advanced-setup-digits" class="input-field">
+                        <select id="digits" name="digits" class="browser-default">
+                          <option value="4" {{ if eq .Data.mfa_digits "4" }} selected{{ end }}>4 Digit Code</option>
+                          <option value="6" {{ if eq .Data.mfa_digits "6" }} selected{{ end }}>6 Digit Code</option>
+                          <option value="8" {{ if eq .Data.mfa_digits "8" }} selected{{ end }}>8 Digit Code</option>
+                        </select>
+                      </div>
                     </div>
-                    <div class="input-field">
-                      <input id="code2" name="code2" type="text" class="validate" pattern="[0-9]{6}"
-                        title="Authentication code should contain 6 characters and consists of 0-9 characters."
-                        autocorrect="off" autocapitalize="off" autocomplete="off"
-                        required />
-                      <label for="code2">Authentication Code 2</label>
+                    <p><b>Step 2</b>: Open your MFA authenticator application, e.g. Microsoft/Google Authenticator, Authy, etc.,
+                      add new entry and click the "Get QR" link.
+                    </p>
+                    <div id="mfa-get-qr-code" class="center-align">
+                      <a href="#qr-code-mode" onclick="getQRCode()">Get QR Code</a>
                     </div>
-                    <input id="secret" name="secret" type="hidden" value="{{ .Data.mfa_secret }}" />
-                    <input id="type" name="type" type="hidden" value="{{ .Data.mfa_type }}" />
-                    <input id="period" name="period" type="hidden" value="{{ .Data.mfa_period }}" />
-                    <input id="digits" name="digits" type="hidden" value="{{ .Data.mfa_digits }}" />
                   </div>
-                  <div class="col s12 m6 l6">
-                    <div class="center-align"><img src="{{ pathjoin .ActionEndpoint "/settings/mfa/barcode/" .Data.code_uri_encoded }}.png" alt="QR Code" /></div>
-                    <div class="center-align"><a href="{{ .Data.code_uri }}">Link</a></div>
+                  <div id="mfa-qr-code" class="hide">
+                    <h6 id="qr-code-mode" class="hide">QR Code Mode</h6>
+                    <div class="center-align">
+                      <p>&raquo; Scan the QR code image.</p>
+                    </div>
+                    <div id="mfa-qr-code-image" class="center-align">
+                      <img src="{{ pathjoin .ActionEndpoint "/settings/mfa/barcode/" .Data.code_uri_encoded }}.png" alt="QR Code" />
+                    </div>
+                    <div class="center-align">
+                      <p>&raquo; Can't scan? Click the link below.</p>
+                    </div>
+                    <div id="mfa-no-camera-link" class="center-align">
+                      <a href="{{ .Data.code_uri }}">No Camera Link</a>
+                    </div>
+                    <p><b>Step 3</b>: Enter two consecutive authentication codes you see in the app and click "Add".</p>
+                    <div class="input-field mfa-app-auth-ctrl mfa-app-auth-form">
+                      <input class="mfa-app-auth-passcode" id="passcode" name="passcode" type="text" class="validate" pattern="[0-9]{4,8}"
+                        title="Authentication code should contain 4-8 characters and consists of 0-9 characters."
+                        autocorrect="off" autocapitalize="off" autocomplete="off"
+                        placeholder="______"
+                        required />
+                    </div>
+                    <input id="email" name="email" type="hidden" value="{{ .Data.mfa_email }}" />
+                    <input id="type" name="type" type="hidden" value="{{ .Data.mfa_type }}" />
+                    <input id="barcode_uri" name "barcode_uri" type="hidden" value="{{ pathjoin .ActionEndpoint "/settings/mfa/barcode/"}}" />
+                    <div class="row right">
+                      <button type="submit" name="submit" class="btn waves-effect waves-light navbtn active navbtn-last app-btn">
+                        <i class="las la-plus-circle left app-btn-icon"></i>
+                        <span class="app-btn-text">Add</span>
+                      </button>
+                    </div>
                   </div>
                 </div>
-              </div>
-              <div class="row right">
-                <button type="submit" name="submit" class="btn waves-effect waves-light navbtn active navbtn-last app-btn">
-                  <i class="las la-plus-circle left app-btn-icon"></i>
-                  <span class="app-btn-text">Add Token</span>
-                </button>
               </div>
             </form>
           {{ end }}
@@ -882,28 +969,32 @@ var PageTemplates = map[string]string{
           </div>
           {{ end }}
           {{ if eq .Data.view "mfa-test-app" }}
-            <form action="{{ pathjoin .ActionEndpoint "/settings/mfa/test/app/" .Data.mfa_token_id }}" method="POST">
+            <form id="mfa-test-app-form" action="{{ pathjoin .ActionEndpoint "/settings/mfa/test/app/" .Data.mfa_digits .Data.mfa_token_id }}" method="POST">
               <div class="row">
                 <h1>Test MFA Authenticator Application</h1>
                 <div class="row">
-                  <div class="col s12 m6 l6">
+                  <div class="col s12 m12 l12">
                     <p>Please open your MFA authenticator application to view your authentication code and verify your identity</p>
-                    <div class="input-field">
-                      <input id="passcode" name="passcode" type="text" class="validate" pattern="[0-9]{6}"
-                        title="Passcode should contain 6 characters and consists of 0-9 characters."
+                    <div class="input-field mfa-app-auth-ctrl mfa-app-auth-form">
+                      <input class="mfa-app-auth-passcode" id="passcode" name="passcode" type="text" class="validate" pattern="[0-9]{4,8}"
+                        title="Authentication code should contain 4-8 characters and consists of 0-9 characters."
+                        maxlength="6"
                         autocorrect="off" autocapitalize="off" autocomplete="off"
+                        placeholder="______"
                         required />
-                      <label for="passcode">Passcode</label>
                     </div>
                     <input id="token_id" name="token_id" type="hidden" value="{{ .Data.mfa_token_id }}" />
+                    <input id="digits" name="digits" type="hidden" value="{{ .Data.mfa_digits }}" />
+                    <div class="center-align">
+                      <button type="reset" name="reset" class="btn waves-effect waves-light navbtn active navbtn-last red lighten-1">
+                        <i class="las la-redo-alt left app-btn-icon"></i>
+                      </button>
+                      <button type="submit" name="submit" class="btn waves-effect waves-light navbtn active navbtn-last">
+                        <i class="las la-check-square left app-btn-icon"></i>
+                        <span class="app-btn-text">Verify</span>
+                      </button>
                   </div>
                 </div>
-              </div>
-              <div class="row">
-                <button type="submit" name="submit" class="btn waves-effect waves-light navbtn active navbtn-last app-btn">
-                  <i class="las la-plus-circle left app-btn-icon"></i>
-                  <span class="app-btn-text">Validate</span>
-                </button>
               </div>
             </form>
           {{ end }}
@@ -920,12 +1011,14 @@ var PageTemplates = map[string]string{
                 </button>
               </a>
             {{ else }}
-              <a href="{{ pathjoin .ActionEndpoint "/settings/mfa/test/app/" .Data.mfa_token_id }}">
+              {{ if ne .Data.mfa_token_id "" }}
+              <a href="{{ pathjoin .ActionEndpoint "/settings/mfa/test/app/" .Data.mfa_digits .Data.mfa_token_id }}">
                 <button type="button" class="btn waves-effect waves-light navbtn active">
                   <i class="las la-undo-alt left app-btn-icon"></i>
                   <span class="app-btn-text">Try Again</span>
                 </button>
               </a>
+              {{ end }}
             {{ end }}
             </div>
           </div>
@@ -960,7 +1053,7 @@ var PageTemplates = map[string]string{
                   </div>
                   <input class="hide" id="webauthn_register" name="webauthn_register" type="text" />
                   <input class="hide" id="webauthn_challenge" name="webauthn_challenge" type="text" value="{{ .Data.webauthn_challenge }}" />
-                  <button id="mfa-add-u2f-button" type="button" name="action" onclick="register_u2f_token()" class="btn waves-effect waves-light navbtn active navbtn-last app-btn">
+                  <button id="mfa-add-u2f-button" type="button" name="action" onclick="u2f_token_register();" class="btn waves-effect waves-light navbtn active navbtn-last app-btn">
                     <i class="las la-plus-circle left app-btn-icon"></i>
                     <span class="app-btn-text">Register</span>
                   </button>
@@ -987,6 +1080,52 @@ var PageTemplates = map[string]string{
                   <span class="app-btn-text">Try Again</span>
                 </button>
               </a>
+            {{ end }}
+            </div>
+          </div>
+          {{ end }}
+          {{ if eq .Data.view "mfa-test-u2f" }}
+            <form id="mfa-test-u2f-form" action="{{ pathjoin .ActionEndpoint "/settings/mfa/test/u2f/generic" .Data.mfa_token_id }}" method="POST">
+              <div class="row">
+                <div class="col s12 m12 l12">
+                  <h1>Test Token</h1>
+                  <p>
+                    Insert your hardware token into a USB port.
+                    Next, click "Authenticate" button below.
+                    When prompted, touch, or otherwise trigger the hardware token.
+                  </p>
+                  <input id="webauthn_request" name="webauthn_request" type="hidden" />
+                  <input class="hide" id="webauthn_challenge" name="webauthn_challenge" type="hidden" value="{{ .Data.webauthn_challenge }}" />
+                  <a id="mfa-test-u2f-button" onclick="u2f_token_authenticate();" class="btn waves-effect waves-light navbtn active navbtn-last">
+                    <i class="las la-check-square left app-btn-icon"></i>
+                    <span class="app-btn-text">Verify</span>
+                  </a>
+                </div>
+                <input id="token_id" name="token_id" type="hidden" value="{{ .Data.mfa_token_id }}" />
+              </div>
+            </form>
+          {{ end }}
+          {{ if eq .Data.view "mfa-test-u2f-status" }}
+          <div class="row">
+            <div class="col s12">
+            <h1>Test Token</h1>
+            <p>{{.Data.status }}: {{ .Data.status_reason }}</p>
+            {{ if eq .Data.status "SUCCESS" }}
+              <a href="{{ pathjoin .ActionEndpoint "/settings/mfa" }}">
+                <button type="button" class="btn waves-effect waves-light navbtn active">
+                  <i class="las la-undo-alt left app-btn-icon"></i>
+                  <span class="app-btn-text">Go Back</span>
+                </button>
+              </a>
+            {{ else }}
+              {{ if ne .Data.mfa_token_id "" }}
+              <a href="{{ pathjoin .ActionEndpoint "/settings/mfa/test/u2f/generic" .Data.mfa_token_id }}">
+                <button type="button" class="btn waves-effect waves-light navbtn active">
+                  <i class="las la-undo-alt left app-btn-icon"></i>
+                  <span class="app-btn-text">Try Again</span>
+                </button>
+              </a>
+              {{ end }}
             {{ end }}
             </div>
           </div>
@@ -1025,7 +1164,7 @@ var PageTemplates = map[string]string{
           {{ if eq .Data.view "password-edit" }}
           <div class="row">
             <div class="col s12">
-            {{ if eq .Data.status "success" }}
+            {{ if eq .Data.status "SUCCESS" }}
               <h1>Password Has Been Changed</h1>
               <p>Please log out and log back in.</p>
             {{ else }}
@@ -1054,15 +1193,31 @@ var PageTemplates = map[string]string{
 
     <!-- Optional JavaScript -->
     <script src="{{ pathjoin .ActionEndpoint "/assets/materialize-css/js/materialize.js" }}"></script>
+    {{ if or (eq .Data.view "sshkeys-add") (eq .Data.view "gpgkeys-add") (eq .Data.view "sshkeys-view") (eq .Data.view "gpgkeys-view") }}
     <script src="{{ pathjoin .ActionEndpoint "/assets/highlight.js/js/highlight.js" }}"></script>
     <script src="{{ pathjoin .ActionEndpoint "/assets/highlight.js/js/languages/json.min.js" }}"></script>
+    {{ end }}
+    {{ if or (eq .Data.view "mfa-add-u2f") (eq .Data.view "mfa-test-u2f") }}
     <script src="{{ pathjoin .ActionEndpoint "/assets/cbor/cbor.js" }}"></script>
+    {{ end }}
     {{ if eq .Data.ui_options.custom_js_required "yes" }}
     <script src="{{ pathjoin .ActionEndpoint "/assets/js/custom.js" }}"></script>
     {{ end }}
+    {{ if or (eq .Data.view "mfa-add-app") (eq .Data.view "mfa-test-app") }}
+    <script src="{{ pathjoin .ActionEndpoint "/assets/js/mfa_add_app.js" }}"></script>
+    {{ end }}
+    {{ if eq .Data.view "mfa-add-u2f" }}
+    <script src="{{ pathjoin .ActionEndpoint "/assets/js/mfa_add_u2f.js" }}"></script>
+    {{ end }}
+    {{ if eq .Data.view "mfa-test-u2f" }}
+    <script src="{{ pathjoin .ActionEndpoint "/assets/js/mfa_add_u2f.js" }}"></script>
+    <script src="{{ pathjoin .ActionEndpoint "/assets/js/mfa_test_u2f.js" }}"></script>
+    {{ end }}
+    {{ if or (eq .Data.view "sshkeys-add") (eq .Data.view "gpgkeys-add") (eq .Data.view "sshkeys-view") (eq .Data.view "gpgkeys-view") }}
     <script>
     hljs.initHighlightingOnLoad();
     </script>
+    {{ end }}
     {{ if .Message }}
     <script>
     var toastHTML = '<span class="app-error-text">{{ .Message }}</span><button class="btn-flat toast-action" onclick="M.Toast.dismissAll();">Close</button>';
@@ -1076,239 +1231,81 @@ var PageTemplates = map[string]string{
     {{ end }}
     {{ if eq .Data.view "mfa-add-u2f" }}
     <script>
-    function str_to_uint8_array(s) {
-      buf = [];
-      for (var i = 0; i < s.length; i+=2) {
-        var j = parseInt(s.substring(i, i + 2), 16);
-        buf.push(j);
-      }
-      return Uint8Array.from(buf);
+function u2f_token_register() {
+  let publicKeyOptions = {
+    challenge: str_to_uint8_array("{{ .Data.webauthn_challenge }}"),
+    rp: {
+      name: "{{ .Data.webauthn_rp_name }}",
+    },
+    user: {
+      id: str_to_uint8_array("{{ .Data.webauthn_user_id }}"),
+      name: "{{ .Data.webauthn_user_email }}",
+      displayName: "{{ .Data.webauthn_user_display_name }}",
+    },
+    authenticatorSelection: {
+      userVerification: "{{ .Data.webauthn_user_verification }}",
+    },
+    attestation: "{{ .Data.webauthn_attestation }}",
+    pubKeyCredParams: [
+      {
+        type: "public-key",
+        alg: -7,
+      },
+    ],
+  };
+  register_u2f_token(publicKeyOptions);
+}
+    </script>
+    {{ end }}
+
+    {{ if eq .Data.view "mfa-test-u2f" }}
+    <script>
+// Test U2F
+function u2f_token_authenticate() {
+  let allowedCredentials = "";
+  let publicKeyOptions = {
+    challenge: str_to_uint8_array("{{ .Data.webauthn_challenge }}"),
+    timeout: {{ .Data.webauthn_timeout }},
+    rp: "{{ .Data.webauthn_rp_name }}",
+    userVerification: "{{ .Data.webauthn_user_verification }}",
+    allowCredentials: [
+      {
+        transports: ["usb","nfc","ble","internal"],
+        type: "public-key",
+        id: str_to_uint8_array("KKGRGkSUD3skyaDuQPpvI_12fkQqBmj4xc3x25u94QwhUOBJn4vH-kDk-njpjiDHKkA7gBofWIXcgG7sDJ8eNQ"),
+      },
+    ],
+    extensions: {
+      uvm: {{ .Data.webauthn_ext_uvm }},
+      loc: {{ .Data.webauthn_ext_loc }},
+      txAuthSimple: "{{ .Data.webauthn_tx_auth_simple }}",
     }
+  };
+  console.log(publicKeyOptions);
+  authenticate_u2f_token(publicKeyOptions);
+}
 
-    function uint8array_to_buffer(arr) {
-			return arr.buffer.slice(arr.byteOffset, arr.byteLength + arr.byteOffset)
-		}
-
-    function buffer_to_hex(buffer) {
-			return uint8array_to_hex(new Uint8Array(buffer));
-		}
-
-		function uint8array_to_hex(arr) {
-			return Array.prototype.map.call(arr, function (x) {
-				return ('00' + x.toString(16)).slice(-2);
-			}).join('');
-		}
-
-    function buffer_to_base64(buffer) {
-			return uint8array_to_base64(new Uint8Array(buffer));
-		}
-
-    function uint8array_to_base64(array) {
-			return window.btoa(String.fromCharCode.apply(null, array));
-		}
-
-    function parseAttestationObjectAttestationStatement(attStmt) {
-      // See Packed Attestation Statement Format for details
-      // https://www.w3.org/TR/webauthn-1/#packed-attestation
-      console.log("attStmt");
-      console.log(attStmt);
-      response = {
-        // Algorithms, see IANA COSE Algorithms registry
-        // https://www.iana.org/assignments/cose/cose.xhtml#algorithms
-        // -7: ES256 (ECDSA w/ SHA-256)
-        // -257: RS256 (RSASSA-PKCS1-v1_5 using SHA-256)
-        "alg": attStmt.alg
-			}
-
-      if (!('sig' in attStmt)) {
-        throw "sig not found in attestation statement";
-      }
-      // A byte string containing the attestation signature
-      response["sig"] = uint8array_to_base64(attStmt.sig);
-
-      if ('x5c' in attStmt) {
-				// Handle non-ECDAA attestation type
-        var certChain = [];
-        // The elements of this array contain attestnCert and its
-        // certificate chain, each encoded in X.509 format. The attestation
-        // certificate attestnCert MUST be the first element in the array.
-        response["x5c"] = []
-        attStmt.x5c.forEach(item => response.x5c.push(uint8array_to_base64(item)));
-      } else {
-				if ('ecdaaKeyId' in attStmt) {
-					// Handle ECDAA attestation type
-				} else {
-          throw "ecdaaKeyId not found in attestation statement";
-				}
-      }
-
-      return response
-    }
-
-    function parseAttestationObjectAuthData(data) {
-      // See https://www.w3.org/TR/webauthn-1/#sctn-attestation
-      var dv = new DataView(data, 0);
-      console.log(dv.byteLength);
-      var offset = 0;
-      var rp_id_hash  = dv.buffer.slice(offset, offset + 32); offset += 32;
-      var flags = dv.getUint8(offset); offset += 1;
-      var counter = dv.getUint32(offset, false); offset += 4;
-      var response = {
-        'rpIdHash': buffer_to_hex(rp_id_hash),
-        'flags': {
-					'UP':    !!(flags & 0x01), // User Present (UP)
-					'RFU1':  !!(flags & 0x02),
-					'UV':    !!(flags & 0x04), // User Verified (UV)
-					'RFU2a': !!(flags & 0x08),
-					'RFU2b': !!(flags & 0x10),
-					'RFU2c': !!(flags & 0x20),
-					'AT':    !!(flags & 0x40), // Attested credential data included
-					'ED':    !!(flags & 0x80)  // Extension data included
-				},
-				'signatureCounter': counter,
-        'credentialData': {},
-        'extensions': {}
-			};
-
-      console.log("response");
-      console.log(response);
-      console.log(offset);
-
-
-      if (response['flags']['AT']) {
-        var aaguid = dv.buffer.slice(offset, offset + 16); offset += 16;
-        console.log("aaguid");
-        console.log(aaguid);
-        console.log(buffer_to_base64(aaguid));
-        response['credentialData']['aaguid'] = buffer_to_base64(aaguid);
-        var credentialIdLength = dv.getUint16(offset); offset += 2;
-        console.log("credentialIdLength");
-        console.log(credentialIdLength);
-        var credentialId = dv.buffer.slice(offset, credentialIdLength); offset += credentialIdLength;
-        response['credentialData']['credentialId'] = buffer_to_base64(credentialId)
-        console.log("credentialId");
-        console.log(response['credentialData']['credentialId']);
-        var publicKeyBytes = dv.buffer.slice(offset);
-        console.log("publicKeyBytes");
-        console.log(publicKeyBytes);
-        var publicKeyObject = CBOR.decode(publicKeyBytes);
-        console.log("publicKeyObject");
-        console.log(publicKeyObject);
-
-
-        // TODO: fix it! The is no length!!
-        console.log(typeof publicKeyBytes);
-        // console.log(len(publicKeyBytes));
-
-        offset += publicKeyObject['length'];
-
-        // TODO: PEM object
-        console.log("CBOR decoded");
-        response['credentialData']['publicKey'] = {
-          // See COSE Key Types: https://www.iana.org/assignments/cose/cose.xhtml#key-type
-          // 2 = Elliptic Curve Keys w/ x- and y-coordinate pair
-          'key_type': publicKeyObject[1],
-          // See COSE Algorithms: https://www.iana.org/assignments/cose/cose.xhtml#algorithms
-          // -7 = ECDSA with SHA256
-					'algorithm': publicKeyObject[3],
-          // See COSE Elliptic Curves: https://www.iana.org/assignments/cose/cose.xhtml#elliptic-curves
-          // 1 = P-256 (NIST P-256 also known as secp256r1)
-  				'curve_type': publicKeyObject[-1],
-          // Elliptic Curve x-coordinate as byte string 32 bytes in length
-	  			'curve_x': uint8array_to_base64(publicKeyObject[-2]),
-          // Elliptic Curve y-coordinate as byte string 32 bytes in length
-					'curve_y': uint8array_to_base64(publicKeyObject[-3]),
-        }
-      }
-
-      if (response['flags']['ED']) {
-        // var extensionData = dv.buffer.slice(offset);
-      }
-
-      console.log(response);
-      return response;
-    }
-
-    function parseNavigatorCredentialsCreateResponse(result) {
-      var decoder = new TextDecoder('utf-8');
-      clientData = JSON.parse(decoder.decode(result.response.clientDataJSON));
-      console.log("clientData");
-      console.log(clientData);
-      console.log("result");
-      console.log(result);
-      var attestationObject = CBOR.decode(result.response.attestationObject);
-      var attestationObjectAuthData = uint8array_to_buffer(attestationObject.authData);
-      console.log("attestationObject");
-      console.log(attestationObject);
-      console.log("attestationObjectAuthData");
-      console.log(attestationObjectAuthData);
-      var authData = parseAttestationObjectAuthData(attestationObjectAuthData);
-      var attStmt = parseAttestationObjectAttestationStatement(attestationObject.attStmt);
-
-      var response = {
-        "success": true,
-        "attestationObject": {
-          "attStmt": attStmt,
-          "authData": authData,
-          "fmt": attestationObject.fmt
-        },
-        "clientData": clientData,
-        "device": {
-          "name": "Unknown device",
-          "type": "unknown"
-        }
-      }
-      return response;
-    }
-
-    function register_u2f_token() {
-      var btn = document.getElementById("mfa-add-u2f-button");
-      btn.classList.add("hide");
-      var publicKeyOptions = {
-        "challenge": str_to_uint8_array("{{ .Data.webauthn_challenge }}"),
-        "rp": {
-          "name": "{{ .Data.webauthn_rp_name }}"
-        },
-        "user": {
-          "id": str_to_uint8_array("{{ .Data.webauthn_user_id }}"),
-          "name": "{{ .Data.webauthn_user_email }}",
-          "displayName": "{{ .Data.webauthn_user_display_name }}"
-        },
-        authenticatorSelection: {
-          userVerification: "discouraged"
-        },
-        attestation: "direct",
-        pubKeyCredParams: [
-          {
-            type: "public-key",
-            alg: -7
-          }
-        ]
-      };
-      console.log("public key options");
-      console.log(publicKeyOptions);
-      if ('credentials' in navigator) {
-        navigator.credentials
-        .create({publicKey: publicKeyOptions})
-        .then(result => {
-          response = parseNavigatorCredentialsCreateResponse(result);
-          console.log('navigator.credentials.create() response');
-          console.log(response);
-          jresponse = btoa(JSON.stringify(response));
-          console.log(jresponse);
-          document.getElementById("webauthn_register").value = jresponse;
-          document.getElementById("mfa-add-u2f-form").submit();
-        })
-        .catch(err => {
-          console.log(err);
-          err_msg = err.name + ': ' + err.message;
-          console.log(err_msg)
-        });
-      } else {
-        // TODO: 'navigator.credentials is not supported'
-        console.log('navigator.credentials is not supported')
-      }
-    }
+function authenticate_u2f_token(publicKeyOptions) {
+  let btn = document.getElementById("mfa-test-u2f-button");
+  btn.classList.add("hide");
+  if ("credentials" in navigator) {
+    navigator.credentials
+      .get({ publicKey: publicKeyOptions })
+      .then((result) => {
+        console.log(result);
+        //response = parseNavigatorCredentialsRequestResponse(result);
+        //jresponse = btoa(JSON.stringify(response));
+        //document.getElementById("webauthn_request").value = jresponse;
+        //document.getElementById("mfa-test-u2f-form").submit();
+      })
+      .catch((err) => {
+        err_msg = err.name + ": " + err.message;
+      });
+  } else {
+    // TODO: 'navigator.credentials is not supported'
+    console.log("navigator.credentials is not supported");
+  }
+}
     </script>
     {{ end }}
   </body>
@@ -1333,51 +1330,9 @@ var PageTemplates = map[string]string{
     {{ if eq .Data.ui_options.custom_css_required "yes" }}
     <link rel="stylesheet" href="{{ pathjoin .ActionEndpoint "/assets/css/custom.css" }}" />
     {{ end }}
-  <style>
-.mfa-app-auth-form{
-  text-align: center;
-}
-
-.mfa-app-auth-ctrl{
-  margin-bottom: 2em;
-}
-
-.mfa-app-auth-passcode {
-  all: inherit;
-  border-style: none !important;
-  font-size: 2.5em !important;
-  font-family: 'Montserrat', sans-serif;
-  font-weight: 600;
-  letter-spacing: 0.25em;
-  text-align: center;
-}
-
-/* Remove bottom border from input on focus */
-input.mfa-app-auth-passcode:focus {
-  border-bottom: none !important;
-  box-shadow: none !important;
-  outline: none !important;
-}
-
-.mfa-app-auth-btn {
-  text-align: center;
-  margin-bottom: 0.5em;
-}
-
-/* Add left margin to the buttons, except the first one */
-.mfa-app-auth-btn button:not(:first-child) {
-  margin-left: 0.5em;
-}
-
-.mfa-auth-help-text p {
-  font-weight: 300;
-}
-
-.mfa-auth-help-menu p {
-  font-weight: 500;
-}
-  </style>
-
+    {{ if or (eq .Data.view "mfa_app_auth") (eq .Data.view "mfa_app_register") }}
+    <link rel="stylesheet" href="{{ pathjoin .ActionEndpoint "/assets/css/mfa_app.css" }}" />
+    {{ end }}
   </head>
   <body class="app-body">
     <div class="container">
@@ -1429,6 +1384,7 @@ input.mfa-app-auth-passcode:focus {
               <div class="mfa-app-auth-ctrl">
                 <input class="mfa-app-auth-passcode" id="passcode" name="passcode" type="text" class="validate" pattern="[0-9]{4,8}"
                        title="Passcode should contain 4, 6, or 8 characters and consists of 0-9 characters."
+                       maxlength="8"
                        placeholder="______"
                        autocorrect="off" autocapitalize="off" autocomplete="off"
                        required />

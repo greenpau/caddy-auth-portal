@@ -80,7 +80,7 @@ func validateAddU2FTokenForm(r *http.Request) (map[string]string, error) {
 	if err := r.ParseForm(); err != nil {
 		return nil, fmt.Errorf("Failed parsing submitted form")
 	}
-	for _, k := range []string{"webauthn_register", "webauthn_challenge"} {
+	for _, k := range []string{"webauthn_register", "webauthn_challenge", "comment"} {
 		if r.PostFormValue(k) == "" {
 			return nil, fmt.Errorf("Required form %s field not found", k)
 		}
@@ -97,36 +97,21 @@ func validateAddMfaTokenForm(r *http.Request) (map[string]string, error) {
 	if err := r.ParseForm(); err != nil {
 		return nil, fmt.Errorf("Failed parsing submitted form")
 	}
-	for _, k := range []string{"code1", "code2", "secret", "type"} {
+	for _, k := range []string{"passcode", "secret", "type"} {
 		if r.PostFormValue(k) == "" {
 			return nil, fmt.Errorf("Required form %s field not found", k)
 		}
 	}
 
-	// Codes
-	var code1, code2 string
-	for _, i := range []string{"1", "2"} {
-		code := r.PostFormValue("code" + i)
-		if code == "" {
-			return nil, fmt.Errorf("MFA code %s is empty", i)
-		}
-		if len(code) < 4 || len(code) > 8 {
-			return nil, fmt.Errorf("MFA code %s is not 4-8 characters", i)
-		}
-		if i == "1" {
-			code1 = code
-			continue
-		}
-		code2 = code
-		if code2 == code1 {
-			return nil, fmt.Errorf("MFA code 1 and 2 match")
-		}
-		if len(code2) != len(code1) {
-			return nil, fmt.Errorf("MFA code 1 and 2 have different length")
-		}
+	// Passcode
+	code := r.PostFormValue("passcode")
+	if code == "" {
+		return nil, fmt.Errorf("MFA passcode is empty")
 	}
-	resp["code1"] = code1
-	resp["code2"] = code2
+	if len(code) < 4 || len(code) > 8 {
+		return nil, fmt.Errorf("MFA passcode is not 4-8 characters")
+	}
+	resp["passcode"] = code
 
 	// Comment
 	comment := r.PostFormValue("comment")
@@ -185,4 +170,40 @@ func validateAddMfaTokenForm(r *http.Request) (map[string]string, error) {
 	}
 	resp["digits"] = digits
 	return resp, nil
+}
+
+func validateTestMfaTokenURL(parts []string) (string, string, error) {
+	if len(parts) != 5 {
+		return "", "", fmt.Errorf("malformed URL")
+	}
+	if parts[2] != "app" {
+		return "", "", fmt.Errorf("malformed URL")
+	}
+	if len(parts[3]) > 1 || len(parts[4]) > 96 {
+		return "", "", fmt.Errorf("malformed URL")
+	}
+	switch parts[3] {
+	case "4", "6", "8":
+	default:
+		return "", "", fmt.Errorf("malformed URL")
+	}
+	return strings.TrimSpace(parts[4]), parts[3], nil
+}
+
+func validateTestMfaUniTokenURL(parts []string) (string, error) {
+	if len(parts) != 5 {
+		return "", fmt.Errorf("malformed URL")
+	}
+	if parts[2] != "u2f" {
+		return "", fmt.Errorf("malformed URL")
+	}
+	if len(parts[4]) > 96 {
+		return "", fmt.Errorf("malformed URL")
+	}
+	switch parts[3] {
+	case "generic":
+	default:
+		return "", fmt.Errorf("unsupported URL identifier")
+	}
+	return strings.TrimSpace(parts[4]), nil
 }

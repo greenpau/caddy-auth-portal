@@ -18,51 +18,9 @@
     {{ if eq .Data.ui_options.custom_css_required "yes" }}
     <link rel="stylesheet" href="{{ pathjoin .ActionEndpoint "/assets/css/custom.css" }}" />
     {{ end }}
-  <style>
-.mfa-app-auth-form{
-  text-align: center;
-}
-
-.mfa-app-auth-ctrl{
-  margin-bottom: 2em;
-}
-
-.mfa-app-auth-passcode {
-  all: inherit;
-  border-style: none !important;
-  font-size: 2.5em !important;
-  font-family: 'Montserrat', sans-serif;
-  font-weight: 600;
-  letter-spacing: 0.25em;
-  text-align: center;
-}
-
-/* Remove bottom border from input on focus */
-input.mfa-app-auth-passcode:focus {
-  border-bottom: none !important;
-  box-shadow: none !important;
-  outline: none !important;
-}
-
-.mfa-app-auth-btn {
-  text-align: center;
-  margin-bottom: 0.5em;
-}
-
-/* Add left margin to the buttons, except the first one */
-.mfa-app-auth-btn button:not(:first-child) {
-  margin-left: 0.5em;
-}
-
-.mfa-auth-help-text p {
-  font-weight: 300;
-}
-
-.mfa-auth-help-menu p {
-  font-weight: 500;
-}
-  </style>
-
+    {{ if or (eq .Data.view "mfa_app_auth") (eq .Data.view "mfa_app_register") }}
+    <link rel="stylesheet" href="{{ pathjoin .ActionEndpoint "/assets/css/mfa_app.css" }}" />
+    {{ end }}
   </head>
   <body class="app-body">
     <div class="container">
@@ -114,6 +72,7 @@ input.mfa-app-auth-passcode:focus {
               <div class="mfa-app-auth-ctrl">
                 <input class="mfa-app-auth-passcode" id="passcode" name="passcode" type="text" class="validate" pattern="[0-9]{4,8}"
                        title="Passcode should contain 4, 6, or 8 characters and consists of 0-9 characters."
+                       maxlength="8"
                        placeholder="______"
                        autocorrect="off" autocapitalize="off" autocomplete="off"
                        required />
