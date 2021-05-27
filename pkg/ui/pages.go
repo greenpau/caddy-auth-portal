@@ -54,7 +54,7 @@ var PageTemplates = map[string]string{
             {{ end }}
           </div>
           {{ if eq .Data.login_options.form_required "yes" }}
-          <form action="{{ .ActionEndpoint }}" method="POST">
+          <form action="{{ pathjoin .ActionEndpoint "/login" }}" method="POST">
             <div class="row app-form">
               {{ if eq .Data.login_options.username_required "yes" }}
               <div class="row app-input-row valign-wrapper">
@@ -329,7 +329,7 @@ var PageTemplates = map[string]string{
   <body class="app-body">
     <div class="container">
       <div class="row">
-        <div class="col s12 m12 l6 offset-l3">
+        <div class="col s12 m12 l6 offset-l3 registration-container">
           {{ if not .Data.registered }}
           <form action="{{ pathjoin .ActionEndpoint "/register" }}" method="POST">
           {{ end }}
@@ -346,8 +346,8 @@ var PageTemplates = map[string]string{
               {{ if not .Data.registered }}
               <div class="input-field">
                 <input id="username" name="username" type="text" class="validate"
-                  pattern="[a-z0-9]{3,25}"
-                  title="Username should contain maximum of 25 characters and consists of a-z and 0-9 characters."
+                  pattern="{{ .Data.username_validate_pattern }}"
+                  title="{{ .Data.username_validate_title }}"
                   required />
                 <label for="username">Username</label>
               </div>
@@ -357,11 +357,17 @@ var PageTemplates = map[string]string{
                 <label for="email">Email Address</label>
               </div>
               <div class="input-field">
-                <input id="password" name="password" type="password" class="validate" required />
+                <input id="password" name="password" type="password" class="validate"
+                  pattern="{{ .Data.password_validate_pattern }}"
+                  title="{{ .Data.password_validate_title }}"
+                  required />
                 <label for="password">Password</label>
               </div>
               <div class="input-field">
-                <input id="password_confirm" name="password_confirm" type="password" class="validate" required />
+                <input id="password_confirm" name="password_confirm" type="password" class="validate"
+                  pattern="{{ .Data.password_validate_pattern }}"
+                  title="{{ .Data.password_validate_title }}"
+                  required />
                 <label for="password_confirm">Confirm Password</label>
               </div>
               {{ if .Data.require_registration_code }}
@@ -375,8 +381,8 @@ var PageTemplates = map[string]string{
                 <label>
                   <input type="checkbox" id="accept_terms" name="accept_terms" required />
                   <span>I agree to
-                    <a href="{{ pathjoin .ActionEndpoint "/termsandconditions" }}">Terms and Conditions</a> and
-                    <a href="{{ pathjoin .ActionEndpoint "/privacypolicy" }}">Privacy Policy</a>.
+                    <a href="{{ .Data.terms_conditions_link }}" target="_blank">Terms and Conditions</a> and
+                    <a href="{{ .Data.privacy_policy_link }}" target="_blank">Privacy Policy</a>.
                   </span>
                 </label>
               </p>
@@ -427,9 +433,10 @@ var PageTemplates = map[string]string{
     var toastHTML = '<span>{{ .Message }}</span><button class="btn-flat toast-action" onclick="M.Toast.dismissAll();">Close</button>';
     toastElement = M.toast({
       html: toastHTML,
-      classes: 'toast-error'
+      classes: 'toast-error',
+      displayLength: 10000
     });
-    const appContainer = document.querySelector('.app-card-container')
+    const appContainer = document.querySelector('.registration-container')
     appContainer.prepend(toastElement.el)
     </script>
     {{ end }}
@@ -687,11 +694,23 @@ var PageTemplates = map[string]string{
           <div class="row">
             <div class="col s12">
             {{ if .Data.gpgkeys }}
-              <p>List of registered GPG Keys</p>
               {{range .Data.gpgkeys}}
-              <p>
-                ID: {{ .ID }}<br/>
-              </p>
+              <div class="card">
+                <div class="card-content">
+                  <span class="card-title">{{ .Comment }}</span>
+                  <p>
+                    <b>ID</b>: {{ .ID }}<br/>
+                    <b>Usage:</b> {{ .Usage }}<br/>
+                    <b>Type:</b> {{ .Type }}<br/>
+                    <b>Fingerprint</b>: {{ .Fingerprint }}<br/>
+                    <b>Created At</b>: {{ .CreatedAt }}
+                  </p>
+                </div>
+                <div class="card-action">
+                  <a href="{{ pathjoin $.ActionEndpoint "/settings/gpgkeys/delete" .ID }}">Delete</a>
+                  <a href="{{ pathjoin $.ActionEndpoint "/settings/gpgkeys/view" .ID }}">View</a>
+                </div>
+              </div>
               {{ end }}
             {{ else }}
               <p>No registered GPG Keys found</p>
@@ -746,6 +765,20 @@ var PageTemplates = map[string]string{
             </div>
           </div>
           {{ end }}
+          {{ if eq .Data.view "gpgkeys-delete-status" }}
+          <div class="row">
+            <div class="col s12">
+            <h1>Public GPG Key</h1>
+            <p>{{.Data.status }}: {{ .Data.status_reason }}</p>
+            <a href="{{ pathjoin .ActionEndpoint "/settings/gpgkeys" }}">
+              <button type="button" class="btn waves-effect waves-light navbtn active">
+                <i class="las la-undo-alt left app-btn-icon"></i>
+                <span class="app-btn-text">Go Back</span>
+              </button>
+            </a>
+            </div>
+          </div>
+          {{ end }}
           {{ if or (eq .Data.view "sshkeys-view") (eq .Data.view "gpgkeys-view") }}
           <div class="row">
             <div class="col s12">
@@ -755,6 +788,14 @@ var PageTemplates = map[string]string{
               <h1>SSH Key</h1>
               {{ end }}
               <pre><code class="language-json hljs">{{ .Data.key }}</code></pre>
+              {{ if .Data.pem_key }}
+              <h5>PEM</h5>
+              <pre><code class="language-text hljs">{{ .Data.pem_key }}</code></pre>
+              {{ end }}
+              {{ if .Data.openssh_key }}
+              <h5>OpenSSH</h5>
+              <pre><code class="language-text hljs">{{ .Data.openssh_key }}</code></pre>
+              {{ end }}
               {{ if eq .Data.view "gpgkeys-view" }}
               <a href="{{ pathjoin .ActionEndpoint "/settings/gpgkeys" }}">
               {{ else }}
@@ -918,12 +959,12 @@ var PageTemplates = map[string]string{
                       <img src="{{ pathjoin .ActionEndpoint "/settings/mfa/barcode/" .Data.code_uri_encoded }}.png" alt="QR Code" />
                     </div>
                     <div class="center-align">
-                      <p>&raquo; Can't scan? Click the link below.</p>
+                      <p>&raquo; Can't scan? Click or copy the link below.</p>
                     </div>
                     <div id="mfa-no-camera-link" class="center-align">
                       <a href="{{ .Data.code_uri }}">No Camera Link</a>
                     </div>
-                    <p><b>Step 3</b>: Enter two consecutive authentication codes you see in the app and click "Add".</p>
+                    <p><b>Step 3</b>: Enter the authentication code you see in the app and click "Add".</p>
                     <div class="input-field mfa-app-auth-ctrl mfa-app-auth-form">
                       <input class="mfa-app-auth-passcode" id="passcode" name="passcode" type="text" class="validate" pattern="[0-9]{4,8}"
                         title="Authentication code should contain 4-8 characters and consists of 0-9 characters."
@@ -1053,7 +1094,7 @@ var PageTemplates = map[string]string{
                   </div>
                   <input class="hide" id="webauthn_register" name="webauthn_register" type="text" />
                   <input class="hide" id="webauthn_challenge" name="webauthn_challenge" type="text" value="{{ .Data.webauthn_challenge }}" />
-                  <button id="mfa-add-u2f-button" type="button" name="action" onclick="u2f_token_register();" class="btn waves-effect waves-light navbtn active navbtn-last app-btn">
+                  <button id="mfa-add-u2f-button" type="button" name="action" onclick="u2f_token_register('mfa-add-u2f-form', 'mfa-add-u2f-button');" class="btn waves-effect waves-light navbtn active navbtn-last app-btn">
                     <i class="las la-plus-circle left app-btn-icon"></i>
                     <span class="app-btn-text">Register</span>
                   </button>
@@ -1095,8 +1136,7 @@ var PageTemplates = map[string]string{
                     When prompted, touch, or otherwise trigger the hardware token.
                   </p>
                   <input id="webauthn_request" name="webauthn_request" type="hidden" />
-                  <input class="hide" id="webauthn_challenge" name="webauthn_challenge" type="hidden" value="{{ .Data.webauthn_challenge }}" />
-                  <a id="mfa-test-u2f-button" onclick="u2f_token_authenticate();" class="btn waves-effect waves-light navbtn active navbtn-last">
+                  <a id="mfa-test-u2f-button" onclick="u2f_token_authenticate('mfa-test-u2f-form', 'mfa-test-u2f-button');" class="btn waves-effect waves-light navbtn active navbtn-last">
                     <i class="las la-check-square left app-btn-icon"></i>
                     <span class="app-btn-text">Verify</span>
                   </a>
@@ -1196,6 +1236,7 @@ var PageTemplates = map[string]string{
     {{ if or (eq .Data.view "sshkeys-add") (eq .Data.view "gpgkeys-add") (eq .Data.view "sshkeys-view") (eq .Data.view "gpgkeys-view") }}
     <script src="{{ pathjoin .ActionEndpoint "/assets/highlight.js/js/highlight.js" }}"></script>
     <script src="{{ pathjoin .ActionEndpoint "/assets/highlight.js/js/languages/json.min.js" }}"></script>
+    <script src="{{ pathjoin .ActionEndpoint "/assets/highlight.js/js/languages/plaintext.min.js" }}"></script>
     {{ end }}
     {{ if or (eq .Data.view "mfa-add-u2f") (eq .Data.view "mfa-test-u2f") }}
     <script src="{{ pathjoin .ActionEndpoint "/assets/cbor/cbor.js" }}"></script>
@@ -1231,80 +1272,53 @@ var PageTemplates = map[string]string{
     {{ end }}
     {{ if eq .Data.view "mfa-add-u2f" }}
     <script>
-function u2f_token_register() {
-  let publicKeyOptions = {
-    challenge: str_to_uint8_array("{{ .Data.webauthn_challenge }}"),
-    rp: {
-      name: "{{ .Data.webauthn_rp_name }}",
-    },
-    user: {
-      id: str_to_uint8_array("{{ .Data.webauthn_user_id }}"),
-      name: "{{ .Data.webauthn_user_email }}",
-      displayName: "{{ .Data.webauthn_user_display_name }}",
-    },
-    authenticatorSelection: {
-      userVerification: "{{ .Data.webauthn_user_verification }}",
-    },
+function u2f_token_register(formID, btnID) {
+  const params = {
+    challenge: "{{ .Data.webauthn_challenge }}",
+    rp_name: "{{ .Data.webauthn_rp_name }}",
+    user_id: "{{ .Data.webauthn_user_id }}",
+    user_name: "{{ .Data.webauthn_user_email }}",
+    user_display_name: "{{ .Data.webauthn_user_display_name }}",
+    user_verification: "{{ .Data.webauthn_user_verification }}",
     attestation: "{{ .Data.webauthn_attestation }}",
-    pubKeyCredParams: [
+    pubkey_cred_params: [
       {
         type: "public-key",
         alg: -7,
       },
-    ],
+    ]
   };
-  register_u2f_token(publicKeyOptions);
+  register_u2f_token(formID, btnID, params);
 }
     </script>
     {{ end }}
 
     {{ if eq .Data.view "mfa-test-u2f" }}
     <script>
-// Test U2F
-function u2f_token_authenticate() {
-  let allowedCredentials = "";
-  let publicKeyOptions = {
-    challenge: str_to_uint8_array("{{ .Data.webauthn_challenge }}"),
+function u2f_token_authenticate(formID, btnID) {
+  const params = {
+    challenge: "{{ .Data.webauthn_challenge }}",
     timeout: {{ .Data.webauthn_timeout }},
-    rp: "{{ .Data.webauthn_rp_name }}",
-    userVerification: "{{ .Data.webauthn_user_verification }}",
-    allowCredentials: [
+    rp_name: "{{ .Data.webauthn_rp_name }}",
+    user_verification: "{{ .Data.webauthn_user_verification }}",
+    {{ if .Data.webauthn_credentials }}
+    allowed_credentials: [
+    {{ range .Data.webauthn_credentials }}
       {
-        transports: ["usb","nfc","ble","internal"],
-        type: "public-key",
-        id: str_to_uint8_array("KKGRGkSUD3skyaDuQPpvI_12fkQqBmj4xc3x25u94QwhUOBJn4vH-kDk-njpjiDHKkA7gBofWIXcgG7sDJ8eNQ"),
+        id: "{{ .id }}",
+        type: "{{ .type }}",
+        transports: [{{ .transports }}],
       },
+    {{ end }}
     ],
-    extensions: {
-      uvm: {{ .Data.webauthn_ext_uvm }},
-      loc: {{ .Data.webauthn_ext_loc }},
-      txAuthSimple: "{{ .Data.webauthn_tx_auth_simple }}",
-    }
+    {{ else }}
+    allowed_credentials: [],
+    {{ end }}
+    ext_uvm: {{ .Data.webauthn_ext_uvm }},
+    ext_loc: {{ .Data.webauthn_ext_loc }},
+    ext_tx_auth_simple: "{{ .Data.webauthn_tx_auth_simple }}",
   };
-  console.log(publicKeyOptions);
-  authenticate_u2f_token(publicKeyOptions);
-}
-
-function authenticate_u2f_token(publicKeyOptions) {
-  let btn = document.getElementById("mfa-test-u2f-button");
-  btn.classList.add("hide");
-  if ("credentials" in navigator) {
-    navigator.credentials
-      .get({ publicKey: publicKeyOptions })
-      .then((result) => {
-        console.log(result);
-        //response = parseNavigatorCredentialsRequestResponse(result);
-        //jresponse = btoa(JSON.stringify(response));
-        //document.getElementById("webauthn_request").value = jresponse;
-        //document.getElementById("mfa-test-u2f-form").submit();
-      })
-      .catch((err) => {
-        err_msg = err.name + ": " + err.message;
-      });
-  } else {
-    // TODO: 'navigator.credentials is not supported'
-    console.log("navigator.credentials is not supported");
-  }
+  authenticate_u2f_token(formID, btnID, params);
 }
     </script>
     {{ end }}

@@ -74,8 +74,7 @@ In sum, Caddyfile may look as follows:
 ```
 myapp.localdomain.local, localhost, 127.0.0.1 {
   route /auth* {
-    auth_portal {
-      path /auth
+    authp {
       backends {
         google_oauth2_backend {
           method oauth2
@@ -99,7 +98,7 @@ browses to the endpoint, the user will be redirected to the provider discovered 
 ```
 127.0.0.1, localhost {
   route /auth* {
-    auth_portal {
+    authp {
       backends {
         generic_oauth2_backend {
           method oauth2
@@ -217,7 +216,7 @@ browses to the endpoint, the user will be redirected to Okta.
 ```
 127.0.0.1, localhost {
   route /auth* {
-    auth_portal {
+    authp {
       backends {
         okta_oauth2_backend {
           method oauth2
@@ -270,7 +269,7 @@ browses to the endpoint, the user will be redirected to Google.
 ```
 127.0.0.1, localhost {
   route /auth* {
-    auth_portal {
+    authp {
       backends {
         google_oauth2_backend {
           method oauth2
@@ -548,7 +547,7 @@ The Caddyfile config is as follows:
 ```
 127.0.0.1, localhost {
   route /auth* {
-    auth_portal {
+    authp {
       backends {
         facebook_oauth2_backend {
           method oauth2

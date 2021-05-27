@@ -1,3 +1,21 @@
 {
-  "revision": 1
+  "policy": {
+    "password": {
+      "keep_versions": 10,
+      "min_length": 8,
+      "max_length": 128,
+      "require_uppercase": false,
+      "require_lowercase": false,
+      "require_number": false,
+      "require_non_alpha": false,
+      "block_reuse": false,
+      "block_password_change": false
+    },
+    "user": {
+      "min_length": 3,
+      "max_length": 50
+    }
+  },
+  "revision": 2,
+  "last_modified": "2021-05-26T16:16:56.790096453-04:00"
 }

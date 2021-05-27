@@ -35,6 +35,10 @@ func initCaddyTester(t *testing.T, rules []string) (*caddytest.Tester, map[strin
 	hostPort := host + ":" + securePort
 	baseURL := scheme + "://" + hostPort
 	tester := caddytest.NewTester(t)
+	tester.Client.CheckRedirect = func(req *http.Request, via []*http.Request) error {
+		// Do not follow redirects.
+		return http.ErrUseLastResponse
+	}
 	configFile := "assets/conf/local/Caddyfile"
 	configContent, err := ioutil.ReadFile(configFile)
 	if err != nil {
@@ -58,7 +62,7 @@ func initCaddyTester(t *testing.T, rules []string) (*caddytest.Tester, map[strin
 	tester.InitServer(strings.Join(lines, "\n"), "caddyfile")
 	params := make(map[string]string)
 	params["version_path"] = baseURL + "/version"
-	params["auth_path"] = baseURL + "/" + authPath
+	params["auth_path"] = baseURL + "/" + authPath + "/login"
 	return tester, params, nil
 }
 
@@ -83,6 +87,11 @@ func TestLocalCaddyfile(t *testing.T) {
 	localhost, _ := url.Parse(baseURL)
 
 	tester := caddytest.NewTester(t)
+	tester.Client.CheckRedirect = func(req *http.Request, via []*http.Request) error {
+		// Do not follow redirects.
+		return http.ErrUseLastResponse
+	}
+
 	configFile := "assets/conf/local/Caddyfile"
 	configContent, err := ioutil.ReadFile(configFile)
 	if err != nil {
@@ -90,9 +99,9 @@ func TestLocalCaddyfile(t *testing.T) {
 	}
 	rawConfig := string(configContent)
 	tester.InitServer(rawConfig, "caddyfile")
-	req, _ := http.NewRequest("POST", baseURL+"/"+authPath, strings.NewReader("username=webadmin&password=password123"))
+	req, _ := http.NewRequest("POST", baseURL+"/"+authPath+"/login", strings.NewReader("username=webadmin&password=password123"))
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	resp := tester.AssertResponseCode(req, 200)
+	tester.AssertResponseCode(req, 303)
 	var accessToken string
 	for _, cookie := range tester.Client.Jar.Cookies(localhost) {
 		t.Logf("Found a cookie named: %s", cookie.Name)
@@ -109,7 +118,8 @@ func TestLocalCaddyfile(t *testing.T) {
 
 	req, _ = http.NewRequest("GET", baseURL+"/"+authPath+"/whoami", nil)
 	req.Header.Set("Accept", "application/json")
-	resp = tester.AssertResponseCode(req, 200)
+	resp := tester.AssertResponseCode(req, 200)
+	t.Logf("code: %v", resp.StatusCode)
 	responseBody, err := ioutil.ReadAll(resp.Body)
 	resp.Body.Close()
 	if err != nil {
@@ -138,6 +148,10 @@ func TestLdapCaddyfile(t *testing.T) {
 	hostPort := host + ":" + securePort
 	baseURL := scheme + "://" + hostPort
 	tester := caddytest.NewTester(t)
+	tester.Client.CheckRedirect = func(req *http.Request, via []*http.Request) error {
+		// Do not follow redirects.
+		return http.ErrUseLastResponse
+	}
 	configFile := "assets/conf/ldap/Caddyfile"
 	configContent, err := ioutil.ReadFile(configFile)
 	if err != nil {
@@ -148,11 +162,11 @@ func TestLdapCaddyfile(t *testing.T) {
 	tester.AssertGetResponse(baseURL+"/version", 200, "1.0.0")
 	req, _ := http.NewRequest(
 		"POST",
-		baseURL+"/"+authPath,
+		baseURL+"/"+authPath+"/login",
 		strings.NewReader("username=webadmin&password=password123&realm=local"),
 	)
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	resp := tester.AssertResponseCode(req, 200)
+	resp := tester.AssertResponseCode(req, 303)
 	t.Logf("%v", resp)
 	time.Sleep(1 * time.Second)
 }
@@ -165,6 +179,10 @@ func TestSamlCaddyfile(t *testing.T) {
 	hostPort := host + ":" + securePort
 	baseURL := scheme + "://" + hostPort
 	tester := caddytest.NewTester(t)
+	tester.Client.CheckRedirect = func(req *http.Request, via []*http.Request) error {
+		// Do not follow redirects.
+		return http.ErrUseLastResponse
+	}
 	configFile := "assets/conf/saml/azure/Caddyfile"
 	configContent, err := ioutil.ReadFile(configFile)
 	if err != nil {
@@ -175,11 +193,11 @@ func TestSamlCaddyfile(t *testing.T) {
 	tester.AssertGetResponse(baseURL+"/version", 200, "1.0.0")
 	req, _ := http.NewRequest(
 		"POST",
-		baseURL+"/"+authPath,
+		baseURL+"/"+authPath+"/login",
 		strings.NewReader("username=webadmin&password=password123&realm=local"),
 	)
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	resp := tester.AssertResponseCode(req, 200)
+	resp := tester.AssertResponseCode(req, 303)
 	t.Logf("%v", resp)
 	time.Sleep(1 * time.Second)
 }
@@ -192,6 +210,10 @@ func TestShortLocalCaddyfile(t *testing.T) {
 	hostPort := host + ":" + securePort
 	baseURL := scheme + "://" + hostPort
 	tester := caddytest.NewTester(t)
+	tester.Client.CheckRedirect = func(req *http.Request, via []*http.Request) error {
+		// Do not follow redirects.
+		return http.ErrUseLastResponse
+	}
 	configFile := "assets/conf/local/Caddyfile.short"
 	configContent, err := ioutil.ReadFile(configFile)
 	if err != nil {
@@ -202,18 +224,18 @@ func TestShortLocalCaddyfile(t *testing.T) {
 	tester.AssertGetResponse(baseURL+"/version", 200, "1.0.0")
 	req, _ := http.NewRequest(
 		"POST",
-		baseURL+"/"+authPath,
+		baseURL+"/"+authPath+"/login",
 		strings.NewReader("username=webadmin&password=password123&realm=local"),
 	)
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	resp := tester.AssertResponseCode(req, 200)
+	resp := tester.AssertResponseCode(req, 303)
 	t.Logf("%v", resp)
 	time.Sleep(1 * time.Second)
 }
 
 func TestCookieLifetime(t *testing.T) {
 	rules := []string{
-		"uncomment:cookie_lifetime 900",
+		"uncomment:crypto default token lifetime 900",
 	}
 	tester, config, err := initCaddyTester(t, rules)
 	if err != nil {
@@ -221,7 +243,7 @@ func TestCookieLifetime(t *testing.T) {
 	}
 	tester.AssertGetResponse(config["version_path"], 200, "1.0.0")
 	authReq := initAuthRequest(config["auth_path"])
-	resp := tester.AssertResponseCode(authReq, 200)
+	resp := tester.AssertResponseCode(authReq, 303)
 	t.Logf("%v", resp)
 	// TODO(greenpau): validate cookie lifetime
 	/*

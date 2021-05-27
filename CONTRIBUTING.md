@@ -71,6 +71,22 @@ cd caddy-auth-portal
 make dep
 ```
 
+Next, modify `go.mod` in `github.com/greenpau/caddy-auth-portal`. Include
+`replace` directives to instruct `go` using local directories, as opposed
+to follow Github versions.
+
+```
+module github.com/greenpau/caddy-auth-portal
+
+# intentionally omitted
+
+replace github.com/greenpau/caddy-auth-jwt v1.2.7 => /home/greenpau/dev/go/src/github.com/greenpau/caddy-auth-jwt
+
+replace github.com/greenpau/caddy-trace v1.1.6 => /home/greenpau/dev/go/src/github.com/greenpau/caddy-trace
+
+replace github.com/greenpau/go-identity v1.0.23 => /home/greenpau/dev/go/src/github.com/greenpau/go-identity
+```
+
 Once all the necessary packages are installed, you should be ready to compile
 `caddy` using the local source code. Run:
 

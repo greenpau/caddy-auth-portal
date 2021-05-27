@@ -14,8 +14,8 @@
 
 package registration
 
-// Registration represent a common set of configuration settings for user registration
-type Registration struct {
+// Config represents a common set of configuration settings for user registration
+type Config struct {
 	// The switch determining whether the registration is enabled/disabled.
 	Disabled bool `json:"disabled,omitempty"`
 	// The title of the registration page
@@ -30,4 +30,8 @@ type Registration struct {
 	// The switch determining whether the domain associated with an email has
 	// a valid MX DNS record.
 	RequireDomainMailRecord bool `json:"require_domain_mx,omitempty"`
+	// The link to terms and conditions document.
+	TermsConditionsLink string `json:"privacy_policy_link,omitempty"`
+	// The link to privacy policy document.
+	PrivacyPolicyLink string `json:"terms_conditions_link,omitempty"`
 }

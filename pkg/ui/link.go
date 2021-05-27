@@ -14,8 +14,8 @@
 
 package ui
 
-// UserInterfaceLink represents a single HTML link.
-type UserInterfaceLink struct {
+// Link represents a single HTML link.
+type Link struct {
 	Link          string `json:"link,omitempty"`
 	Title         string `json:"title,omitempty"`
 	Style         string `json:"style,omitempty"`

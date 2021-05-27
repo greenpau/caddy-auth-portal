@@ -20,7 +20,7 @@ import (
 	"sync"
 	"time"
 
-	jwtclaims "github.com/greenpau/caddy-auth-jwt/pkg/claims"
+	"github.com/greenpau/caddy-auth-jwt/pkg/user"
 )
 
 const defaultSessionCleanupInternal int = 60
@@ -30,7 +30,7 @@ const minSessionCleanupInternal int = 0
 type SessionCacheEntry struct {
 	sessionID string
 	createdAt time.Time
-	data      map[string]interface{}
+	user      *user.User
 }
 
 // SessionCache contains cached tokens
@@ -49,34 +49,22 @@ type SessionCache struct {
 }
 
 // NewSessionCache returns SessionCache instance.
-func NewSessionCache(opts map[string]interface{}) (*SessionCache, error) {
-	c := &SessionCache{
+func NewSessionCache() *SessionCache {
+	return &SessionCache{
 		cleanupInternal: defaultSessionCleanupInternal,
 		Entries:         make(map[string]*SessionCacheEntry),
 		exit:            make(chan bool),
 	}
-	if opts != nil {
-		for k, v := range opts {
-			switch k {
-			case "cleanup_interval":
-				switch v.(type) {
-				case int:
-					c.cleanupInternal = v.(int)
-				default:
-					return nil, fmt.Errorf("invalid session cache configuration option %s value type %T", k, v)
-				}
-			default:
-				return nil, fmt.Errorf("unsupported session cache configuration option %s = %v", k, v)
-			}
-		}
-	}
+}
 
-	if c.cleanupInternal < 1 {
-		return nil, fmt.Errorf("session cache cleanup interval must be equal to or greater than %d", minSessionCleanupInternal)
+// SetCleanupInterval sets cache management interval.
+func (c *SessionCache) SetCleanupInterval(i int) error {
+	if i < 1 {
+		return fmt.Errorf("session cache cleanup interval must be equal to or greater than %d", minSessionCleanupInternal)
 	}
+	c.cleanupInternal = i
+	return nil
 
-	go manageSessionCache(c)
-	return c, nil
 }
 
 func manageSessionCache(c *SessionCache) {
@@ -119,13 +107,28 @@ func manageSessionCache(c *SessionCache) {
 	return
 }
 
+// Run starts management of SessionCache instance.
+func (c *SessionCache) Run() {
+	if c.managed {
+		return
+	}
+	go manageSessionCache(c)
+}
+
+// Stop stops management of SessionCache instance.
+func (c *SessionCache) Stop() {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.managed = false
+}
+
 // GetCleanupInterval returns cleanup interval.
 func (c *SessionCache) GetCleanupInterval() int {
 	return c.cleanupInternal
 }
 
-// Add adds data to the cache.
-func (c *SessionCache) Add(sessionID string, data map[string]interface{}) error {
+// Add adds user to the cache.
+func (c *SessionCache) Add(sessionID string, u *user.User) error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	if c.Entries == nil {
@@ -134,12 +137,12 @@ func (c *SessionCache) Add(sessionID string, data map[string]interface{}) error 
 	c.Entries[sessionID] = &SessionCacheEntry{
 		sessionID: sessionID,
 		createdAt: time.Now().UTC(),
-		data:      data,
+		user:      u,
 	}
 	return nil
 }
 
-// Delete removes cached data entry.
+// Delete removes cached user entry.
 func (c *SessionCache) Delete(sessionID string) error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
@@ -154,8 +157,8 @@ func (c *SessionCache) Delete(sessionID string) error {
 	return nil
 }
 
-// Get returns cached data entry.
-func (c *SessionCache) Get(sessionID string) (map[string]interface{}, error) {
+// Get returns cached user entry.
+func (c *SessionCache) Get(sessionID string) (*user.User, error) {
 	if err := parseSessionID(sessionID); err != nil {
 		return nil, err
 	}
@@ -165,22 +168,14 @@ func (c *SessionCache) Get(sessionID string) (map[string]interface{}, error) {
 		if err := entry.Valid(); err != nil {
 			return nil, fmt.Errorf("cached session id error: %s", err)
 		}
-		return entry.data, nil
+		return entry.user, nil
 	}
 	return nil, errors.New("cached session id not found")
 }
 
 // Valid checks whether SessionCacheEntry is not expired.
 func (e *SessionCacheEntry) Valid() error {
-	if e.data == nil {
-		return errors.New("cached session id entry is nil")
-	}
-	v, exists := e.data["claims"]
-	if !exists {
-		return errors.New("cached session id entry has no claims")
-	}
-	claims := v.(*jwtclaims.UserClaims)
-	if err := claims.Valid(); err != nil {
+	if err := e.user.Claims.Valid(); err != nil {
 		return err
 	}
 	return nil
@@ -189,10 +184,10 @@ func (e *SessionCacheEntry) Valid() error {
 // parseSessionID checks cached session id for format requirements.
 func parseSessionID(s string) error {
 	if len(s) > 96 || len(s) < 32 {
-		return errors.New("cached session id length is outside of 64-64 character range")
+		return errors.New("cached session id length is outside of 32-96 character range")
 	}
 	for _, c := range s {
-		if (c < 'a' || c > 'z') && (c < '0' || c > '9') && (c != '-') {
+		if (c < 'A' || c > 'Z') && (c < 'a' || c > 'z') && (c < '0' || c > '9') && (c != '-') {
 			return errors.New("cached session id contains invalid characters")
 		}
 	}

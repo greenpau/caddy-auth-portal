@@ -93,8 +93,7 @@ using local and LDAP credentials.
 
 127.0.0.1:8443 {
   route /auth* {
-    auth_portal {
-      path /auth
+    authp {
       backends {
         local_backend {
           method local

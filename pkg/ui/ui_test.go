@@ -20,23 +20,23 @@ import (
 	"testing"
 )
 
-func TestNewUserInterface(t *testing.T) {
+func TestNewFactory(t *testing.T) {
 	t.Log("Creating UI factory")
-	f := NewUserInterfaceFactory()
+	f := NewFactory()
 	f.Title = "Authentication"
 	f.LogoURL = "/images/logo.png"
 	f.LogoDescription = "Authentication Portal"
-	officeLink := UserInterfaceLink{
+	officeLink := Link{
 		Title: "Office 365",
 		Link:  "https://office.com/",
 		Style: "fa-windows",
 	}
 	f.PublicLinks = append(f.PublicLinks, officeLink)
-	f.PrivateLinks = append(f.PrivateLinks, UserInterfaceLink{
+	f.PrivateLinks = append(f.PrivateLinks, Link{
 		Title: "Prometheus",
 		Link:  "/prometheus",
 	})
-	f.PrivateLinks = append(f.PrivateLinks, UserInterfaceLink{
+	f.PrivateLinks = append(f.PrivateLinks, Link{
 		Title: "Alertmanager",
 		Link:  "/alertmanager",
 	})
@@ -100,7 +100,7 @@ func TestNewUserInterface(t *testing.T) {
 func TestAddBuiltinTemplates(t *testing.T) {
 	var expError string
 	t.Logf("Creating UI factory")
-	f := NewUserInterfaceFactory()
+	f := NewFactory()
 
 	t.Logf("Adding templates")
 	if err := f.AddBuiltinTemplates(); err != nil {

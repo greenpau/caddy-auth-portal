@@ -46,7 +46,7 @@
             {
               "handle": [
                 {
-                  "handler": "auth_portal",
+                  "handler": "authp",
                   "portal": {
                     "primary": true,
                     "auth_url_path": "/auth",
@@ -118,11 +118,6 @@
                         ],
                         "strip_token": false,
                         "pass_claims": false,
-                        "token_types": [
-                          "HS256",
-                          "HS384",
-                          "HS512"
-                        ],
                         "token_sources": [
                           "header",
                           "cookie",

@@ -19,7 +19,8 @@ import (
 
 	"github.com/caddyserver/caddy/v2"
 	"github.com/caddyserver/caddy/v2/modules/caddyhttp"
-	"github.com/greenpau/caddy-auth-portal/pkg/core"
+	"github.com/greenpau/caddy-auth-portal/pkg/authn"
+	"github.com/greenpau/go-identity/pkg/requests"
 	"github.com/satori/go.uuid"
 )
 
@@ -30,35 +31,33 @@ func init() {
 // AuthMiddleware implements Form-Based, Basic, Local, LDAP,
 // OpenID Connect, OAuth 2.0, SAML Authentication.
 type AuthMiddleware struct {
-	Portal *core.AuthPortal `json:"portal,omitempty"`
+	Portal *authn.Authenticator `json:"portal,omitempty"`
 }
 
 // CaddyModule returns the Caddy module information.
 func (AuthMiddleware) CaddyModule() caddy.ModuleInfo {
 	return caddy.ModuleInfo{
-		ID:  "http.handlers.auth_portal",
+		ID:  "http.handlers.authp",
 		New: func() caddy.Module { return new(AuthMiddleware) },
 	}
 }
 
 // Provision provisions authentication portal provider
 func (m *AuthMiddleware) Provision(ctx caddy.Context) error {
-	opts := make(map[string]interface{})
-	opts["logger"] = ctx.Logger(m)
-	return m.Portal.Configure(opts)
+	m.Portal.SetLogger(ctx.Logger(m))
+	return m.Portal.Provision()
 }
 
 // Validate implements caddy.Validator.
 func (m *AuthMiddleware) Validate() error {
-	return nil
+	return m.Portal.Validate()
 }
 
 // ServeHTTP authorizes access based on the presense and content of JWT token.
 func (m AuthMiddleware) ServeHTTP(w http.ResponseWriter, r *http.Request, _ caddyhttp.Handler) error {
-	reqID := GetRequestID(r)
-	opts := make(map[string]interface{})
-	opts["request_id"] = reqID
-	return m.Portal.ServeHTTP(w, r, opts)
+	rr := requests.NewRequest()
+	rr.ID = GetRequestID(r)
+	return m.Portal.ServeHTTP(r.Context(), w, r, rr)
 }
 
 // GetRequestID returns request ID.

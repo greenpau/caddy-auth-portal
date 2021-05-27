@@ -78,7 +78,7 @@ There is no need to defind it in Caddyfile.
 ```
 localhost {
   route /auth* {
-    auth_portal {
+    authp {
       ui {
         theme basic
       }
@@ -116,7 +116,7 @@ to a file on disk.
 ```
 localhost {
   route /auth* {
-    auth_portal {
+    authp {
       ui {
         theme basic
         login_template "/etc/gatekeeper/ui/login.template"

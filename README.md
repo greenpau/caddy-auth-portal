@@ -20,6 +20,8 @@ Please show your appreciation for this work and :star: :star: :star:
 
 Please ask questions either here or via LinkedIn. I am happy to help you! @greenpau
 
+**Security Policy**: [SECURITY.md](SECURITY.md)
+
 <!-- begin-markdown-toc -->
 ## Table of Contents
 
@@ -194,7 +196,7 @@ There is no need to defind it in Caddyfile.
 ```
 localhost {
   route /auth* {
-    auth_portal {
+    authp {
       ui {
         theme basic
       }
@@ -232,7 +234,7 @@ to a file on disk.
 ```
 localhost {
   route /auth* {
-    auth_portal {
+    authp {
       ui {
         theme basic
         login_template "/etc/gatekeeper/ui/login.template"
@@ -284,7 +286,7 @@ can be used to change it to 1 hour (3600 seconds).
 The issued JWT token could be of two types:
 
 1. `HS512`: signed using shared secret key
-2. `RS512`: signed using private PEM key
+2. `RS512` and `ES512`: signed using private PEM key
 
 The `HS512` is being configured with `token_secret`
 
@@ -320,7 +322,7 @@ e is 65537 (0x010001)
 
 #### JWT Signing Method
 
-By default, the plugin uses HS512 (shared secret) and RS512 (public/private keys) for
+By default, the plugin uses HS512 (shared secret) and RS512/ES512 (public/private keys) for
 the signing of JWT tokens. User `token_sign_method` to change the algorithm, e.g.
 
 ```
@@ -362,8 +364,7 @@ The following `Caddyfile` secures Prometheus/Alertmanager services:
 
 localhost:8443 {
   route /auth* {
-    auth_portal {
-      path /auth
+    authp {
       backends {
         local_backend {
           method local
@@ -890,8 +891,7 @@ using local and LDAP credentials.
 
 127.0.0.1:8443 {
   route /auth* {
-    auth_portal {
-      path /auth
+    authp {
       backends {
         local_backend {
           method local
@@ -1454,8 +1454,7 @@ In sum, Caddyfile may look as follows:
 ```
 myapp.localdomain.local, localhost, 127.0.0.1 {
   route /auth* {
-    auth_portal {
-      path /auth
+    authp {
       backends {
         google_oauth2_backend {
           method oauth2
@@ -1479,7 +1478,7 @@ browses to the endpoint, the user will be redirected to the provider discovered 
 ```
 127.0.0.1, localhost {
   route /auth* {
-    auth_portal {
+    authp {
       backends {
         generic_oauth2_backend {
           method oauth2
@@ -1597,7 +1596,7 @@ browses to the endpoint, the user will be redirected to Okta.
 ```
 127.0.0.1, localhost {
   route /auth* {
-    auth_portal {
+    authp {
       backends {
         okta_oauth2_backend {
           method oauth2
@@ -1650,7 +1649,7 @@ browses to the endpoint, the user will be redirected to Google.
 ```
 127.0.0.1, localhost {
   route /auth* {
-    auth_portal {
+    authp {
       backends {
         google_oauth2_backend {
           method oauth2
@@ -1928,7 +1927,7 @@ The Caddyfile config is as follows:
 ```
 127.0.0.1, localhost {
   route /auth* {
-    auth_portal {
+    authp {
       backends {
         facebook_oauth2_backend {
           method oauth2
@@ -1978,7 +1977,7 @@ the plugin to record the source IP address when issuing claims.
 ```
 localhost {
   route /auth* {
-    auth_portal {
+    authp {
       ...
       enable source ip tracking
       ...
@@ -2008,7 +2007,7 @@ The following snippet with either `jwt_token_file` or `jwt_token_rsa_file`
 Caddyfile directive:
 
 ```
-    auth_portal {
+    authp {
       jwt_token_file 1 /etc/caddy/auth/jwt/jwt_privatekey.pem
       jwt_token_rsa_file 2 /etc/caddy/auth/jwt/jwt_privatekey.pem
       ...
@@ -2018,7 +2017,7 @@ Caddyfile directive:
 Replaces:
 
 ```
-    auth_portal {
+    authp {
       jwt {
         token_rsa_file 1 /etc/caddy/auth/jwt/jwt_privatekey.pem
       }
@@ -2029,7 +2028,7 @@ Replaces:
 The following snippet with `jwt_token_name` Caddyfile directive:
 
 ```
-    auth_portal {
+    authp {
       jwt_token_name access_token
       ...
     }
@@ -2038,7 +2037,7 @@ The following snippet with `jwt_token_name` Caddyfile directive:
 Replaces:
 
 ```
-    auth_portal {
+    authp {
       jwt {
         token_name access_token
       }
@@ -2049,7 +2048,7 @@ Replaces:
 The following snippet with `jwt_token_secret` Caddyfile directive:
 
 ```
-    auth_portal {
+    authp {
       jwt_token_secret bcc8fd6e-8e45-493e-a146-f178ac676841
       ...
     }
@@ -2058,7 +2057,7 @@ The following snippet with `jwt_token_secret` Caddyfile directive:
 Replaces:
 
 ```
-    auth_portal {
+    authp {
       jwt {
         token_secret bcc8fd6e-8e45-493e-a146-f178ac676841
       }
@@ -2069,7 +2068,7 @@ Replaces:
 The following snippet with `jwt_token_lifetime` Caddyfile directive:
 
 ```
-    auth_portal {
+    authp {
       jwt_token_lifetime 3600
       ...
     }
@@ -2078,7 +2077,7 @@ The following snippet with `jwt_token_lifetime` Caddyfile directive:
 Replaces:
 
 ```
-    auth_portal {
+    authp {
       jwt {
         token_lifetime 3600
       }

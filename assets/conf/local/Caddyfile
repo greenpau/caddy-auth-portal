@@ -7,11 +7,7 @@
 127.0.0.1, localhost {
   route /auth* {
     trace tag="testing" response_debug=yes uri_filter="^/auth$"
-    auth_portal {
-      path /auth
-      #cookie_domain contoso.com
-      #cookie_path /
-      #cookie_lifetime 900
+    authp {
       backends {
         local_backend {
           method local
@@ -68,18 +64,16 @@
           scopes openid email profile groups
         }
       }
-      jwt {
-        token_name access_token
-        token_secret 0e2fdcf8-6868-41a7-884b-7308795fc286
-        token_lifetime 3600
-        token_sign_method HS256
-      }
+      crypto default token lifetime 3600
+      #crypto default token lifetime 900
+      crypto key sign-verify 0e2fdcf8-6868-41a7-884b-7308795fc286
+      crypto key token name access_token
       ui {
         theme basic
-        login_template "assets/templates/basic/login.template"
-        portal_template "assets/templates/basic/portal.template"
-        logo_url "https://caddyserver.com/resources/images/caddy-circle-lock.svg"
-        logo_description "Caddy"
+        template login "assets/templates/basic/login.template"
+        template login "assets/templates/basic/portal.template"
+        logo url "https://caddyserver.com/resources/images/caddy-circle-lock.svg"
+        logo description "Caddy"
         links {
           "Prometheus" /prometheus
           "Alertmanager" /alertmanager icon "las la-bell"
@@ -91,7 +85,7 @@
       }
       registration {
         dropbox assets/conf/local/auth/registrations_db.json
-        require domain_mx
+        require domain mx
       }
     }
   }
@@ -99,13 +93,9 @@
   route /prometheus* {
     jwt {
       primary yes
-      trusted_tokens {
-        static_secret {
-          token_name access_token
-          token_secret 0e2fdcf8-6868-41a7-884b-7308795fc286
-        }
-      }
-      auth_url /auth
+      crypto key token name access_token
+      crypto key verify 0e2fdcf8-6868-41a7-884b-7308795fc286
+      set auth url /auth
       allow roles anonymous guest admin
       allow roles superadmin
       allow roles admin editor viewer
@@ -133,14 +123,14 @@
 
   route /sso/saml/azure* {
     jwt {
-      auth_url /auth/saml/azure
+      set auth url /auth/saml/azure
     }
     respond * "azure saml sso" 200
   }
 
   route /sso/oauth2/okta* {
     jwt {
-      auth_url /auth/oauth2/okta
+      set auth url /auth/oauth2/okta
     }
     respond * "okta oauth2 sso" 200
   }

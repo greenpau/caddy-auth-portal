@@ -1,5 +1,23 @@
 {
-  "revision": 1,
+  "policy": {
+    "password": {
+      "keep_versions": 10,
+      "min_length": 8,
+      "max_length": 128,
+      "require_uppercase": false,
+      "require_lowercase": false,
+      "require_number": false,
+      "require_non_alpha": false,
+      "block_reuse": false,
+      "block_password_change": false
+    },
+    "user": {
+      "min_length": 3,
+      "max_length": 50
+    }
+  },
+  "revision": 2,
+  "last_modified": "2021-05-04T01:55:48.860061773-04:00",
   "users": [
     {
       "id": "c6f4813d-b8d4-4cb5-809d-d6bfc099887a",
@@ -13,7 +31,6 @@
       "passwords": [
         {
           "purpose": "generic",
-          "type": "bcrypt",
           "hash": "$2a$10$027Y1bPF9Q0BtnLUa51Tm.7UuzRXUjsuf0ebtdiXIqd63eCmBLwBy",
           "cost": 10,
           "expired_at": "0001-01-01T00:00:00Z",

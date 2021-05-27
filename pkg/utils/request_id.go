@@ -15,6 +15,7 @@
 package utils
 
 import (
+	uuid "github.com/satori/go.uuid"
 	"net/http"
 	"strings"
 )
@@ -48,4 +49,9 @@ func GetSourceAddress(r *http.Request) string {
 		addr = strings.SplitN(addr, ":", 2)[0]
 	}
 	return addr
+}
+
+// GetRequestID returns request ID.
+func GetRequestID(r *http.Request) string {
+	return uuid.NewV4().String()
 }

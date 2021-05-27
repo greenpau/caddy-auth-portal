@@ -17,18 +17,19 @@ package portal
 import (
 	"encoding/json"
 	"io/ioutil"
-	"regexp"
+	// "regexp"
 	"strconv"
 	"strings"
 
-	jwtconfig "github.com/greenpau/caddy-auth-jwt/pkg/config"
+	"github.com/greenpau/caddy-auth-jwt/pkg/kms"
+	"github.com/greenpau/caddy-auth-jwt/pkg/options"
 
+	"github.com/greenpau/caddy-auth-jwt/pkg/utils/cfgutils"
+	"github.com/greenpau/caddy-auth-portal/pkg/authn"
 	"github.com/greenpau/caddy-auth-portal/pkg/backends"
-	"github.com/greenpau/caddy-auth-portal/pkg/cookies"
-	"github.com/greenpau/caddy-auth-portal/pkg/core"
+	"github.com/greenpau/caddy-auth-portal/pkg/cookie"
 	"github.com/greenpau/caddy-auth-portal/pkg/registration"
 	"github.com/greenpau/caddy-auth-portal/pkg/ui"
-	"github.com/greenpau/caddy-auth-portal/pkg/utils"
 
 	"github.com/caddyserver/caddy/v2"
 	"github.com/caddyserver/caddy/v2/caddyconfig"
@@ -37,13 +38,12 @@ import (
 )
 
 func init() {
-	httpcaddyfile.RegisterDirective("auth_portal", parseCaddyfileAuthPortal)
+	httpcaddyfile.RegisterDirective("authp", parseCaddyfileAuthenticator)
 }
 
-// parseCaddyfileAuthPortal sets up an authentication portal. Syntax:
+// parseCaddyfileAuthenticator sets up an authentication portal. Syntax:
 //
-//     auth_portal {
-//       path /auth
+//     authp {
 //       context <default|name>
 //       backends {
 //         local_backend {
@@ -63,8 +63,7 @@ func init() {
 //         token_sign_method <HS256|HS384|HS512|RS256|RS384|RS512>
 //	     }
 //	     ui {
-//	       login_template <file_path>
-//	       portal_template <file_path>
+//	       template <login|portal> <file_path>
 //	       logo_url <file_path|url_path>
 //	       logo_description <value>
 //         custom_css_path <path>
@@ -73,9 +72,11 @@ func init() {
 //         static_asset <uri> <content_type> <path>
 //	     }
 //
-//       cookie_domain <name>
-//       cookie_path <name>
-//       cookie_lifetime <seconds>
+//       cookie domain <name>
+//       cookie path <name>
+//       cookie lifetime <seconds>
+//       cookie samesite <lax|strict|none>
+//       cookie insecure <on|off>
 //
 //       registration {
 //         disabled <on|off>
@@ -85,21 +86,21 @@ func init() {
 //         require accept_terms
 //       }
 //
-//       require mfa
-//
+//       validate source address
 //     }
 //
-func parseCaddyfileAuthPortal(h httpcaddyfile.Helper) ([]httpcaddyfile.ConfigValue, error) {
-	portal := core.AuthPortal{
+func parseCaddyfileAuthenticator(h httpcaddyfile.Helper) ([]httpcaddyfile.ConfigValue, error) {
+	var cryptoKeyConfig []string
+	portal := authn.Authenticator{
 		PrimaryInstance: true,
 		Context:         "default",
-		AuthURLPath:     "/auth",
-		UserInterface: &ui.UserInterfaceParameters{
+		UI: &ui.Parameters{
 			Templates: make(map[string]string),
 		},
-		UserRegistration: &registration.Registration{},
-		Cookies:          &cookies.Cookies{},
-		Backends:         []backends.Backend{},
+		UserRegistrationConfig: &registration.Config{},
+		CookieConfig:           &cookie.Config{},
+		TokenValidatorOptions:  &options.TokenValidatorOptions{},
+		TokenGrantorOptions:    &options.TokenGrantorOptions{},
 	}
 
 	// logger := utils.NewLogger()
@@ -112,56 +113,78 @@ func parseCaddyfileAuthPortal(h httpcaddyfile.Helper) ([]httpcaddyfile.ConfigVal
 		for nesting := h.Nesting(); h.NextBlock(nesting); {
 			rootDirective := h.Val()
 			switch rootDirective {
-			case "cookie_domain":
+			case "cookie":
 				args := h.RemainingArgs()
-				portal.Cookies.Domain = args[0]
-			case "cookie_path":
-				args := h.RemainingArgs()
-				portal.Cookies.Path = args[0]
-			case "cookie_lifetime":
-				args := h.RemainingArgs()
-				lifetime, err := strconv.Atoi(args[0])
-				if err != nil {
-					return nil, h.Errf("%s argument value conversion failed: %s", rootDirective, err)
+				if len(args) != 2 {
+					return nil, h.Errf("%s %s directive is invalid", rootDirective, strings.Join(args, " "))
 				}
-				if lifetime < 1 {
-					return nil, h.Errf("%s argument value must be greater than zero", rootDirective)
+				switch args[0] {
+				case "domain":
+					portal.CookieConfig.Domain = args[1]
+				case "path":
+					portal.CookieConfig.Path = args[1]
+				case "lifetime":
+					lifetime, err := strconv.Atoi(args[1])
+					if err != nil {
+						return nil, h.Errf("%s %s value %q conversion failed: %v", rootDirective, args[0], args[1], err)
+					}
+					if lifetime < 1 {
+						return nil, h.Errf("%s %s value must be greater than zero", rootDirective, args[0])
+					}
+					portal.CookieConfig.Lifetime = lifetime
+				case "samesite":
+					portal.CookieConfig.SameSite = args[1]
+				case "insecure":
+					enabled, err := cfgutils.ParseBoolArg(args[1])
+					if err != nil {
+						return nil, h.Errf("%s %s directive value of %q is invalid: %v", rootDirective, args[0], args[1], err)
+					}
+					portal.CookieConfig.Insecure = enabled
+				default:
+					return nil, h.Errf("%s %s directive is unsupported", rootDirective, strings.Join(args, " "))
 				}
-				portal.Cookies.Lifetime = lifetime
-			case "path":
+			case "crypto":
 				args := h.RemainingArgs()
-				portal.AuthURLPath = args[0]
+				if len(args) < 3 {
+					return nil, h.Errf("%s directive %q is too short", rootDirective, strings.Join(args, " "))
+				}
+				switch args[0] {
+				case "key", "default":
+					encodedArgs := cfgutils.EncodeArgs(args)
+					cryptoKeyConfig = append(cryptoKeyConfig, encodedArgs)
+				default:
+					return nil, h.Errf("%s directive value of %q is unsupported", rootDirective, strings.Join(args, " "))
+				}
 			case "context":
 				args := h.RemainingArgs()
+				if len(args) == 0 {
+					return nil, h.Errf("auth backend %s directive has no value", rootDirective)
+				}
 				portal.Context = args[0]
 			case "local_backend":
 				args := h.RemainingArgs()
 				if len(args) == 0 {
 					return nil, h.Errf("auth backend %s directive has no value", rootDirective)
 				}
-				backendProps := make(map[string]interface{})
-				backendProps["name"] = "local_backend"
-				backendProps["method"] = "local"
-				backendProps["path"] = args[0]
+				cfg := make(map[string]interface{})
+				cfg["name"] = "local_backend"
+				cfg["method"] = "local"
+				cfg["path"] = args[0]
 				if len(args) > 1 {
-					backendProps["realm"] = args[1]
+					cfg["realm"] = args[1]
 				} else {
-					backendProps["realm"] = "local"
+					cfg["realm"] = "local"
 				}
-				backendJSON, err := json.Marshal(backendProps)
+				backendConfig, err := backends.NewConfig(cfg)
 				if err != nil {
-					return nil, h.Errf("auth backend %s directive failed to compile to JSON: %s", rootDirective, err.Error())
+					return nil, h.Errf("auth backend %s directive failed: %v", rootDirective, err.Error())
 				}
-				backend := backends.Backend{}
-				if err := backend.UnmarshalJSON(backendJSON); err != nil {
-					return nil, h.Errf("auth backend %s directive failed to compile to JSON: %s", rootDirective, err.Error())
-				}
-				portal.Backends = append(portal.Backends, backend)
+				portal.BackendConfigs = append(portal.BackendConfigs, *backendConfig)
 			case "backends":
 				for nesting := h.Nesting(); h.NextBlock(nesting); {
 					backendName := h.Val()
-					backendProps := make(map[string]interface{})
-					backendProps["name"] = backendName
+					cfg := make(map[string]interface{})
+					cfg["name"] = backendName
 					backendDisabled := false
 					var backendAuthMethod string
 					for subNesting := h.Nesting(); h.NextBlock(subNesting); {
@@ -169,107 +192,38 @@ func parseCaddyfileAuthPortal(h httpcaddyfile.Helper) ([]httpcaddyfile.ConfigVal
 						switch backendArg {
 						case "method", "type":
 							if !h.NextArg() {
-								return nil, h.Errf("auth backend %s subdirective %s has no value", backendName, backendArg)
+								return backendValueErr(h, backendName, backendArg)
 							}
 							backendAuthMethod = h.Val()
-							backendProps["method"] = backendAuthMethod
+							cfg["method"] = backendAuthMethod
 						case "trusted_authority":
 							if !h.NextArg() {
-								return nil, h.Errf("auth backend %s subdirective %s has no value", backendName, backendArg)
+								return backendValueErr(h, backendName, backendArg)
 							}
 							var trustedAuthorities []string
-							if v, exists := backendProps["trusted_authorities"]; exists {
+							if v, exists := cfg["trusted_authorities"]; exists {
 								trustedAuthorities = v.([]string)
 							}
 							trustedAuthorities = append(trustedAuthorities, h.Val())
-							backendProps["trusted_authorities"] = trustedAuthorities
-						case "user":
-							userArgs := h.RemainingArgs()
-							if len(userArgs) < 4 {
-								return nil, h.Errf("auth backend %s subdirective %s is missing arguments", backendName, backendArg)
-							}
-							var userRoles []string
-							var userEmail string
-							var userMatchType string
-							var ptr int
-							// Get email address pattern
-							if userArgs[ptr] == "" {
-								return nil, h.Errf("auth backend %s subdirective %s is malformed, empty email", backendName, backendArg)
-							}
-							userEmail = userArgs[ptr]
-							ptr++
-							// Search for the indicator of whether it is exact or regex match
-							switch userArgs[ptr] {
-							case "regex":
-								userMatchType = userArgs[ptr]
-								if _, err := regexp.Compile(userEmail); err != nil {
-									return nil, h.Errf(
-										"auth backend %s subdirective %s is malformed, failed to compile regex: %s",
-										backendName, backendArg, err,
-									)
-								}
-								ptr++
-							case "exact":
-								userMatchType = userArgs[ptr]
-								ptr++
-							default:
-								userMatchType = "exact"
-							}
-
-							// Next, search for add argument
-							if userArgs[ptr] != "add" {
-								return nil, h.Errf(
-									"auth backend %s subdirective %s is malformed: add (expected) vs %s (received)",
-									backendName, backendArg, userArgs[ptr],
-								)
-							}
-							ptr++
-							// Next, the only supported values are role and roles
-							switch userArgs[ptr] {
-							case "role", "roles":
-								ptr++
-							default:
-								return nil, h.Errf(
-									"auth backend %s subdirective %s is malformed: role/roles (expected) vs %s (received)",
-									backendName, backendArg, userArgs[2],
-								)
-							}
-							if ptr >= len(userArgs) {
-								return nil, h.Errf(
-									"auth backend %s subdirective %s is malformed, not enough arguments: %v",
-									backendName, backendArg, userArgs,
-								)
-							}
-							userRoles = userArgs[ptr:]
-							// Finally, amend the existing mapping
-							if _, exists := backendProps["user_roles"]; !exists {
-								backendProps["user_roles"] = make([]map[string]interface{}, 1, 1)
-							}
-							userRoleMap := make(map[string]interface{})
-							userRoleMap["email"] = userEmail
-							userRoleMap["match"] = userMatchType
-							userRoleMap["roles"] = userRoles
-							userRoleMaps := backendProps["user_roles"].([]map[string]interface{})
-							userRoleMaps = append(userRoleMaps, userRoleMap)
-							backendProps["user_roles"] = userRoleMaps
+							cfg["trusted_authorities"] = trustedAuthorities
 						case "disabled":
 							backendDisabled = true
 							break
 						case "username", "password", "search_base_dn", "search_filter", "path", "realm":
 							if !h.NextArg() {
-								return nil, h.Errf("auth backend %s subdirective %s has no value", backendName, backendArg)
+								return backendValueErr(h, backendName, backendArg)
 							}
-							backendProps[backendArg] = h.Val()
+							cfg[backendArg] = h.Val()
 						case "attributes":
 							attrMap := make(map[string]interface{})
 							for attrNesting := h.Nesting(); h.NextBlock(attrNesting); {
 								attrName := h.Val()
 								if !h.NextArg() {
-									return nil, h.Errf("auth backend %s subdirective %s key %s has no value", backendName, backendArg, attrName)
+									return backendPropErr(h, backendName, backendArg, attrName, "has no value")
 								}
 								attrMap[attrName] = h.Val()
 							}
-							backendProps[backendArg] = attrMap
+							cfg[backendArg] = attrMap
 						case "servers":
 							serverMaps := []map[string]interface{}{}
 							for serverNesting := h.Nesting(); h.NextBlock(serverNesting); {
@@ -282,13 +236,13 @@ func parseCaddyfileAuthPortal(h httpcaddyfile.Helper) ([]httpcaddyfile.ConfigVal
 										case "ignore_cert_errors":
 											serverMap[serverProp] = true
 										default:
-											return nil, h.Errf("auth backend %s subdirective %s prop %s is unsupported", backendName, backendArg, serverProp)
+											return backendPropErr(h, backendName, backendArg, serverProp, "is unsupported")
 										}
 									}
 								}
 								serverMaps = append(serverMaps, serverMap)
 							}
-							backendProps[backendArg] = serverMaps
+							cfg[backendArg] = serverMaps
 						case "groups":
 							groupMaps := []map[string]interface{}{}
 							for groupNesting := h.Nesting(); h.NextBlock(groupNesting); {
@@ -297,268 +251,160 @@ func parseCaddyfileAuthPortal(h httpcaddyfile.Helper) ([]httpcaddyfile.ConfigVal
 								groupMap["dn"] = groupDN
 								groupRoles := h.RemainingArgs()
 								if len(groupRoles) == 0 {
-									return nil, h.Errf("auth backend %s subdirective %s dn %s has no roles", backendName, backendArg, groupDN)
+									return backendPropErr(h, backendName, backendArg, groupDN, "has no roles")
 								}
 								groupMap["roles"] = groupRoles
 								groupMaps = append(groupMaps, groupMap)
 							}
-							backendProps[backendArg] = groupMaps
+							cfg[backendArg] = groupMaps
 						case "provider":
 							if !h.NextArg() {
-								return nil, h.Errf("auth backend %s subdirective %s has no value", backendName, backendArg)
+								return backendValueErr(h, backendName, backendArg)
 							}
-							backendProps[backendArg] = h.Val()
+							cfg[backendArg] = h.Val()
 						case "idp_metadata_location", "idp_sign_cert_location", "tenant_id",
 							"application_id", "application_name", "entity_id", "domain_name",
 							"client_id", "client_secret", "server_id", "base_auth_url", "metadata_url",
 							"identity_token_name":
 							if !h.NextArg() {
-								return nil, h.Errf("auth backend %s subdirective %s has no value", backendName, backendArg)
+								return backendValueErr(h, backendName, backendArg)
 							}
-							backendProps[backendArg] = h.Val()
+							cfg[backendArg] = h.Val()
 						case "acs_url":
 							if !h.NextArg() {
-								return nil, h.Errf("auth backend %s subdirective %s has no value", backendName, backendArg)
+								return backendValueErr(h, backendName, backendArg)
 							}
 							var acsURLs []string
-							if v, exists := backendProps["acs_urls"]; exists {
+							if v, exists := cfg["acs_urls"]; exists {
 								acsURLs = v.([]string)
 							}
 							acsURLs = append(acsURLs, h.Val())
-							backendProps["acs_urls"] = acsURLs
+							cfg["acs_urls"] = acsURLs
 						case "scopes":
-							backendProps["scopes"] = h.RemainingArgs()
+							cfg["scopes"] = h.RemainingArgs()
 						case "require":
-
 							if !h.NextArg() {
-								return nil, h.Errf("auth backend %s subdirective %s has no value", backendName, backendArg)
+								return backendValueErr(h, backendName, backendArg)
 							}
 							requirement := h.Val()
 							switch requirement {
 							case "mfa":
-								backendProps["require_mfa"] = true
+								cfg["require_mfa"] = true
 							default:
-								return nil, h.Errf("auth backend %s subdirective %s contains unsupported requirement %s", backendName, backendArg, requirement)
+								return backendPropErr(h, backendName, backendArg, requirement, "is unsupported")
 							}
 						default:
-							return nil, h.Errf("unknown auth backend %s subdirective: %s", backendName, backendArg)
+							return backendUnsupportedValueErr(h, backendName, backendArg)
 						}
 					}
 					if !backendDisabled {
-						backendJSON, err := json.Marshal(backendProps)
+						backendConfig, err := backends.NewConfig(cfg)
 						if err != nil {
-							return nil, h.Errf("auth backend %s subdirective failed to compile to JSON: %s", backendName, err.Error())
+							return nil, h.Errf("auth backend %s directive failed: %v", rootDirective, err.Error())
 						}
-						backend := &backends.Backend{}
-						if err := backend.UnmarshalJSON(backendJSON); err != nil {
-							return nil, h.Errf("auth backend %s subdirective failed to compile backend from JSON: %s", backendName, err.Error())
-						}
-						portal.Backends = append(portal.Backends, *backend)
-					}
-				}
-			case "jwt_token_file", "jwt_token_rsa_file":
-				args := h.RemainingArgs()
-				if len(args) == 0 {
-					return nil, h.Errf("auth backend %s directive has no value", rootDirective)
-				}
-				if len(args) != 2 {
-					return nil, h.Errf("%s argument values are unsupported %v", rootDirective, args)
-				}
-				if portal.TokenProvider == nil {
-					portal.TokenProvider = jwtconfig.NewCommonTokenConfig()
-				}
-				portal.TokenProvider.TokenRSAFiles = make(map[string]string)
-				portal.TokenProvider.TokenRSAFiles[args[0]] = args[1]
-			case "jwt_token_name":
-				args := h.RemainingArgs()
-				if len(args) == 0 {
-					return nil, h.Errf("auth backend %s directive has no value", rootDirective)
-				}
-				if len(args) != 1 {
-					return nil, h.Errf("%s argument values are unsupported %v", rootDirective, args)
-				}
-				if portal.TokenProvider == nil {
-					portal.TokenProvider = jwtconfig.NewCommonTokenConfig()
-				}
-				portal.TokenProvider.TokenName = args[0]
-			case "jwt_token_secret":
-				args := h.RemainingArgs()
-				if len(args) == 0 {
-					return nil, h.Errf("auth backend %s directive has no value", rootDirective)
-				}
-				if len(args) != 1 {
-					return nil, h.Errf("%s argument values are unsupported %v", rootDirective, args)
-				}
-				if portal.TokenProvider == nil {
-					portal.TokenProvider = jwtconfig.NewCommonTokenConfig()
-				}
-				portal.TokenProvider.TokenSecret = args[0]
-			case "jwt_token_sign_method":
-				args := h.RemainingArgs()
-				if len(args) == 0 {
-					return nil, h.Errf("auth backend %s directive has no value", rootDirective)
-				}
-				if len(args) != 1 {
-					return nil, h.Errf("%s argument values are unsupported %v", rootDirective, args)
-				}
-				if portal.TokenProvider == nil {
-					portal.TokenProvider = jwtconfig.NewCommonTokenConfig()
-				}
-				portal.TokenProvider.TokenSignMethod = args[0]
-			case "jwt_token_lifetime":
-				args := h.RemainingArgs()
-				if len(args) == 0 {
-					return nil, h.Errf("auth backend %s directive has no value", rootDirective)
-				}
-				if len(args) != 1 {
-					return nil, h.Errf("%s argument values are unsupported %v", rootDirective, args)
-				}
-				if portal.TokenProvider == nil {
-					portal.TokenProvider = jwtconfig.NewCommonTokenConfig()
-				}
-				lifetime, err := strconv.Atoi(h.Val())
-				if err != nil {
-					return nil, h.Errf("%s argument value conversion failed: %s", rootDirective, err)
-				}
-				portal.TokenProvider.TokenLifetime = lifetime
-			case "jwt":
-				if portal.TokenProvider == nil {
-					portal.TokenProvider = jwtconfig.NewCommonTokenConfig()
-				}
-				for nesting := h.Nesting(); h.NextBlock(nesting); {
-					subDirective := h.Val()
-					switch subDirective {
-					case "token_name":
-						if !h.NextArg() {
-							return nil, h.Errf("%s %s subdirective has no value", rootDirective, subDirective)
-						}
-						portal.TokenProvider.TokenName = h.Val()
-					case "token_secret":
-						if !h.NextArg() {
-							return nil, h.Errf("%s %s subdirective has no value", rootDirective, subDirective)
-						}
-						portal.TokenProvider.TokenSecret = h.Val()
-
-					case "token_rsa_file":
-						rsaArgs := h.RemainingArgs()
-						if len(rsaArgs) != 2 {
-							return nil, h.Errf("%s %s subdirective requires two arguments: key id and file path", rootDirective, subDirective)
-						}
-						portal.TokenProvider.TokenRSAFiles = make(map[string]string)
-						portal.TokenProvider.TokenRSAFiles[rsaArgs[0]] = rsaArgs[1]
-					case "token_lifetime":
-						if !h.NextArg() {
-							return nil, h.Errf("%s %s subdirective has no value", rootDirective, subDirective)
-						}
-						lifetime, err := strconv.Atoi(h.Val())
-						if err != nil {
-							return nil, h.Errf("%s %s subdirective value conversion failed: %s", rootDirective, subDirective, err)
-						}
-						portal.TokenProvider.TokenLifetime = lifetime
-					case "token_sign_method":
-						if !h.NextArg() {
-							return nil, h.Errf("%s %s subdirective has no value", rootDirective, subDirective)
-						}
-						portal.TokenProvider.TokenSignMethod = h.Val()
-					default:
-						return nil, h.Errf("unknown subdirective for %s: %s", rootDirective, subDirective)
+						portal.BackendConfigs = append(portal.BackendConfigs, *backendConfig)
 					}
 				}
 			case "ui":
 				for nesting := h.Nesting(); h.NextBlock(nesting); {
 					subDirective := h.Val()
-					if strings.HasSuffix(subDirective, "_template") {
+					switch subDirective {
+					case "template":
+						hargs := h.RemainingArgs()
+						switch {
+						case len(hargs) == 2:
+							portal.UI.Templates[hargs[0]] = hargs[1]
+						default:
+							args := strings.Join(h.RemainingArgs(), " ")
+							return nil, h.Errf("%s directive %q is invalid", rootDirective, args)
+						}
+					case "theme":
 						if !h.NextArg() {
 							return nil, h.Errf("%s %s subdirective has no value", rootDirective, subDirective)
 						}
-						templateName := strings.TrimSuffix(subDirective, "_template")
-						portal.UserInterface.Templates[templateName] = h.Val()
-					} else {
-						switch subDirective {
-						case "theme":
-							if !h.NextArg() {
-								return nil, h.Errf("%s %s subdirective has no value", rootDirective, subDirective)
+						portal.UI.Theme = h.Val()
+					case "logo":
+						args := strings.Join(h.RemainingArgs(), " ")
+						args = strings.TrimSpace(args)
+						switch {
+						case strings.HasPrefix(args, "url"):
+							portal.UI.LogoURL = strings.ReplaceAll(args, "url ", "")
+						case strings.HasPrefix(args, "description"):
+							portal.UI.LogoDescription = strings.ReplaceAll(args, "description ", "")
+						case args == "":
+							return nil, h.Errf("%s %s directive has no value", rootDirective, subDirective)
+						default:
+							return nil, h.Errf("%s directive %q is unsupported", rootDirective, args)
+						}
+					case "auto_redirect_url":
+						if !h.NextArg() {
+							return nil, h.Errf("%s %s subdirective has no value", rootDirective, subDirective)
+						}
+						portal.UI.AutoRedirectURL = h.Val()
+					case "password_recovery_enabled":
+						if !h.NextArg() {
+							return nil, h.Errf("%s %s subdirective has no value", rootDirective, subDirective)
+						}
+						if h.Val() == "yes" || h.Val() == "true" {
+							portal.UI.PasswordRecoveryEnabled = true
+						}
+					case "links":
+						for subNesting := h.Nesting(); h.NextBlock(subNesting); {
+							title := h.Val()
+							args := h.RemainingArgs()
+							if len(args) == 0 {
+								return nil, h.Errf("auth backend %s subdirective %s has no value", subDirective, title)
 							}
-							portal.UserInterface.Theme = h.Val()
-						case "logo_url":
-							if !h.NextArg() {
-								return nil, h.Errf("%s %s subdirective has no value", rootDirective, subDirective)
+							privateLink := ui.Link{
+								Title: title,
+								Link:  args[0],
 							}
-							portal.UserInterface.LogoURL = h.Val()
-						case "logo_description":
-							if !h.NextArg() {
-								return nil, h.Errf("%s %s subdirective has no value", rootDirective, subDirective)
+							if len(args) == 1 {
+								portal.UI.PrivateLinks = append(portal.UI.PrivateLinks, privateLink)
+								continue
 							}
-							portal.UserInterface.LogoDescription = h.Val()
-						case "auto_redirect_url":
-							if !h.NextArg() {
-								return nil, h.Errf("%s %s subdirective has no value", rootDirective, subDirective)
-							}
-							portal.UserInterface.AutoRedirectURL = h.Val()
-						case "password_recovery_enabled":
-							if !h.NextArg() {
-								return nil, h.Errf("%s %s subdirective has no value", rootDirective, subDirective)
-							}
-							if h.Val() == "yes" || h.Val() == "true" {
-								portal.UserInterface.PasswordRecoveryEnabled = true
-							}
-						case "links":
-							for subNesting := h.Nesting(); h.NextBlock(subNesting); {
-								title := h.Val()
-								args := h.RemainingArgs()
-								if len(args) == 0 {
-									return nil, h.Errf("auth backend %s subdirective %s has no value", subDirective, title)
-								}
-								privateLink := ui.UserInterfaceLink{
-									Title: title,
-									Link:  args[0],
-								}
-								if len(args) == 1 {
-									portal.UserInterface.PrivateLinks = append(portal.UserInterface.PrivateLinks, privateLink)
-									continue
-								}
-								argp := 1
-								disabledLink := false
-								for argp < len(args) {
-									switch args[argp] {
-									case "target_blank":
-										privateLink.Target = "_blank"
-										privateLink.TargetEnabled = true
-									case "icon":
-										argp++
-										if argp < len(args) {
-											privateLink.IconName = args[argp]
-											privateLink.IconEnabled = true
-										}
-									case "disabled":
-										disabledLink = true
-									default:
-										return nil, h.Errf("auth backend %s subdirective %s has unsupported key %s", subDirective, title, args[argp])
-									}
+							argp := 1
+							disabledLink := false
+							for argp < len(args) {
+								switch args[argp] {
+								case "target_blank":
+									privateLink.Target = "_blank"
+									privateLink.TargetEnabled = true
+								case "icon":
 									argp++
+									if argp < len(args) {
+										privateLink.IconName = args[argp]
+										privateLink.IconEnabled = true
+									}
+								case "disabled":
+									disabledLink = true
+								default:
+									return nil, h.Errf("auth backend %s subdirective %s has unsupported key %s", subDirective, title, args[argp])
 								}
-								if disabledLink {
-									continue
-								}
-								portal.UserInterface.PrivateLinks = append(portal.UserInterface.PrivateLinks, privateLink)
+								argp++
 							}
-						case "custom_css", "custom_css_path":
-							if !h.NextArg() {
-								return nil, h.Errf("%s %s subdirective has no value", rootDirective, subDirective)
+							if disabledLink {
+								continue
 							}
-							portal.UserInterface.CustomCSSPath = h.Val()
-						case "custom_js", "custom_js_path":
-							if !h.NextArg() {
-								return nil, h.Errf("%s %s subdirective has no value", rootDirective, subDirective)
-							}
-							portal.UserInterface.CustomJsPath = h.Val()
-						case "custom_html_header_path":
-							if !h.NextArg() {
-								return nil, h.Errf("%s %s subdirective has no value", rootDirective, subDirective)
-							}
-							b, err := ioutil.ReadFile(h.Val())
+							portal.UI.PrivateLinks = append(portal.UI.PrivateLinks, privateLink)
+						}
+					case "custom":
+						args := strings.Join(h.RemainingArgs(), " ")
+						args = strings.TrimSpace(args)
+						switch {
+						case strings.HasPrefix(args, "css path"):
+							portal.UI.CustomCSSPath = strings.ReplaceAll(args, "css path ", "")
+						case strings.HasPrefix(args, "css"):
+							portal.UI.CustomCSSPath = strings.ReplaceAll(args, "css ", "")
+						case strings.HasPrefix(args, "js path"):
+							portal.UI.CustomJsPath = strings.ReplaceAll(args, "js path ", "")
+						case strings.HasPrefix(args, "js"):
+							portal.UI.CustomJsPath = strings.ReplaceAll(args, "js ", "")
+						case strings.HasPrefix(args, "html header path"):
+							args = strings.ReplaceAll(args, "html header path ", "")
+							b, err := ioutil.ReadFile(args)
 							if err != nil {
-								return nil, h.Errf("%s %s subdirective: %s %s", rootDirective, subDirective, h.Val(), err)
+								return nil, h.Errf("%s %s subdirective: %s %v", rootDirective, subDirective, args, err)
 							}
 							for k, v := range ui.PageTemplates {
 								headIndex := strings.Index(v, "<meta name=\"description\"")
@@ -568,25 +414,29 @@ func parseCaddyfileAuthPortal(h httpcaddyfile.Helper) ([]httpcaddyfile.ConfigVal
 								v = v[:headIndex] + string(b) + v[headIndex:]
 								ui.PageTemplates[k] = v
 							}
-						case "static_asset":
-							args := h.RemainingArgs()
-							if len(args) != 3 {
-								return nil, h.Errf("auth backend %s subdirective %s is malformed", rootDirective, subDirective)
-							}
-							prefix := "assets/"
-							assetURI := args[0]
-							assetContentType := args[1]
-							assetPath := args[2]
-							if !strings.HasPrefix(assetURI, prefix) {
-								return nil, h.Errf("auth backend %s subdirective %s URI must be prefixed with %s, got %s",
-									rootDirective, subDirective, prefix, assetURI)
-							}
-							if err := ui.StaticAssets.AddAsset(assetURI, assetContentType, assetPath); err != nil {
-								return nil, h.Errf("auth backend %s subdirective %s failed: %s", rootDirective, subDirective, err)
-							}
+						case args == "":
+							return nil, h.Errf("%s %s directive has no value", rootDirective, subDirective)
 						default:
-							return nil, h.Errf("unsupported subdirective for %s: %s", rootDirective, subDirective)
+							return nil, h.Errf("%s directive %q is unsupported", rootDirective, args)
 						}
+					case "static_asset":
+						args := h.RemainingArgs()
+						if len(args) != 3 {
+							return nil, h.Errf("auth backend %s subdirective %s is malformed", rootDirective, subDirective)
+						}
+						prefix := "assets/"
+						assetURI := args[0]
+						assetContentType := args[1]
+						assetPath := args[2]
+						if !strings.HasPrefix(assetURI, prefix) {
+							return nil, h.Errf("auth backend %s subdirective %s URI must be prefixed with %s, got %s",
+								rootDirective, subDirective, prefix, assetURI)
+						}
+						if err := ui.StaticAssets.AddAsset(assetURI, assetContentType, assetPath); err != nil {
+							return nil, h.Errf("auth backend %s subdirective %s failed: %s", rootDirective, subDirective, err)
+						}
+					default:
+						return nil, h.Errf("unsupported subdirective for %s: %s", rootDirective, subDirective)
 					}
 				}
 			case "registration":
@@ -597,59 +447,57 @@ func parseCaddyfileAuthPortal(h httpcaddyfile.Helper) ([]httpcaddyfile.ConfigVal
 						if !h.NextArg() {
 							return nil, h.Errf("%s %s subdirective has no value", rootDirective, subDirective)
 						}
-						portal.UserRegistration.Title = h.Val()
+						portal.UserRegistrationConfig.Title = h.Val()
 					case "disabled":
 						if !h.NextArg() {
 							return nil, h.Errf("%s %s subdirective has no value", rootDirective, subDirective)
 						}
 						if h.Val() == "yes" || h.Val() == "on" {
-							portal.UserRegistration.Disabled = true
+							portal.UserRegistrationConfig.Disabled = true
 						}
 					case "code":
 						if !h.NextArg() {
 							return nil, h.Errf("%s %s subdirective has no value", rootDirective, subDirective)
 						}
-						portal.UserRegistration.Code = h.Val()
+						portal.UserRegistrationConfig.Code = h.Val()
 					case "dropbox":
 						if !h.NextArg() {
 							return nil, h.Errf("%s %s subdirective has no value", rootDirective, subDirective)
 						}
-						portal.UserRegistration.Dropbox = h.Val()
+						portal.UserRegistrationConfig.Dropbox = h.Val()
 					case "require":
-						if !h.NextArg() {
-							return nil, h.Errf("%s %s subdirective has no value", rootDirective, subDirective)
-						}
-						requirement := h.Val()
-						switch requirement {
-						case "accept_terms":
-							portal.UserRegistration.RequireAcceptTerms = true
-						case "domain_mx":
-							portal.UserRegistration.RequireDomainMailRecord = true
+						args := strings.Join(h.RemainingArgs(), " ")
+						args = strings.TrimSpace(args)
+						switch args {
+						case "accept terms":
+							portal.UserRegistrationConfig.RequireAcceptTerms = true
+						case "domain mx":
+							portal.UserRegistrationConfig.RequireDomainMailRecord = true
+						case "":
+							return nil, h.Errf("%s directive has no value", rootDirective)
 						default:
-							return nil, h.Errf("unsupported requirement %s in %s %s", requirement, rootDirective, subDirective)
+							return nil, h.Errf("%s directive %q is unsupported", rootDirective, args)
 						}
-					default:
-						return nil, h.Errf("unsupported subdirective for %s: %s", rootDirective, subDirective)
 					}
 				}
 			case "enable":
 				args := strings.Join(h.RemainingArgs(), " ")
 				switch args {
 				case "source ip tracking":
-					portal.EnableSourceIPTracking = true
+					portal.TokenGrantorOptions.EnableSourceAddress = true
 				default:
 					return nil, h.Errf("unsupported directive for %s: %s", rootDirective, args)
 				}
-			case "require":
-				if !h.NextArg() {
+			case "validate":
+				args := strings.Join(h.RemainingArgs(), " ")
+				args = strings.TrimSpace(args)
+				switch args {
+				case "source address":
+					portal.TokenValidatorOptions.ValidateSourceAddress = true
+				case "":
 					return nil, h.Errf("%s directive has no value", rootDirective)
-				}
-				requirement := h.Val()
-				switch requirement {
-				case "mfa":
-					portal.RequireMFA = true
 				default:
-					return nil, h.Errf("%s directive contains unsupported requirement %s", rootDirective, requirement)
+					return nil, h.Errf("%s directive %q is unsupported", rootDirective, args)
 				}
 			default:
 				return nil, h.Errf("unsupported root directive: %s", rootDirective)
@@ -657,29 +505,18 @@ func parseCaddyfileAuthPortal(h httpcaddyfile.Helper) ([]httpcaddyfile.ConfigVal
 		}
 	}
 
-	if portal.AuthURLPath == "" {
-		portal.AuthURLPath = "/auth"
-	}
-	if strings.HasSuffix(portal.AuthURLPath, "*") {
-		return nil, h.Errf("path directive must not end with '*', got %s", portal.AuthURLPath)
-	}
-	if !strings.HasPrefix(portal.AuthURLPath, "/") {
-		return nil, h.Errf("path directive must begin with '/', got %s", portal.AuthURLPath)
-	}
-
-	if portal.Context == "" {
-		return nil, h.Errf("context directive must not be empty")
-	}
-
-	if portal.TokenProvider == nil {
-		portal.TokenProvider = jwtconfig.NewCommonTokenConfig()
-		portal.TokenProvider.TokenSecret = utils.GetRandomStringFromRange(32, 64)
+	if len(cryptoKeyConfig) != 0 {
+		configs, err := kms.ParseCryptoKeyConfigs(strings.Join(cryptoKeyConfig, "\n"))
+		if err != nil {
+			return nil, h.Errf("crypto key config error: %v", err)
+		}
+		portal.CryptoKeyConfigs = configs
 	}
 
 	h.Reset()
 	h.Next()
 	pathMatcher := caddy.ModuleMap{
-		"path": h.JSON(caddyhttp.MatchPath{portal.AuthURLPath + "*"}),
+		"path": h.JSON(caddyhttp.MatchPath{"*"}),
 	}
 
 	route := caddyhttp.Route{
@@ -689,7 +526,7 @@ func parseCaddyfileAuthPortal(h httpcaddyfile.Helper) ([]httpcaddyfile.ConfigVal
 					Portal: &portal,
 				},
 				"handler",
-				"auth_portal",
+				"authp",
 				nil,
 			),
 		},
@@ -697,4 +534,16 @@ func parseCaddyfileAuthPortal(h httpcaddyfile.Helper) ([]httpcaddyfile.ConfigVal
 	subroute := new(caddyhttp.Subroute)
 	subroute.Routes = append([]caddyhttp.Route{route}, subroute.Routes...)
 	return h.NewRoute(pathMatcher, subroute), nil
+}
+
+func backendValueErr(h httpcaddyfile.Helper, backendName, backendArg string) ([]httpcaddyfile.ConfigValue, error) {
+	return nil, h.Errf("auth backend %s subdirective %s has no value", backendName, backendArg)
+}
+
+func backendUnsupportedValueErr(h httpcaddyfile.Helper, backendName, backendArg string) ([]httpcaddyfile.ConfigValue, error) {
+	return nil, h.Errf("auth backend %s subdirective %s is unsupported", backendName, backendArg)
+}
+
+func backendPropErr(h httpcaddyfile.Helper, backendName, backendArg, attrName, attrErr string) ([]httpcaddyfile.ConfigValue, error) {
+	return nil, h.Errf("auth backend %q subdirective %q key %q %s", backendName, backendArg, attrName, attrErr)
 }

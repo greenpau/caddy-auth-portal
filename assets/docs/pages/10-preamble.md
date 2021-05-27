@@ -19,3 +19,5 @@ Download Caddy with the plugins enabled:
 Please show your appreciation for this work and :star: :star: :star:
 
 Please ask questions either here or via LinkedIn. I am happy to help you! @greenpau
+
+**Security Policy**: [SECURITY.md](SECURITY.md)

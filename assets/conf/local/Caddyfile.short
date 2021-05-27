@@ -6,7 +6,7 @@
 
 localhost, 127.0.0.1 {
   route /auth* {
-    auth_portal {
+    authp {
       local_backend assets/conf/local/auth/user_db.json
     }
   }
@@ -14,13 +14,9 @@ localhost, 127.0.0.1 {
   route /prometheus* {
     jwt {
       primary yes
-      trusted_tokens {
-        static_secret {
-          token_name access_token
-          token_secret 0e2fdcf8-6868-41a7-884b-7308795fc286
-        }
-      }
-      auth_url /auth
+      crypto key token name access_token
+      crypto key verify 0e2fdcf8-6868-41a7-884b-7308795fc286
+      set auth url /auth
       allow roles anonymous guest admin
       allow roles superadmin
       allow roles AzureAD_Administrator AzureAD_Editor AzureAD_Viewer

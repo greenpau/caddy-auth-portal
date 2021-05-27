@@ -37,7 +37,7 @@ can be used to change it to 1 hour (3600 seconds).
 The issued JWT token could be of two types:
 
 1. `HS512`: signed using shared secret key
-2. `RS512`: signed using private PEM key
+2. `RS512` and `ES512`: signed using private PEM key
 
 The `HS512` is being configured with `token_secret`
 
@@ -73,7 +73,7 @@ e is 65537 (0x010001)
 
 #### JWT Signing Method
 
-By default, the plugin uses HS512 (shared secret) and RS512 (public/private keys) for
+By default, the plugin uses HS512 (shared secret) and RS512/ES512 (public/private keys) for
 the signing of JWT tokens. User `token_sign_method` to change the algorithm, e.g.
 
 ```

@@ -6,8 +6,7 @@
 
 127.0.0.1, localhost {
   route /auth* {
-    auth_portal {
-      path /auth
+    authp {
       backends {
         local_backend {
           method local
@@ -53,13 +52,11 @@
           acs_url https://localhost:3443/saml
         }
       }
-      jwt {
-        token_name access_token
-        token_secret 0e2fdcf8-6868-41a7-884b-7308795fc286
-      }
+      crypto key token name access_token
+      crypto key sign-verify 0e2fdcf8-6868-41a7-884b-7308795fc286
       ui {
-        logo_url "https://caddyserver.com/resources/images/caddy-circle-lock.svg"
-        logo_description "Caddy"
+        logo url "https://caddyserver.com/resources/images/caddy-circle-lock.svg"
+        logo description "Caddy"
         links {
           "Prometheus" /prometheus
           "Alertmanager" /alertmanager
@@ -72,13 +69,9 @@
   route /prometheus* {
     jwt {
       primary yes
-      trusted_tokens {
-        static_secret {
-          token_name access_token
-          token_secret 0e2fdcf8-6868-41a7-884b-7308795fc286
-        }
-      }
-      auth_url /auth
+      crypto key token name access_token
+      crypto key verify 0e2fdcf8-6868-41a7-884b-7308795fc286
+      set auth url /auth
       allow roles anonymous guest admin
       allow roles superadmin
       allow roles admin editor viewer

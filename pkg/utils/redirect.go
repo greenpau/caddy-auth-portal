@@ -16,15 +16,35 @@ package utils
 
 import (
 	"net/http"
-	//	"strings"
+	"strings"
 )
 
-// GetCurrentURL returns current URL
+// GetBaseURL returns base path based on some match.
+func GetBaseURL(r *http.Request, s string) (string, string) {
+	for _, p := range strings.Split(s, ",") {
+		i := strings.Index(r.URL.Path, p)
+		if i >= 0 {
+			return GetCurrentBaseURL(r), r.URL.Path[:i]
+		}
+	}
+	return GetCurrentBaseURL(r), r.URL.Path
+}
+
+// GetRelativeURL returns relative path to current URL.
+func GetRelativeURL(r *http.Request, orig, repl string) string {
+	i := strings.Index(r.URL.Path, orig)
+	if i < 0 {
+		return GetCurrentBaseURL(r) + repl
+	}
+	return GetCurrentBaseURL(r) + r.URL.Path[:i] + repl
+}
+
+// GetCurrentURL returns current URL.
 func GetCurrentURL(r *http.Request) string {
 	return GetCurrentBaseURL(r) + r.URL.Path
 }
 
-// GetCurrentBaseURL returns current base URL
+// GetCurrentBaseURL returns current base URL.
 func GetCurrentBaseURL(r *http.Request) string {
 	redirHost := r.Header.Get("X-Forwarded-Host")
 	if redirHost == "" {

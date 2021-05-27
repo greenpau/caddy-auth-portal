@@ -37,8 +37,7 @@ templates:
 
 linter:
 	@echo "Running lint checks"
-	@golint -set_exit_status *.go
-	@for f in `find ./pkg -type f -name '*.go'`; do echo $$f; go fmt $$f; golint -set_exit_status $$f; done
+	@golint -set_exit_status ./...
 	@echo "PASS: golint"
 
 test: templates license covdir linter docs
@@ -70,20 +69,35 @@ clean:
 
 qtest:
 	@echo "Perform quick tests ..."
-	@#time richgo test  $(VERBOSE) -coverprofile=.coverage/coverage.out -run TestLocalConfig ./*.go
-	@#time richgo test $(VERBOSE) -coverprofile=.coverage/coverage.out -run TestLocalCaddyfile ./*.go
+	@#time richgo test -v -coverprofile=.coverage/coverage.out ./pkg/backends/*.go
+	@#time richgo test -v -coverprofile=.coverage/coverage.out -run TestTagCompliance ./internal/tag/*.go
+	@#time richgo test -v -coverprofile=.coverage/coverage.out ./pkg/backends/local/*.go
+	@#time richgo test -v -coverprofile=.coverage/coverage.out -run TestLocalBackend ./pkg/backends/local/*.go
+	@#time richgo test -v -coverprofile=.coverage/coverage.out ./pkg/backends/*.go
+	@#time richgo test -v -coverprofile=.coverage/coverage.out ./pkg/backends/local/*.go
+	@#time richgo test -v -coverprofile=.coverage/coverage.out ./pkg/backends/ldap/*.go
 	@#go test $(VERBOSE) -coverprofile=.coverage/coverage.out -run TestLdapConfig ./*.go
 	@#go test $(VERBOSE) -coverprofile=.coverage/coverage.out -run TestLdapCaddyfile ./*.go
 	@#go test $(VERBOSE) -coverprofile=.coverage/coverage.out -run TestSamlCaddyfile ./*.go
 	@#time richgo test $(VERBOSE) -coverprofile=.coverage/coverage.out -run TestGetSourceAddress ./*.go
-	@#time richgo test $(VERBOSE) -coverprofile=.coverage/coverage.out -run TestNewUserInterface ./pkg/ui/*.go
+	@#time richgo test $(VERBOSE) -coverprofile=.coverage/coverage.out -run TestNewFactory ./pkg/ui/*.go
 	@#time richgo test $(VERBOSE) -coverprofile=.coverage/coverage.out -run TestCookies ./pkg/cookies/*.go
 	@#time richgo test $(VERBOSE) -coverprofile=.coverage/coverage.out -run TestCookieLifetime ./*.go
 	@#time richgo test -v -coverprofile=.coverage/coverage.out -run TestSandboxCache ./pkg/cache/sandbox*.go
 	@#time richgo test -v -coverprofile=.coverage/coverage.out -run TestNewSandboxCache ./pkg/cache/sandbox*.go
 	@#time richgo test -v -coverprofile=.coverage/coverage.out -run TestNewSandboxHurdle ./pkg/cache/sandbox*.go
-	@time richgo test -v -coverprofile=.coverage/coverage.out ./pkg/cache/sandbox*.go
+	@#time richgo test -v -coverprofile=.coverage/coverage.out ./pkg/cache/sandbox*.go
+	@#time richgo test -v -coverprofile=.coverage/coverage.out ./pkg/cache/*.go
+	@#time richgo test -v -coverprofile=.coverage/coverage.out ./pkg/cookie/*.go
+	@#time richgo test -v -coverprofile=.coverage/coverage.out ./pkg/authn/*.go
+	@#time richgo test -v -coverprofile=.coverage/coverage.out -run TestNewAuthenticator ./pkg/authn/*.go
+	@#time richgo test -v -coverprofile=.coverage/coverage.out -run TestServeHTTP ./pkg/authn/*.go
+	@#time richgo test -v -coverprofile=.coverage/coverage.out -run TestBackendConfig ./pkg/backends/*.go
+	@#time richgo test -v -coverprofile=.coverage/coverage.out -run TestCookieLifetime ./*.go
+	@time richgo test -v -coverprofile=.coverage/coverage.out -run TestFactory ./pkg/cookie/*.go
+	@#time richgo test -v -coverprofile=.coverage/coverage.out -run Test.*Caddyfile ./*.go
 	@go tool cover -html=.coverage/coverage.out -o .coverage/coverage.html
+	@go tool cover -func=.coverage/coverage.out | grep -v "100.0"
 
 dep:
 	@echo "Making dependencies check ..."
@@ -95,7 +109,8 @@ dep:
 	@go get -u github.com/google/addlicense
 
 license:
-	@addlicense -c "Paul Greenberg greenpau@outlook.com" -y 2020 pkg/*/*/*.go pkg/*/*.go *.go
+	@for f in `find ./ -type f -name '*.go'`; do addlicense -c "Paul Greenberg greenpau@outlook.com" -y 2020 $$f; done
+	@#for f in `find ./ -type f -name '*.go'`; do addlicense --check -c "Paul Greenberg greenpau@outlook.com" -y 2020 $$f; done
 
 mod:
 	@echo "Verifying modules"

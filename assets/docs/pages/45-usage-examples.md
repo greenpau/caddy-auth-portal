@@ -14,8 +14,7 @@ The following `Caddyfile` secures Prometheus/Alertmanager services:
 
 localhost:8443 {
   route /auth* {
-    auth_portal {
-      path /auth
+    authp {
       backends {
         local_backend {
           method local

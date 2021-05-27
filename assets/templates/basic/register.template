@@ -22,7 +22,7 @@
   <body class="app-body">
     <div class="container">
       <div class="row">
-        <div class="col s12 m12 l6 offset-l3">
+        <div class="col s12 m12 l6 offset-l3 registration-container">
           {{ if not .Data.registered }}
           <form action="{{ pathjoin .ActionEndpoint "/register" }}" method="POST">
           {{ end }}
@@ -39,8 +39,8 @@
               {{ if not .Data.registered }}
               <div class="input-field">
                 <input id="username" name="username" type="text" class="validate"
-                  pattern="[a-z0-9]{3,25}"
-                  title="Username should contain maximum of 25 characters and consists of a-z and 0-9 characters."
+                  pattern="{{ .Data.username_validate_pattern }}"
+                  title="{{ .Data.username_validate_title }}"
                   required />
                 <label for="username">Username</label>
               </div>
@@ -50,11 +50,17 @@
                 <label for="email">Email Address</label>
               </div>
               <div class="input-field">
-                <input id="password" name="password" type="password" class="validate" required />
+                <input id="password" name="password" type="password" class="validate"
+                  pattern="{{ .Data.password_validate_pattern }}"
+                  title="{{ .Data.password_validate_title }}"
+                  required />
                 <label for="password">Password</label>
               </div>
               <div class="input-field">
-                <input id="password_confirm" name="password_confirm" type="password" class="validate" required />
+                <input id="password_confirm" name="password_confirm" type="password" class="validate"
+                  pattern="{{ .Data.password_validate_pattern }}"
+                  title="{{ .Data.password_validate_title }}"
+                  required />
                 <label for="password_confirm">Confirm Password</label>
               </div>
               {{ if .Data.require_registration_code }}
@@ -68,8 +74,8 @@
                 <label>
                   <input type="checkbox" id="accept_terms" name="accept_terms" required />
                   <span>I agree to
-                    <a href="{{ pathjoin .ActionEndpoint "/termsandconditions" }}">Terms and Conditions</a> and
-                    <a href="{{ pathjoin .ActionEndpoint "/privacypolicy" }}">Privacy Policy</a>.
+                    <a href="{{ .Data.terms_conditions_link }}" target="_blank">Terms and Conditions</a> and
+                    <a href="{{ .Data.privacy_policy_link }}" target="_blank">Privacy Policy</a>.
                   </span>
                 </label>
               </p>
@@ -120,9 +126,10 @@
     var toastHTML = '<span>{{ .Message }}</span><button class="btn-flat toast-action" onclick="M.Toast.dismissAll();">Close</button>';
     toastElement = M.toast({
       html: toastHTML,
-      classes: 'toast-error'
+      classes: 'toast-error',
+      displayLength: 10000
     });
-    const appContainer = document.querySelector('.app-card-container')
+    const appContainer = document.querySelector('.registration-container')
     appContainer.prepend(toastElement.el)
     </script>
     {{ end }}

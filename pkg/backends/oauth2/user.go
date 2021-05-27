@@ -20,17 +20,15 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	jwtclaims "github.com/greenpau/caddy-auth-jwt/pkg/claims"
 	"go.uber.org/zap"
 	"io/ioutil"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
-	"time"
 )
 
-func (b *Backend) fetchClaims(tokenData map[string]interface{}) (*jwtclaims.UserClaims, error) {
+func (b *Backend) fetchClaims(tokenData map[string]interface{}) (map[string]interface{}, error) {
 	var userURL string
 	var req *http.Request
 	var err error
@@ -48,7 +46,7 @@ func (b *Backend) fetchClaims(tokenData map[string]interface{}) (*jwtclaims.User
 		return nil, err
 	}
 
-	switch b.Provider {
+	switch b.Config.Provider {
 	case "github":
 		userURL = "https://api.github.com/user"
 		req, err = http.NewRequest("GET", userURL, nil)
@@ -56,7 +54,7 @@ func (b *Backend) fetchClaims(tokenData map[string]interface{}) (*jwtclaims.User
 			return nil, err
 		}
 	case "facebook":
-		h := hmac.New(sha256.New, []byte(b.ClientSecret))
+		h := hmac.New(sha256.New, []byte(b.Config.ClientSecret))
 		h.Write([]byte(tokenString))
 		appSecretProof := hex.EncodeToString(h.Sum(nil))
 		userURL = "https://graph.facebook.com/me"
@@ -71,12 +69,12 @@ func (b *Backend) fetchClaims(tokenData map[string]interface{}) (*jwtclaims.User
 		}
 		req.URL.RawQuery = params.Encode()
 	default:
-		return nil, fmt.Errorf("provider %s is unsupported for fetching claims", b.Provider)
+		return nil, fmt.Errorf("provider %s is unsupported for fetching claims", b.Config.Provider)
 	}
 
 	req.Header.Set("Accept", "application/json")
 
-	switch b.Provider {
+	switch b.Config.Provider {
 	case "github":
 		req.Header.Add("Authorization", "token "+tokenString)
 	}
@@ -103,7 +101,7 @@ func (b *Backend) fetchClaims(tokenData map[string]interface{}) (*jwtclaims.User
 		return nil, err
 	}
 
-	switch b.Provider {
+	switch b.Config.Provider {
 	case "github":
 		if _, exists := data["message"]; exists {
 			return nil, fmt.Errorf("failed obtaining user profile with OAuth 2.0 access token, error: %s", data["message"].(string))
@@ -137,37 +135,25 @@ func (b *Backend) fetchClaims(tokenData map[string]interface{}) (*jwtclaims.User
 			}
 		}
 	default:
-		return nil, fmt.Errorf("unsupported provider: %s", b.Provider)
+		return nil, fmt.Errorf("unsupported provider: %s", b.Config.Provider)
 	}
 
-	// Create new claims
-	claims := &jwtclaims.UserClaims{
-		//ID:        tokenID,
-		Origin:    userURL,
-		ExpiresAt: time.Now().Add(time.Duration(b.TokenProvider.TokenLifetime) * time.Second).Unix(),
-		IssuedAt:  time.Now().Unix(),
-		NotBefore: time.Now().Add(10 * time.Minute * -1).Unix(),
-	}
-
-	switch b.Provider {
+	m := make(map[string]interface{})
+	m["origin"] = userURL
+	switch b.Config.Provider {
 	case "github":
-		if _, exists := data["login"]; exists {
-			claims.Subject = "github.com/" + data["login"].(string)
+		if v, exists := data["login"]; exists {
+			m["sub"] = "github.com/" + v.(string)
 		}
-		if _, exists := data["name"]; !exists {
-			claims.Name = data["name"].(string)
+		if v, exists := data["name"]; !exists {
+			m["name"] = v.(string)
 		}
 	case "facebook":
 		if v, exists := data["email"]; exists {
-			claims.Email = v.(string)
+			m["email"] = v.(string)
 		}
-		claims.Subject = data["id"].(string)
-		claims.Name = data["name"].(string)
+		m["sub"] = data["id"].(string)
+		m["name"] = data["name"].(string)
 	}
-
-	if len(claims.Roles) < 1 {
-		claims.Roles = []string{"anonymous", "guest", "everyone"}
-	}
-
-	return claims, nil
+	return m, nil
 }
