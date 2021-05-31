@@ -121,6 +121,12 @@ Also, add the link to Kibana in `ui` section of Caddyfile:
       }
 ```
 
+### Multiple Hosts
+
+`[assets/conf/multihost/Caddyfile](assets/conf/multihost/Caddyfile)`
+contains an example of using the same auth config across multiple
+hostnames in the same domain.
+
 [:arrow_up: Back to Top](#table-of-contents)
 
 <!--- end of section -->

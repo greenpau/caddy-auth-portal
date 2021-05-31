@@ -1,0 +1,76 @@
+# This Caddyfile contains a full example of using Google
+# Authentication and Caddy across multiple hosts in the same domain.
+
+auth.example.com {
+	route /auth* {
+		authp {
+			crypto key sign-verify secretpassword
+			# All hosts using this auth must be in cookie_domain.
+			cookie domain example.com
+			# optional settings so auth lasts longer
+			crypto default token lifetime 604800
+			cookie lifetime 604800
+			# backend google <client_id> <client_secret>
+			backend google 1234567890-a1b2c3d4e5f6g7.apps.googleusercontent.com abcd-efg-123456
+			# Here you can add specific roles to individual
+			# user accounts:
+			transform user {
+				exact match email "john@gmail.com"
+				action add roles viewer
+			}
+			transform user {
+				exact match email "sally@gmail.com"
+				action add roles viewer admin
+			}
+		}
+	}
+
+	route {
+		authorize {
+			# makes this block referencable later with a bare authorize directive
+			primary yes
+			# must match the crypto key password in the authp block above.
+			crypto key verify secretpassword
+			# must point to the authp host above
+			set auth url https://auth.example.com/auth
+			# role "viewer" is allowed everywhere.
+			allow roles viewer
+		}
+
+		# This respond is just a placeholder for whatever real content
+		# you want to serve on the rest of the auth host, i.e. local
+		# files or a reverse_proxy, or a redirect to /auth.
+		respond * "This is the protected content!" 200
+	}
+}
+
+foo.example.com {
+	route {
+		# A bare authorize directive references back to the authorize with `primary yes`.
+		authorize
+		# This respond is just a placeholder for whatever real content
+		# you want to serve, i.e. local files or a reverse_proxy.
+		respond * "This is the protected content on something.example.com!" 200
+	}
+}
+
+bar.example.com {
+	route {
+		# This authorize block extends the authorize with `primary yes` and
+		# overrides the `allow` directive to allow different roles.
+		# In this case, viewer isn't sufficient, admin role is required.
+		authorize {
+			allow roles admin
+		}
+		# This respond is just a placeholder for whatever real content
+		# you want to serve, i.e. local files or a reverse_proxy.
+		respond * "This is the protected content on foo.example.com!" 200
+	}
+}
+
+public.example.com {
+	route {
+		# This content is *NOT* access controlled because there's no authorize directive.
+		respond * "This is public content on public.example.com!" 200
+	}
+}
