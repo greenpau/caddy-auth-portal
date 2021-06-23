@@ -18,7 +18,7 @@ localhost, 127.0.0.1 {
       crypto key verify 0e2fdcf8-6868-41a7-884b-7308795fc286
       set auth url /auth
       allow roles anonymous guest admin
-      allow roles superadmin
+      allow roles authp/admin
       allow roles AzureAD_Administrator AzureAD_Editor AzureAD_Viewer
       allow roles everyone Everyone
     }

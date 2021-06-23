@@ -35,8 +35,8 @@ import (
 
 // Authenticate performs authentication.
 func (b *Backend) Authenticate(r *requests.Request) error {
-	reqPath := path.Join(r.Upstream.BaseURL, r.Upstream.BasePath, r.Upstream.Method, r.Upstream.Realm)
-	r.Response.Code = 400
+	reqPath := r.Upstream.BaseURL + path.Join(r.Upstream.BasePath, r.Upstream.Method, r.Upstream.Realm)
+	r.Response.Code = http.StatusBadRequest
 
 	var accessTokenExists, codeExists, stateExists, errorExists bool
 	var reqParamsState, reqParamsCode, reqParamsError string
@@ -60,6 +60,7 @@ func (b *Backend) Authenticate(r *requests.Request) error {
 	if stateExists || errorExists || codeExists || accessTokenExists {
 		b.logger.Debug(
 			"received OAuth 2.0 response",
+			zap.String("session_id", r.Upstream.SessionID),
 			zap.String("request_id", r.ID),
 			zap.Any("params", reqParams),
 		)
@@ -76,6 +77,14 @@ func (b *Backend) Authenticate(r *requests.Request) error {
 			} else {
 				return errors.ErrBackendOauthAuthorizationStateNotFound
 			}
+			b.logger.Debug(
+				"received OAuth 2.0 code and state from the authorization server",
+				zap.String("session_id", r.Upstream.SessionID),
+				zap.String("request_id", r.ID),
+				zap.String("state", reqParamsState),
+				zap.String("code", reqParamsCode),
+			)
+
 			reqRedirectURI := reqPath + "/authorization-code-callback"
 			var accessToken map[string]interface{}
 			var err error
@@ -86,6 +95,12 @@ func (b *Backend) Authenticate(r *requests.Request) error {
 				accessToken, err = b.fetchAccessToken(reqRedirectURI, reqParamsState, reqParamsCode)
 			}
 			if err != nil {
+				b.logger.Debug(
+					"failed fetching OAuth 2.0 access token from the authorization server",
+					zap.String("session_id", r.Upstream.SessionID),
+					zap.String("request_id", r.ID),
+					zap.Error(err),
+				)
 				return errors.ErrBackendOauthFetchAccessTokenFailed.WithArgs(err)
 			}
 			b.logger.Debug(
@@ -110,7 +125,7 @@ func (b *Backend) Authenticate(r *requests.Request) error {
 			}
 
 			r.Response.Payload = m
-			r.Response.Code = 200
+			r.Response.Code = http.StatusOK
 			b.logger.Debug(
 				"decoded claims from OAuth 2.0 authorization server access token",
 				zap.String("request_id", r.ID),
@@ -120,7 +135,7 @@ func (b *Backend) Authenticate(r *requests.Request) error {
 		}
 		return errors.ErrBackendOauthResponseProcessingFailed
 	}
-	r.Response.Code = 200
+	r.Response.Code = http.StatusFound
 	state := uuid.NewV4().String()
 	nonce := utils.GetRandomString(32)
 	params := url.Values{}
@@ -196,6 +211,7 @@ func (b *Backend) fetchAccessToken(redirectURI, state, code string) (map[string]
 	b.logger.Debug(
 		"OAuth 2.0 access token response received",
 		zap.Any("body", respBody),
+		zap.String("redirect_uri", redirectURI),
 	)
 
 	data := make(map[string]interface{})

@@ -34,7 +34,6 @@ func (p *Authenticator) handleHTTP(ctx context.Context, w http.ResponseWriter, r
 		p.injectRedirectURL(ctx, w, r, rr)
 		return p.handleHTTPRedirect(ctx, w, r, rr, "/login")
 	case strings.HasSuffix(r.URL.Path, "/portal"):
-		p.logRequest("portal traceback", r, rr)
 		return p.handleHTTPPortal(ctx, w, r, rr, usr)
 	case strings.HasSuffix(r.URL.Path, "/logout"):
 		return p.handleHTTPLogout(ctx, w, r, rr)
@@ -47,13 +46,20 @@ func (p *Authenticator) handleHTTP(ctx context.Context, w http.ResponseWriter, r
 		return p.handleHTTPRegister(ctx, w, r, rr)
 	case strings.HasSuffix(r.URL.Path, "/whoami"):
 		return p.handleHTTPWhoami(ctx, w, r, rr, usr)
-	case strings.Contains(r.URL.Path, "/saml/"), strings.Contains(r.URL.Path, "/oauth2/"):
+	case strings.Contains(r.URL.Path, "/saml/"):
 		// TODO(greenpau): implement
-		return p.handleHTTPExternalLogin(ctx, w, r, rr)
+		p.logRequest("external saml login traceback", r, rr)
+		return p.handleHTTPExternalLogin(ctx, w, r, rr, "saml")
+	case strings.Contains(r.URL.Path, "/oauth2/"):
+		// TODO(greenpau): implement
+		p.logRequest("external oauth2 login traceback", r, rr)
+		return p.handleHTTPExternalLogin(ctx, w, r, rr, "oauth2")
 	case strings.Contains(r.URL.Path, "/basic/login/"):
 		return p.handleHTTPBasicLogin(ctx, w, r, rr)
 	case strings.Contains(r.URL.Path, "/assets/") || strings.Contains(r.URL.Path, "/favicon"):
 		return p.handleHTTPStaticAssets(ctx, w, r, rr)
+	case strings.Contains(r.URL.Path, "/sandbox/"):
+		return p.handleHTTPSandbox(ctx, w, r, rr)
 	case strings.HasSuffix(r.URL.Path, "/login"):
 		return p.handleHTTPLogin(ctx, w, r, rr, usr)
 	}
@@ -179,7 +185,7 @@ func (p *Authenticator) injectSessionID(ctx context.Context, w http.ResponseWrit
 			return
 		}
 	}
-	rr.Upstream.SessionID = utils.GetRandomStringFromRange(64, 96)
+	rr.Upstream.SessionID = utils.GetRandomStringFromRange(36, 46)
 	w.Header().Add("Set-Cookie", p.cookie.GetSessionCookie(rr.Upstream.SessionID))
 	return
 }
@@ -250,6 +256,8 @@ func extractBasePath(ctx context.Context, r *http.Request, rr *requests.Request)
 		extractBaseURLPath(ctx, r, rr, "/portal")
 	case strings.HasSuffix(r.URL.Path, "/logout"):
 		extractBaseURLPath(ctx, r, rr, "/logout")
+	case strings.Contains(r.URL.Path, "/sandbox/"):
+		extractBaseURLPath(ctx, r, rr, "/sandbox/")
 	case strings.Contains(r.URL.Path, "/settings"):
 		extractBaseURLPath(ctx, r, rr, "/settings")
 	case strings.HasSuffix(r.URL.Path, "/recover"), strings.HasSuffix(r.URL.Path, "/forgot"):
@@ -258,8 +266,10 @@ func extractBasePath(ctx context.Context, r *http.Request, rr *requests.Request)
 		extractBaseURLPath(ctx, r, rr, "/register")
 	case strings.HasSuffix(r.URL.Path, "/whoami"):
 		extractBaseURLPath(ctx, r, rr, "/whoami")
-	case strings.Contains(r.URL.Path, "/saml/"), strings.Contains(r.URL.Path, "/oauth2/"):
-		extractBaseURLPath(ctx, r, rr, "/saml/,/oauth2/")
+	case strings.Contains(r.URL.Path, "/saml/"):
+		extractBaseURLPath(ctx, r, rr, "/saml/")
+	case strings.Contains(r.URL.Path, "/oauth2/"):
+		extractBaseURLPath(ctx, r, rr, "/oauth2/")
 	case strings.HasSuffix(r.URL.Path, "/basic/login"):
 		extractBaseURLPath(ctx, r, rr, "/basic/login")
 	case strings.Contains(r.URL.Path, "/assets/") || strings.Contains(r.URL.Path, "/favicon"):

@@ -23,21 +23,27 @@ import (
 	"net/url"
 )
 
-func (p *Authenticator) handleHTTPPortal(ctx context.Context, w http.ResponseWriter, r *http.Request, rr *requests.Request, usr *user.User) error {
+func (p *Authenticator) handleHTTPPortal(ctx context.Context, w http.ResponseWriter, r *http.Request, rr *requests.Request, parsedUser *user.User) error {
 	p.disableClientCache(w)
 	p.injectRedirectURL(ctx, w, r, rr)
-	if usr == nil {
+	if parsedUser == nil {
 		return p.handleHTTPRedirect(ctx, w, r, rr, "/login")
 	}
-	// TODO(greenpau): implement checkpoint
-	// if !usr.Authorized {
-	//  return p.handleHTTPError(ctx, w, r, rr, http.StatusNotImplemented)
-	// }
+	usr, err := p.sessions.Get(parsedUser.Claims.ID)
+	if err != nil {
+		p.deleteAuthCookies(w)
+		p.logger.Debug(
+			"User session not found, redirect to login",
+			zap.String("session_id", rr.Upstream.SessionID),
+			zap.String("request_id", rr.ID),
+			zap.Any("user", parsedUser.Claims),
+		)
+		return p.handleHTTPRedirect(ctx, w, r, rr, "/login")
+	}
 	return p.handleHTTPPortalScreen(ctx, w, r, rr, usr)
 }
 
 func (p *Authenticator) handleHTTPPortalScreen(ctx context.Context, w http.ResponseWriter, r *http.Request, rr *requests.Request, usr *user.User) error {
-	// TODO(greenpau): implement
 	if cookie, err := r.Cookie(p.cookie.Referer); err == nil {
 		redirectURL, err := url.Parse(cookie.Value)
 		if err == nil {
@@ -56,6 +62,10 @@ func (p *Authenticator) handleHTTPPortalScreen(ctx context.Context, w http.Respo
 	resp := p.ui.GetArgs()
 	resp.BaseURL(rr.Upstream.BasePath)
 	resp.Title = "Welcome"
+	if len(usr.FrontendLinks) > 0 {
+		// Add additional frontend links.
+		resp.AddFrontendLinks(usr.FrontendLinks)
+	}
 	content, err := p.ui.Render("portal", resp)
 	if err != nil {
 		return p.handleHTTPRenderError(ctx, w, r, rr, err)

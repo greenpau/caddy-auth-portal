@@ -35,8 +35,6 @@ func (p *Authenticator) handleHTTPStaticAssets(ctx context.Context, w http.Respo
 		assetPath = r.URL.Path[i+1:]
 	}
 
-	// p.logger.Debug("XXX", zap.String("url_path", r.URL.Path), zap.Any("index", i), zap.String("path", r.URL.Path[i:]))
-
 	p.logRequest("static assets", r, rr)
 	asset, err := ui.StaticAssets.GetAsset(assetPath)
 	if err != nil {

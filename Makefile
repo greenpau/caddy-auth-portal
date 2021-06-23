@@ -11,7 +11,7 @@ VERBOSE:=-v
 ifdef TEST
 	TEST:="-run ${TEST}"
 endif
-CADDY_VERSION="v2.3.0"
+CADDY_VERSION="v2.4.3"
 
 all: build
 
@@ -84,6 +84,8 @@ qtest:
 	@#time richgo test $(VERBOSE) -coverprofile=.coverage/coverage.out -run TestCookies ./pkg/cookies/*.go
 	@#time richgo test $(VERBOSE) -coverprofile=.coverage/coverage.out -run TestCookieLifetime ./*.go
 	@#time richgo test -v -coverprofile=.coverage/coverage.out -run TestSandboxCache ./pkg/cache/sandbox*.go
+	@#time richgo test -v -coverprofile=.coverage/coverage.out -run TestParseSandboxID ./pkg/cache/*.go
+	@time richgo test -v -coverprofile=.coverage/coverage.out -run Test* ./pkg/cache/*.go
 	@#time richgo test -v -coverprofile=.coverage/coverage.out -run TestNewSandboxCache ./pkg/cache/sandbox*.go
 	@#time richgo test -v -coverprofile=.coverage/coverage.out -run TestNewSandboxHurdle ./pkg/cache/sandbox*.go
 	@#time richgo test -v -coverprofile=.coverage/coverage.out ./pkg/cache/sandbox*.go
@@ -94,7 +96,8 @@ qtest:
 	@#time richgo test -v -coverprofile=.coverage/coverage.out -run TestServeHTTP ./pkg/authn/*.go
 	@#time richgo test -v -coverprofile=.coverage/coverage.out -run TestBackendConfig ./pkg/backends/*.go
 	@#time richgo test -v -coverprofile=.coverage/coverage.out -run TestCookieLifetime ./*.go
-	@time richgo test -v -coverprofile=.coverage/coverage.out -run TestFactory ./pkg/cookie/*.go
+	@#time richgo test -v -coverprofile=.coverage/coverage.out -run TestFactory ./pkg/cookie/*.go
+	@#time richgo test -v -coverprofile=.coverage/coverage.out -run TestFactory ./pkg/transformer/*.go
 	@#time richgo test -v -coverprofile=.coverage/coverage.out -run Test.*Caddyfile ./*.go
 	@go tool cover -html=.coverage/coverage.out -o .coverage/coverage.html
 	@go tool cover -func=.coverage/coverage.out | grep -v "100.0"

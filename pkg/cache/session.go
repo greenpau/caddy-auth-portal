@@ -159,7 +159,7 @@ func (c *SessionCache) Delete(sessionID string) error {
 
 // Get returns cached user entry.
 func (c *SessionCache) Get(sessionID string) (*user.User, error) {
-	if err := parseSessionID(sessionID); err != nil {
+	if err := parseCacheID(sessionID); err != nil {
 		return nil, err
 	}
 	c.mu.RLock()
@@ -181,14 +181,15 @@ func (e *SessionCacheEntry) Valid() error {
 	return nil
 }
 
-// parseSessionID checks cached session id for format requirements.
-func parseSessionID(s string) error {
+// parseCacheID checks the id associated with the cached entry for format
+// requirements.
+func parseCacheID(s string) error {
 	if len(s) > 96 || len(s) < 32 {
-		return errors.New("cached session id length is outside of 32-96 character range")
+		return errors.New("cached id length is outside of 32-96 character range")
 	}
 	for _, c := range s {
 		if (c < 'A' || c > 'Z') && (c < 'a' || c > 'z') && (c < '0' || c > '9') && (c != '-') {
-			return errors.New("cached session id contains invalid characters")
+			return errors.New("cached id contains invalid characters")
 		}
 	}
 	return nil

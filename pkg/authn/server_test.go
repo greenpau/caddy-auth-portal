@@ -72,8 +72,7 @@ func TestServeHTTP(t *testing.T) {
 		AccessListConfigs: []*acl.RuleConfiguration{
 			{
 				Conditions: []string{
-					// "always match roles any",
-					"match roles superadmin",
+					"match roles authp/admin",
 				},
 				Action: `allow`,
 			},

@@ -30,7 +30,7 @@ var (
 	// TestFullName1 is the full name for user1.
 	TestFullName1 = "Smith, John"
 	// TestRoles1 is the roles for user1.
-	TestRoles1 = []string{"viewer", "editor", "admin", "superadmin"}
+	TestRoles1 = []string{"viewer", "editor", "admin", "authp/admin"}
 	// TestUser2 is the username for user2.
 	TestUser2 = "bjones"
 	// TestEmail2 is the email for user2.

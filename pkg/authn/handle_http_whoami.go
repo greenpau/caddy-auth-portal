@@ -42,6 +42,9 @@ func (p *Authenticator) handleHTTPWhoami(ctx context.Context, w http.ResponseWri
 	if usr.Claims.IssuedAt > 0 {
 		tokenMap["issued_at_utc"] = time.Unix(usr.Claims.IssuedAt, 0).Format(time.UnixDate)
 	}
+	if usr.Claims.NotBefore > 0 {
+		tokenMap["not_before_utc"] = time.Unix(usr.Claims.NotBefore, 0).Format(time.UnixDate)
+	}
 	prettyTokenMap, err := json.MarshalIndent(tokenMap, "", "  ")
 	if err != nil {
 		return p.handleHTTPRenderError(ctx, w, r, rr, err)

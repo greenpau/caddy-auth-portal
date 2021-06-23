@@ -164,7 +164,7 @@
                               "anonymous",
                               "guest",
                               "admin",
-                              "superadmin"
+                              "authp/admin"
                             ]
                           }
                         ],
@@ -209,7 +209,7 @@
                               "anonymous",
                               "guest",
                               "admin",
-                              "superadmin"
+                              "authp/admin"
                             ]
                           }
                         ]

@@ -145,9 +145,17 @@ func (b *Backend) fetchClaims(tokenData map[string]interface{}) (map[string]inte
 		if v, exists := data["login"]; exists {
 			m["sub"] = "github.com/" + v.(string)
 		}
-		if v, exists := data["name"]; !exists {
+		if v, exists := data["name"]; exists {
 			m["name"] = v.(string)
 		}
+		if v, exists := data["avatar_url"]; exists {
+			m["picture"] = v.(string)
+		}
+		metadata := make(map[string]interface{})
+		if v, exists := data["id"]; exists {
+			metadata["id"] = v
+		}
+		m["metadata"] = metadata
 	case "facebook":
 		if v, exists := data["email"]; exists {
 			m["email"] = v.(string)

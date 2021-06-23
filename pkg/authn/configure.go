@@ -25,6 +25,7 @@ import (
 	"github.com/greenpau/caddy-auth-portal/pkg/cookie"
 	"github.com/greenpau/caddy-auth-portal/pkg/errors"
 	"github.com/greenpau/caddy-auth-portal/pkg/registration"
+	"github.com/greenpau/caddy-auth-portal/pkg/transformer"
 	"github.com/greenpau/caddy-auth-portal/pkg/ui"
 	"github.com/greenpau/go-identity"
 	"go.uber.org/zap"
@@ -48,6 +49,9 @@ func (mgr *InstanceManager) configure(p, m *Authenticator) error {
 	if err := mgr.configureUserInterface(p, m); err != nil {
 		return err
 	}
+	if err := mgr.configureUserTransformer(p, m); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -58,6 +62,14 @@ func (mgr *InstanceManager) configureEssentials(primaryInstance, m *Authenticato
 		m.sessions.Run()
 	} else {
 		m.sessions = primaryInstance.sessions
+	}
+
+	// Configure sandbox cache.
+	if m.PrimaryInstance {
+		m.sandboxes = cache.NewSandboxCache()
+		m.sandboxes.Run()
+	} else {
+		m.sandboxes = primaryInstance.sandboxes
 	}
 
 	// Cookies Validation
@@ -359,15 +371,50 @@ func (mgr *InstanceManager) configureUserInterface(primaryInstance, m *Authentic
 	return nil
 }
 
+func (mgr *InstanceManager) configureUserTransformer(primaryInstance, m *Authenticator) error {
+	if len(m.UserTransformerConfigs) == 0 {
+		if !m.PrimaryInstance {
+			m.transformer = primaryInstance.transformer
+		}
+		return nil
+	}
+	if m.PrimaryInstance {
+		tr, err := transformer.NewFactory(m.UserTransformerConfigs)
+		if err != nil {
+			return err
+		}
+		m.transformer = tr
+	} else {
+		m.transformer = primaryInstance.transformer
+	}
+	m.logger.Debug(
+		"Provisioned user transforms",
+		zap.String("instance_name", m.Name),
+		zap.Any("transforms", m.UserTransformerConfigs),
+	)
+	return nil
+}
+
 func (mgr *InstanceManager) configureCryptoKeyStore(primaryInstance, m *Authenticator) error {
 	if len(m.AccessListConfigs) == 0 {
 		if m.PrimaryInstance {
 			m.AccessListConfigs = []*acl.RuleConfiguration{
 				{
+					// Admin users can access everything.
+					Conditions: []string{"match roles authp/admin superuser superadmin"},
+					Action:     `allow`,
+				},
+				{
+					// Regular users can access everything but management pages.
 					Conditions: []string{
-						// TODO(greenpau): fix ACL.
-						// "always match roles any",
-						"match roles superadmin",
+						"match roles authp/user",
+					},
+					Action: `allow`,
+				},
+				{
+					// Guest users can access only whoami and portal endpoints.
+					Conditions: []string{
+						"match roles authp/guest",
 					},
 					Action: `allow`,
 				},

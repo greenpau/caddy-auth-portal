@@ -35,6 +35,7 @@ type Factory struct {
 	config    *Config
 	Referer   string `json:"referer,omitempty" xml:"referer,omitempty" yaml:"referer,omitempty"`
 	SessionID string `json:"session_id,omitempty" xml:"session_id,omitempty" yaml:"session_id,omitempty"`
+	SandboxID string `json:"sandbox_id,omitempty" xml:"sandbox_id,omitempty" yaml:"sandbox_id,omitempty"`
 }
 
 // NewFactory returns an instance of cookie factory.
@@ -47,6 +48,7 @@ func NewFactory(c *Config) (*Factory, error) {
 	}
 	f.Referer = "AUTHP_REDIRECT_URL"
 	f.SessionID = "AUTHP_SESSION_ID"
+	f.SandboxID = "AUTHP_SANDBOX_ID"
 	switch strings.ToLower(f.config.SameSite) {
 	case "":
 	case "lax", "strict", "none":

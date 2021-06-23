@@ -73,8 +73,8 @@ func (p *Authenticator) handleHTTPSettings(ctx context.Context, w http.ResponseW
 		return p.handleHTTPError(ctx, w, r, rr, http.StatusBadRequest)
 	}
 
-	p.logger.Warn(
-		"settings",
+	p.logger.Debug(
+		"Rendering settings page",
 		zap.String("session_id", rr.Upstream.SessionID),
 		zap.String("request_id", rr.ID),
 		zap.String("realm", usr.Authenticator.Realm),

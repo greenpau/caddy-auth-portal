@@ -29,6 +29,7 @@ import (
 	"github.com/greenpau/caddy-auth-portal/pkg/backends"
 	"github.com/greenpau/caddy-auth-portal/pkg/cookie"
 	"github.com/greenpau/caddy-auth-portal/pkg/registration"
+	"github.com/greenpau/caddy-auth-portal/pkg/transformer"
 	"github.com/greenpau/caddy-auth-portal/pkg/ui"
 
 	"github.com/caddyserver/caddy/v2"
@@ -70,6 +71,7 @@ func init() {
 //         custom_js_path <path>
 //         custom_html_header_path <path>
 //         static_asset <uri> <content_type> <path>
+//         allow settings for role <role>
 //	     }
 //
 //       cookie domain <name>
@@ -113,6 +115,31 @@ func parseCaddyfileAuthenticator(h httpcaddyfile.Helper) ([]httpcaddyfile.Config
 		for nesting := h.Nesting(); h.NextBlock(nesting); {
 			rootDirective := h.Val()
 			switch rootDirective {
+			case "transform":
+				args := strings.Join(h.RemainingArgs(), " ")
+				switch args {
+				case "user", "users":
+					tc := &transformer.Config{}
+					for nesting := h.Nesting(); h.NextBlock(nesting); {
+						trArgs := h.RemainingArgs()
+						var matchArgs bool
+						encodedArgs := cfgutils.EncodeArgs(trArgs)
+						for _, arg := range trArgs {
+							if arg == "match" {
+								matchArgs = true
+								break
+							}
+						}
+						if matchArgs {
+							tc.Matchers = append(tc.Matchers, encodedArgs)
+						} else {
+							tc.Actions = append(tc.Actions, encodedArgs)
+						}
+					}
+					portal.UserTransformerConfigs = append(portal.UserTransformerConfigs, tc)
+				default:
+					return nil, h.Errf("unsupported directive for %s: %s", rootDirective, args)
+				}
 			case "cookie":
 				args := h.RemainingArgs()
 				if len(args) != 2 {

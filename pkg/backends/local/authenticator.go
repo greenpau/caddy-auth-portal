@@ -62,13 +62,13 @@ func (sa *Authenticator) Configure(fp string) error {
 				Username: "webadmin",
 				Password: uuid.NewV4().String(),
 				Email:    "webadmin@localdomain.local",
-				Roles:    []string{"superadmin"},
+				Roles:    []string{"authp/admin"},
 			},
 		}
 		if err := sa.db.AddUser(req); err != nil {
 			return err
 		}
-		sa.logger.Info("created default superadmin user for the database",
+		sa.logger.Info("created default admin user for the database",
 			zap.String("username", req.User.Username),
 			zap.String("email", req.User.Email),
 			zap.String("secret", req.User.Password),

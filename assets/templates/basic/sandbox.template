@@ -54,18 +54,18 @@
             <ul class="collection">
               <li class="collection-item">
                 <i class="las la-mobile la-lg"></i>
-                <a href="{{ pathjoin .ActionEndpoint "sandbox" .Data.id "app" .Data.action }}">Authenticator App</a>
+                <a href="{{ pathjoin .ActionEndpoint "sandbox" .Data.id "mfa-app-auth" }}">Authenticator App</a>
               </li>
               <li class="collection-item">
                 <i class="las la-microchip la-lg"></i>
-                <a href="{{ pathjoin .ActionEndpoint "sandbox" .Data.id "u2f" .Data.action }}">Hardware Token</a>
+                <a href="{{ pathjoin .ActionEndpoint "sandbox" .Data.id "mfa-u2f-auth" }}">Hardware Token</a>
               </li>
             </ul>
           </div>
           {{ else if eq .Data.view "mfa_app_auth" }}
           <div class="row">
             <form class="mfa-app-auth-form"
-                  action="{{ pathjoin .ActionEndpoint "sandbox" .Data.id "app" .Data.action }}"
+                  action="{{ pathjoin .ActionEndpoint "sandbox" .Data.id "mfa-app-auth" }}"
                   method="POST"
                   autocomplete="off"
                   >
@@ -99,7 +99,7 @@
               <ul>
                 <li>
                   <i class="las la-lock-open"></i>
-                  <a href="{{ pathjoin .ActionEndpoint "sandbox" .Data.id "app" "recovery" }}">
+                  <a href="{{ pathjoin .ActionEndpoint "sandbox" .Data.id "mfa-app-recovery" }}">
                     Enter a two-factor recovery code
                   </a>
                 </li>
@@ -115,7 +115,7 @@
           {{ else if eq .Data.view "mfa_u2f_auth" }}
           <div class="row">
             <form class="mfa-u2f-auth-form"
-                  action="{{ pathjoin .ActionEndpoint "sandbox" .Data.id "u2f" .Data.action }}"
+                  action="{{ pathjoin .ActionEndpoint "sandbox" .Data.id "mfa-u2f-auth" }}"
                   method="POST"
                   autocomplete="off"
                   >
@@ -148,21 +148,16 @@
           <div class="row">
             <p>The {{ .Data.view }} view is under construction.</p>
           </div>
-          {{ else if eq .Data.view "mfa_u2f_register_success" }}
-          <div class="row">
-            <p>The {{ .Data.view }} view is under construction.</p>
-          </div>
-          {{ else if eq .Data.view "mfa_u2f_register_error" }}
-          <div class="row">
-            <p>The {{ .Data.view }} view is under construction.</p>
-          </div>
-          {{ else if eq .Data.view "mfa_u2f_auth_success" }}
-          <div class="row">
-            <p>The {{ .Data.view }} view is under construction.</p>
-          </div>
-          {{ else if eq .Data.view "mfa_u2f_auth_error" }}
-          <div class="row">
-            <p>The {{ .Data.view }} view is under construction.</p>
+          {{ else if eq .Data.view "error" }}
+          <div class="row center">
+            <p>Your session failed to meet authorization requirements.</p>
+            <p>{{ .Data.error }}.</p>
+            <a href="{{ pathjoin .ActionEndpoint "sandbox" .Data.id }}">
+              <button type="button" name="button" class="btn waves-effect waves-light navbtn active navbtn-last red lighten-1">
+                <i class="las la-redo-alt left app-btn-icon"></i>
+                <span class="app-btn-text">Try Again</span>
+              </button>
+            </a>
           </div>
           {{ else }}
           <div class="row">

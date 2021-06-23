@@ -42,7 +42,7 @@
       "last_modified": "2020-05-09T15:59:15.318042285Z",
       "roles": [
         {
-          "name": "superadmin"
+          "name": "authp/admin"
         }
       ]
     }

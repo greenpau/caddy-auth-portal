@@ -21,6 +21,12 @@ import (
 	"net/url"
 )
 
+func (p *Authenticator) deleteAuthCookies(w http.ResponseWriter) {
+	for tokenName := range p.validator.GetAuthCookies() {
+		w.Header().Add("Set-Cookie", p.cookie.GetDeleteCookie(tokenName))
+	}
+}
+
 func (p *Authenticator) handleHTTPLogout(ctx context.Context, w http.ResponseWriter, r *http.Request, rr *requests.Request) error {
 	p.disableClientCache(w)
 	p.injectRedirectURL(ctx, w, r, rr)

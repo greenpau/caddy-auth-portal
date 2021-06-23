@@ -25,6 +25,7 @@ import (
 	"github.com/greenpau/caddy-auth-portal/pkg/cache"
 	"github.com/greenpau/caddy-auth-portal/pkg/cookie"
 	"github.com/greenpau/caddy-auth-portal/pkg/registration"
+	"github.com/greenpau/caddy-auth-portal/pkg/transformer"
 	"github.com/greenpau/caddy-auth-portal/pkg/ui"
 	"github.com/greenpau/go-identity"
 	"go.uber.org/zap"
@@ -47,9 +48,11 @@ type Authenticator struct {
 	// UI holds the configuration for the user interface.
 	UI *ui.Parameters `json:"ui,omitempty"`
 	// UserRegistrationConfig holds the configuration for the user registration.
-	UserRegistrationConfig *registration.Config `json:"registration_config,omitempty"`
+	UserRegistrationConfig *registration.Config `json:"user_registration_config,omitempty" xml:"user_registration_config,omitempty" yaml:"user_registration_config,omitempty"`
+	// UserTransformerConfig holds the configuration for the user transformer.
+	UserTransformerConfigs []*transformer.Config `json:"user_transformer_config,omitempty" xml:"user_transformer_config,omitempty" yaml:"user_transformer_config,omitempty"`
 	// CookieConfig holds the configuration for the cookies issues by Authenticator.
-	CookieConfig *cookie.Config `json:"cookie_config,omitempty"`
+	CookieConfig *cookie.Config `json:"cookie_config,omitempty" xml:"cookie_config,omitempty" yaml:"cookie_config,omitempty"`
 	// BackendConfigs hold the configurations for authentication backends.
 	BackendConfigs []backends.Config `json:"backend_configs,omitempty"`
 	// AccessListConfigs hold the configurations for the ACL of the token validator.
@@ -66,10 +69,12 @@ type Authenticator struct {
 	keystore     *kms.CryptoKeyStore
 	backends     []*backends.Backend
 	cookie       *cookie.Factory
+	transformer  *transformer.Factory
 	logger       *zap.Logger
 	ui           *ui.Factory
 	startedAt    time.Time
 	sessions     *cache.SessionCache
+	sandboxes    *cache.SandboxCache
 	loginOptions map[string]interface{}
 }
 

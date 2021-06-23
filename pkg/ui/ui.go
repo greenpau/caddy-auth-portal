@@ -17,6 +17,7 @@ package ui
 import (
 	"bytes"
 	"fmt"
+	"github.com/greenpau/caddy-auth-jwt/pkg/utils/cfgutils"
 	"io/ioutil"
 	"path"
 	"strings"
@@ -39,7 +40,7 @@ type Factory struct {
 	RegistrationEnabled     bool                 `json:"registration_enabled,omitempty"`
 	PasswordRecoveryEnabled bool                 `json:"password_recovery_enabled,omitempty"`
 	MfaEnabled              bool                 `json:"mfa_enabled,omitempty"`
-	// The links visible to anonymoous user
+	// The links visible to anonymous user
 	PublicLinks []Link `json:"public_links,omitempty"`
 	// The links visible to authenticated user
 	PrivateLinks []Link `json:"private_links,omitempty"`
@@ -182,6 +183,43 @@ func (args *Args) BaseURL(s string) {
 		args.LogoURL = path.Join(s, args.LogoURL)
 	}
 	args.ActionEndpoint = s
+}
+
+// AddFrontendLinks adds private links.
+func (args *Args) AddFrontendLinks(arr []string) {
+	for _, encodedArgs := range arr {
+		parts, err := cfgutils.DecodeArgs(encodedArgs)
+		if err != nil {
+			continue
+		}
+		lnk := Link{
+			Title: parts[0],
+			Link:  parts[1],
+		}
+		argp := 2
+		var disabledLink bool
+		for argp < len(parts) {
+			switch parts[argp] {
+			case "target_blank":
+				lnk.Target = "_blank"
+				lnk.TargetEnabled = true
+			case "icon":
+				argp++
+				if argp < len(parts) {
+					lnk.IconName = parts[argp]
+					lnk.IconEnabled = true
+				}
+			case "disabled":
+				disabledLink = true
+				break
+			}
+			argp++
+		}
+		if disabledLink {
+			continue
+		}
+		args.PrivateLinks = append(args.PrivateLinks, lnk)
+	}
 }
 
 // AddBuiltinTemplates adds all built-in template to Factory
