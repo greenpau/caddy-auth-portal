@@ -57,10 +57,9 @@ coverage:
 
 docs:
 	@mkdir -p .doc
+	@assets/scripts/generate_downloads.sh
 	@cat ./assets/docs/pages/*.md > README.md
 	@versioned -toc
-	@#go doc -all > .doc/index.txt
-	@#python3 assets/scripts/toc.py > .doc/toc.md
 
 clean:
 	@rm -rf .doc
@@ -85,7 +84,7 @@ qtest:
 	@#time richgo test $(VERBOSE) -coverprofile=.coverage/coverage.out -run TestCookieLifetime ./*.go
 	@#time richgo test -v -coverprofile=.coverage/coverage.out -run TestSandboxCache ./pkg/cache/sandbox*.go
 	@#time richgo test -v -coverprofile=.coverage/coverage.out -run TestParseSandboxID ./pkg/cache/*.go
-	@time richgo test -v -coverprofile=.coverage/coverage.out -run Test* ./pkg/cache/*.go
+	@#time richgo test -v -coverprofile=.coverage/coverage.out -run Test* ./pkg/cache/*.go
 	@#time richgo test -v -coverprofile=.coverage/coverage.out -run TestNewSandboxCache ./pkg/cache/sandbox*.go
 	@#time richgo test -v -coverprofile=.coverage/coverage.out -run TestNewSandboxHurdle ./pkg/cache/sandbox*.go
 	@#time richgo test -v -coverprofile=.coverage/coverage.out ./pkg/cache/sandbox*.go
@@ -93,7 +92,7 @@ qtest:
 	@#time richgo test -v -coverprofile=.coverage/coverage.out ./pkg/cookie/*.go
 	@#time richgo test -v -coverprofile=.coverage/coverage.out ./pkg/authn/*.go
 	@#time richgo test -v -coverprofile=.coverage/coverage.out -run TestNewAuthenticator ./pkg/authn/*.go
-	@#time richgo test -v -coverprofile=.coverage/coverage.out -run TestServeHTTP ./pkg/authn/*.go
+	@time richgo test -v -coverprofile=.coverage/coverage.out -run TestServeHTTP ./pkg/authn/*.go
 	@#time richgo test -v -coverprofile=.coverage/coverage.out -run TestBackendConfig ./pkg/backends/*.go
 	@#time richgo test -v -coverprofile=.coverage/coverage.out -run TestCookieLifetime ./*.go
 	@#time richgo test -v -coverprofile=.coverage/coverage.out -run TestFactory ./pkg/cookie/*.go

@@ -91,10 +91,9 @@ func (p *Authenticator) handleHTTPExternalLogin(ctx context.Context, w http.Resp
 		return p.handleHTTPError(ctx, w, r, rr, http.StatusNotImplemented)
 	}
 	// User authenticated successfully.
-	code, err := p.authorizeLoginRequest(ctx, w, r, rr)
-	if err != nil {
-		return p.handleHTTPErrorWithLog(ctx, w, r, rr, code, err.Error())
+	if err := p.authorizeLoginRequest(ctx, w, r, rr); err != nil {
+		return p.handleHTTPErrorWithLog(ctx, w, r, rr, rr.Response.Code, err.Error())
 	}
-	w.WriteHeader(code)
+	w.WriteHeader(rr.Response.Code)
 	return nil
 }

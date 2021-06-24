@@ -401,28 +401,20 @@ func (mgr *InstanceManager) configureCryptoKeyStore(primaryInstance, m *Authenti
 			m.AccessListConfigs = []*acl.RuleConfiguration{
 				{
 					// Admin users can access everything.
-					Conditions: []string{"match roles authp/admin superuser superadmin"},
-					Action:     `allow`,
-				},
-				{
-					// Regular users can access everything but management pages.
-					Conditions: []string{
-						"match roles authp/user",
-					},
-					Action: `allow`,
-				},
-				{
-					// Guest users can access only whoami and portal endpoints.
-					Conditions: []string{
-						"match roles authp/guest",
-					},
-					Action: `allow`,
+					Conditions: []string{"match roles authp/admin authp/user authp/guest superuser superadmin"},
+					Action:     `allow stop`,
 				},
 			}
 		} else {
 			m.AccessListConfigs = primaryInstance.AccessListConfigs
 		}
 	}
+
+	m.logger.Debug(
+		"Provided authentication acl configuration",
+		zap.String("instance_name", m.Name),
+		zap.Any("acl", m.AccessListConfigs),
+	)
 
 	if m.TokenValidatorOptions == nil {
 		if m.PrimaryInstance {
@@ -432,9 +424,8 @@ func (mgr *InstanceManager) configureCryptoKeyStore(primaryInstance, m *Authenti
 		}
 	}
 	m.TokenValidatorOptions.ValidateBearerHeader = true
-	// TODO(greenpau): check whether ACL contains path method conditions and
-	// enable the below!
-	//         p.ValidateMethodPath = true
+	// The below line is disabled because path match is not part of the ACL.
+	// m.TokenValidatorOptions.ValidateMethodPath = true
 
 	accessList := acl.NewAccessList()
 	accessList.SetLogger(m.logger)
@@ -467,5 +458,10 @@ func (mgr *InstanceManager) configureCryptoKeyStore(primaryInstance, m *Authenti
 	if err := m.validator.Configure(ctx, m.keystore.GetVerifyKeys(), accessList, m.TokenValidatorOptions); err != nil {
 		return errors.ErrCryptoKeyStoreConfig.WithArgs(m.Name, err)
 	}
+
+	m.logger.Debug(
+		"Provisioned validator acl",
+		zap.String("instance_name", m.Name),
+	)
 	return nil
 }

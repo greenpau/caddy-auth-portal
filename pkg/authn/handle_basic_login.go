@@ -57,15 +57,13 @@ func (p *Authenticator) handleHTTPBasicLogin(ctx context.Context, w http.Respons
 		w.Write([]byte(http.StatusText(http.StatusBadRequest)))
 		return nil
 	}
-	code, err := p.authenticateLoginRequest(ctx, w, r, rr, credentials)
-	if err != nil {
-		return p.handleHTTPErrorWithLog(ctx, w, r, rr, code, err.Error())
+	if err := p.authenticateLoginRequest(ctx, w, r, rr, credentials); err != nil {
+		return p.handleJSONErrorWithLog(ctx, w, r, rr, rr.Response.Code, err.Error())
 	}
-	code, err = p.authorizeLoginRequest(ctx, w, r, rr)
-	if err != nil {
-		return p.handleHTTPErrorWithLog(ctx, w, r, rr, code, err.Error())
+	if err := p.authorizeLoginRequest(ctx, w, r, rr); err != nil {
+		return p.handleJSONErrorWithLog(ctx, w, r, rr, rr.Response.Code, err.Error())
 	}
-	w.WriteHeader(code)
+	w.WriteHeader(rr.Response.Code)
 	return nil
 }
 

@@ -48,11 +48,9 @@ func (p *Authenticator) handleHTTP(ctx context.Context, w http.ResponseWriter, r
 		return p.handleHTTPWhoami(ctx, w, r, rr, usr)
 	case strings.Contains(r.URL.Path, "/saml/"):
 		// TODO(greenpau): implement
-		p.logRequest("external saml login traceback", r, rr)
+		// p.logRequest("external saml login traceback", r, rr)
 		return p.handleHTTPExternalLogin(ctx, w, r, rr, "saml")
 	case strings.Contains(r.URL.Path, "/oauth2/"):
-		// TODO(greenpau): implement
-		p.logRequest("external oauth2 login traceback", r, rr)
 		return p.handleHTTPExternalLogin(ctx, w, r, rr, "oauth2")
 	case strings.Contains(r.URL.Path, "/basic/login/"):
 		return p.handleHTTPBasicLogin(ctx, w, r, rr)
@@ -98,6 +96,14 @@ func (p *Authenticator) handleHTTPError(ctx context.Context, w http.ResponseWrit
 	resp := p.ui.GetArgs()
 	resp.BaseURL(rr.Upstream.BasePath)
 	resp.Title = http.StatusText(code)
+
+	switch code {
+	case http.StatusForbidden:
+		resp.Title = "Access Denied"
+	default:
+		resp.Title = http.StatusText(code)
+	}
+
 	resp.Data["authenticated"] = rr.Response.Authenticated
 	if r.Referer() != "" {
 		resp.Data["go_back_url"] = r.Referer()

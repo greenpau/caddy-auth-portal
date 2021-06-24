@@ -78,39 +78,41 @@ func (p *Authenticator) handleHTTPLoginRequest(ctx context.Context, w http.Respo
 	if err != nil {
 		return p.handleHTTPErrorWithLog(ctx, w, r, rr, http.StatusUnauthorized, err.Error())
 	}
-	code, err := p.authenticateLoginRequest(ctx, w, r, rr, credentials)
-	if err != nil {
-		return p.handleHTTPErrorWithLog(ctx, w, r, rr, code, err.Error())
+
+	if err := p.authenticateLoginRequest(ctx, w, r, rr, credentials); err != nil {
+		return p.handleJSONErrorWithLog(ctx, w, r, rr, rr.Response.Code, err.Error())
 	}
-	code, err = p.authorizeLoginRequest(ctx, w, r, rr)
-	if err != nil {
-		return p.handleHTTPErrorWithLog(ctx, w, r, rr, code, err.Error())
+	if err := p.authorizeLoginRequest(ctx, w, r, rr); err != nil {
+		return p.handleJSONErrorWithLog(ctx, w, r, rr, rr.Response.Code, err.Error())
 	}
-	w.WriteHeader(code)
+	w.WriteHeader(rr.Response.Code)
 	return nil
 }
 
-func (p *Authenticator) authenticateLoginRequest(ctx context.Context, w http.ResponseWriter, r *http.Request, rr *requests.Request, credentials map[string]string) (int, error) {
+func (p *Authenticator) authenticateLoginRequest(ctx context.Context, w http.ResponseWriter, r *http.Request, rr *requests.Request, credentials map[string]string) error {
 	rr.User.Username = credentials["username"]
 	rr.User.Password = credentials["password"]
 	backend := p.getBackendByRealm(credentials["realm"])
 	if backend == nil {
-		return http.StatusBadRequest, fmt.Errorf("no matching realm found")
+		rr.Response.Code = http.StatusBadRequest
+		return fmt.Errorf("no matching realm found")
 	}
 	rr.Upstream.Method = backend.GetMethod()
 	rr.Upstream.Realm = backend.GetRealm()
 	rr.Flags.Enabled = true
-	err := backend.Request(operator.Authenticate, rr)
-	if err != nil {
-		return http.StatusUnauthorized, err
+	if err := backend.Request(operator.Authenticate, rr); err != nil {
+		rr.Response.Code = http.StatusUnauthorized
+		return err
 	}
-	return http.StatusOK, nil
+	rr.Response.Code = http.StatusOK
+	return nil
 }
 
-func (p *Authenticator) authorizeLoginRequest(ctx context.Context, w http.ResponseWriter, r *http.Request, rr *requests.Request) (int, error) {
+func (p *Authenticator) authorizeLoginRequest(ctx context.Context, w http.ResponseWriter, r *http.Request, rr *requests.Request) error {
 	backend := p.getBackendByRealm(rr.Upstream.Realm)
 	if backend == nil {
-		return http.StatusBadRequest, fmt.Errorf("no matching realm found")
+		rr.Response.Code = http.StatusBadRequest
+		return fmt.Errorf("no matching realm found")
 	}
 	switch m := rr.Response.Payload.(type) {
 	case map[string]interface{}:
@@ -132,7 +134,8 @@ func (p *Authenticator) authorizeLoginRequest(ctx context.Context, w http.Respon
 					zap.Any("user", m),
 					zap.Error(err),
 				)
-				return http.StatusInternalServerError, err
+				rr.Response.Code = http.StatusInternalServerError
+				return err
 			}
 			p.logger.Debug(
 				"user transformation ended",
@@ -144,7 +147,8 @@ func (p *Authenticator) authorizeLoginRequest(ctx context.Context, w http.Respon
 		injectPortalRoles(m)
 		usr, err := user.NewUser(m)
 		if err != nil {
-			return http.StatusUnauthorized, err
+			rr.Response.Code = http.StatusUnauthorized
+			return err
 		}
 		if err := p.keystore.SignToken(nil, nil, usr); err != nil {
 			p.logger.Warn(
@@ -154,7 +158,8 @@ func (p *Authenticator) authorizeLoginRequest(ctx context.Context, w http.Respon
 				zap.Any("user", m),
 				zap.Error(err),
 			)
-			return http.StatusInternalServerError, err
+			rr.Response.Code = http.StatusInternalServerError
+			return err
 		}
 		usr.Authenticator.Name = backend.GetName()
 		usr.Authenticator.Realm = backend.GetRealm()
@@ -172,28 +177,44 @@ func (p *Authenticator) authorizeLoginRequest(ctx context.Context, w http.Respon
 					zap.Any("user", m),
 					zap.Error(err),
 				)
-				return http.StatusInternalServerError, err
+				rr.Response.Code = http.StatusInternalServerError
+				return err
 			}
 			usr.Checkpoints = checkpoints
 		}
 
 		// Build a list of additional user-specific UI links.
-		if v, exists := m["frontend_links"]; exists {
-			if err := usr.AddFrontendLinks(v); err != nil {
-				p.logger.Warn(
-					"frontend link creation failed",
-					zap.String("session_id", rr.Upstream.SessionID),
-					zap.String("request_id", rr.ID),
-					zap.Any("user", m),
-					zap.Error(err),
-				)
-				return http.StatusInternalServerError, err
+		if rr.Response.Workflow != "json-api" {
+			if v, exists := m["frontend_links"]; exists {
+				if err := usr.AddFrontendLinks(v); err != nil {
+					p.logger.Warn(
+						"frontend link creation failed",
+						zap.String("session_id", rr.Upstream.SessionID),
+						zap.String("request_id", rr.ID),
+						zap.Any("user", m),
+						zap.Error(err),
+					)
+					rr.Response.Code = http.StatusInternalServerError
+					return err
+				}
 			}
 		}
 
 		if len(usr.Checkpoints) > 0 {
+			if rr.Response.Workflow == "json-api" {
+				p.logger.Warn(
+					"Additional user authentication is not supported with API requests",
+					zap.String("session_id", rr.Upstream.SessionID),
+					zap.String("request_id", rr.ID),
+					zap.Any("backend", usr.Authenticator),
+					zap.Any("user", m),
+					zap.Any("checkpoints", usr.Checkpoints),
+				)
+				rr.Response.Code = http.StatusInternalServerError
+				return fmt.Errorf("Additional user authentication is not supported with API requests")
+			}
 			p.logger.Info(
-				"Successful login and redirect to authorization checkpoints",
+				"Successful authentication and redirect to authorization checkpoints",
 				zap.String("session_id", rr.Upstream.SessionID),
 				zap.String("request_id", rr.ID),
 				zap.Any("backend", usr.Authenticator),
@@ -220,8 +241,8 @@ func (p *Authenticator) authorizeLoginRequest(ctx context.Context, w http.Respon
 			)
 			w.Header().Set("Set-Cookie", p.cookie.GetCookie(p.cookie.SandboxID, usr.Authenticator.TempSecret))
 			w.Header().Set("Location", redirectLocation)
-			return http.StatusSeeOther, nil
-			// return http.StatusNotImplemented, fmt.Errorf("Checkpoints Not Implemented")
+			rr.Response.Code = http.StatusSeeOther
+			return nil
 		}
 		p.logger.Info(
 			"Successful login",
@@ -230,18 +251,27 @@ func (p *Authenticator) authorizeLoginRequest(ctx context.Context, w http.Respon
 			zap.Any("backend", usr.Authenticator),
 			zap.Any("user", m),
 		)
-		return p.grantAccess(ctx, w, r, rr, usr), nil
+		p.grantAccess(ctx, w, r, rr, usr)
+		return nil
 	}
-	return http.StatusBadRequest, fmt.Errorf("unsupported backend response payload %T", rr.Response.Payload)
+	rr.Response.Code = http.StatusBadRequest
+	return fmt.Errorf("unsupported backend response payload %T", rr.Response.Payload)
 }
 
-func (p *Authenticator) grantAccess(ctx context.Context, w http.ResponseWriter, r *http.Request, rr *requests.Request, usr *user.User) int {
+func (p *Authenticator) grantAccess(ctx context.Context, w http.ResponseWriter, r *http.Request, rr *requests.Request, usr *user.User) {
 	var redirectLocation string
 	rr.Response.Authenticated = true
 	usr.Authorized = true
 	p.sessions.Add(rr.Upstream.SessionID, usr)
 	w.Header().Set("Authorization", "Bearer "+usr.Token)
 	w.Header().Set("Set-Cookie", p.cookie.GetCookie(usr.TokenName, usr.Token))
+
+	if rr.Response.Workflow == "json-api" {
+		// Do not perform redirects to API logins.
+		rr.Response.Code = http.StatusOK
+		return
+	}
+
 	// Determine whether redirect cookie is present and reditect to the page that
 	// forwarded a user to the authentication portal.
 	if cookie, err := r.Cookie(p.cookie.Referer); err == nil {
@@ -261,7 +291,8 @@ func (p *Authenticator) grantAccess(ctx context.Context, w http.ResponseWriter, 
 		redirectLocation = rr.Upstream.BaseURL + path.Join(rr.Upstream.BasePath, "/portal")
 	}
 	w.Header().Set("Location", redirectLocation)
-	return http.StatusSeeOther
+	rr.Response.Code = http.StatusSeeOther
+	return
 }
 
 func injectPortalRoles(m map[string]interface{}) {

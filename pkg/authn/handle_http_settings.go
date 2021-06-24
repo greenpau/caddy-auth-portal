@@ -36,6 +36,7 @@ func (p *Authenticator) handleHTTPSettings(ctx context.Context, w http.ResponseW
 		}
 		return p.handleHTTPRedirect(ctx, w, r, rr, "/login")
 	}
+
 	usr, err := p.sessions.Get(parsedUser.Claims.ID)
 	if err != nil {
 		p.logger.Warn(
@@ -60,6 +61,10 @@ func (p *Authenticator) handleHTTPSettings(ctx context.Context, w http.ResponseW
 			zap.String("source_address", utils.GetSourceAddress(r)),
 		)
 		return p.handleHTTPLogoutWithLocalRedirect(ctx, w, r, rr)
+	}
+
+	if permitted := usr.HasRole("authp/admin", "authp/user"); !permitted {
+		return p.handleHTTPError(ctx, w, r, rr, http.StatusForbidden)
 	}
 
 	switch usr.Authenticator.Method {

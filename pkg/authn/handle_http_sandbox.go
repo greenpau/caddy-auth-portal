@@ -139,8 +139,8 @@ func (p *Authenticator) handleHTTPSandbox(ctx context.Context, w http.ResponseWr
 			zap.String("request_id", rr.ID),
 			zap.Any("checkpoints", usr.Checkpoints),
 		)
-		code := p.grantAccess(ctx, w, r, rr, usr)
-		w.WriteHeader(code)
+		p.grantAccess(ctx, w, r, rr, usr)
+		w.WriteHeader(rr.Response.Code)
 		return nil
 	}
 
