@@ -31,7 +31,7 @@ func init() {
 // AuthMiddleware implements Form-Based, Basic, Local, LDAP,
 // OpenID Connect, OAuth 2.0, SAML Authentication.
 type AuthMiddleware struct {
-	Portal *authn.Authenticator `json:"portal,omitempty"`
+	Portal *authn.Authenticator `json:"authp,omitempty"`
 }
 
 // CaddyModule returns the Caddy module information.
