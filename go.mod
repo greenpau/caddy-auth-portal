@@ -8,8 +8,8 @@ require (
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/go-ldap/ldap v3.0.3+incompatible
 	github.com/google/go-cmp v0.5.5
-	github.com/greenpau/caddy-auth-jwt v1.3.5
-	github.com/greenpau/caddy-trace v1.1.6
+	github.com/greenpau/caddy-auth-jwt v1.3.6
+	github.com/greenpau/caddy-trace v1.1.7
 	github.com/greenpau/go-identity v1.1.2
 	github.com/iancoleman/strcase v0.1.3
 	github.com/satori/go.uuid v1.2.0
@@ -18,3 +18,5 @@ require (
 	golang.org/x/crypto v0.0.0-20210513164829-c07d793c2f9a
 	gopkg.in/asn1-ber.v1 v1.0.0-20181015200546-f715ec2f112d // indirect
 )
+
+replace github.com/greenpau/caddy-auth-jwt v1.3.5 => /home/greenpau/dev/go/src/github.com/greenpau/caddy-auth-jwt
