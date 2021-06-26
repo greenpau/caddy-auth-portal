@@ -38,6 +38,8 @@ import (
 	"github.com/caddyserver/caddy/v2/modules/caddyhttp"
 )
 
+const badRepl string = "ERROR_BAD_REPL"
+
 func init() {
 	httpcaddyfile.RegisterDirective("authp", parseCaddyfileAuthenticator)
 }
@@ -104,6 +106,8 @@ func parseCaddyfileAuthenticator(h httpcaddyfile.Helper) ([]httpcaddyfile.Config
 		TokenValidatorOptions:  &options.TokenValidatorOptions{},
 		TokenGrantorOptions:    &options.TokenGrantorOptions{},
 	}
+
+	repl := caddy.NewReplacer()
 
 	// logger := utils.NewLogger()
 
@@ -178,6 +182,7 @@ func parseCaddyfileAuthenticator(h httpcaddyfile.Helper) ([]httpcaddyfile.Config
 				switch args[0] {
 				case "key", "default":
 					encodedArgs := cfgutils.EncodeArgs(args)
+					encodedArgs = repl.ReplaceAll(encodedArgs, badRepl)
 					cryptoKeyConfig = append(cryptoKeyConfig, encodedArgs)
 				default:
 					return nil, h.Errf("%s directive value of %q is unsupported", rootDirective, strings.Join(args, " "))
@@ -240,7 +245,7 @@ func parseCaddyfileAuthenticator(h httpcaddyfile.Helper) ([]httpcaddyfile.Config
 							if !h.NextArg() {
 								return backendValueErr(h, backendName, backendArg)
 							}
-							cfg[backendArg] = h.Val()
+							cfg[backendArg] = repl.ReplaceAll(h.Val(), badRepl)
 						case "attributes":
 							attrMap := make(map[string]interface{})
 							for attrNesting := h.Nesting(); h.NextBlock(attrNesting); {
@@ -296,7 +301,7 @@ func parseCaddyfileAuthenticator(h httpcaddyfile.Helper) ([]httpcaddyfile.Config
 							if !h.NextArg() {
 								return backendValueErr(h, backendName, backendArg)
 							}
-							cfg[backendArg] = h.Val()
+							cfg[backendArg] = repl.ReplaceAll(h.Val(), badRepl)
 						case "acs_url":
 							if !h.NextArg() {
 								return backendValueErr(h, backendName, backendArg)
