@@ -120,14 +120,17 @@ mod:
 	@go mod tidy
 	@go mod verify
 
-release: info mod license
-	@echo "Making release"
+patch:
 	@if [ $(GIT_BRANCH) != "main" ]; then echo "cannot release to non-main branch $(GIT_BRANCH)" && false; fi
 	@git diff-index --quiet HEAD -- || ( echo "git directory is dirty, commit changes first" && git status && false )
 	@versioned -patch
 	@echo "Patched version"
 	@git add VERSION
 	@git commit -m "released v`cat VERSION | head -1`"
+
+release: info mod license patch docs
+	@echo "Making release"
+	@git commit -m "updated download links"
 	@git tag -a v`cat VERSION | head -1` -m "v`cat VERSION | head -1`"
 	@git push
 	@git push --tags
