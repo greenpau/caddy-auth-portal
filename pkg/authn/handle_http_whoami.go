@@ -25,8 +25,12 @@ import (
 
 func (p *Authenticator) handleHTTPWhoami(ctx context.Context, w http.ResponseWriter, r *http.Request, rr *requests.Request, usr *user.User) error {
 	p.disableClientCache(w)
+	p.injectRedirectURL(ctx, w, r, rr)
 	if usr == nil {
-		return p.handleHTTPError(ctx, w, r, rr, http.StatusUnauthorized)
+		if rr.Response.RedirectURL == "" {
+			return p.handleHTTPRedirect(ctx, w, r, rr, "/login?redirect_url="+r.RequestURI)
+		}
+		return p.handleHTTPRedirect(ctx, w, r, rr, "/login")
 	}
 	resp := p.ui.GetArgs()
 	resp.Title = "User Identity"
