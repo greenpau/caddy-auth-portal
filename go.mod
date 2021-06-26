@@ -18,5 +18,3 @@ require (
 	golang.org/x/crypto v0.0.0-20210513164829-c07d793c2f9a
 	gopkg.in/asn1-ber.v1 v1.0.0-20181015200546-f715ec2f112d // indirect
 )
-
-replace github.com/greenpau/caddy-auth-jwt v1.3.5 => /home/greenpau/dev/go/src/github.com/greenpau/caddy-auth-jwt
