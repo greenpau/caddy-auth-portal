@@ -8,92 +8,113 @@ the plugin. Specifically, what URLs the cookies should be sent to.
 See [MDN - Using HTTP cookies - Define where cookies are sent](https://developer.mozilla.org/en-US/docs/Web/HTTP/Cookies)
 for more information.
 
-
-* `cookie_domain`: adds the **Domain** attribute to a cookie. It determines
-  which hosts are allowed to receive the cookie.
-* `cookie_path`: adds the **Path** attribute to a cookie. It determines the
-  URL path that must exist in the requested URL in order to send
-  the Cookie header.
-* `cookie_lifetime`: sets the number of seconds until the cookie expires.
-  The directive sets "Max-Age" cookie attribute.
+* `cookie domain <domain>`: adds the **Domain** attribute to a cookie. It
+  determines which hosts are allowed to receive the cookie. By default,
+  the domain is not included.
+* `cookie path <path>` (optional): adds the **Path** attribute to a cookie.
+  It determines the URL path that must exist in the requested URL in order
+  to send  the Cookie header. The default is `/`.
+* `cookie lifetime` (optional): sets the number of seconds until the cookie
+  expires. The directive sets "Max-Age" cookie attribute.
+* `cookie samesite <lax|strict|none>`: specifies SameSite strategy.
+* `cookie insecure <on|off>`: Allows sending cookies over HTTP. By default,
+  it is disabled.
 
 ### JWT Tokens
 
-The plugin sends JWT token via the cookie.
+The plugin issues JWT tokens to authenticated users. The tokens
+contains user attributes, e.g. name, email, avatar, etc. They also
+contains roles. The roles are used to authorize user access with
+`jwt` plugin.
 
-* `token_name`: specifies the names of the cookie with authorization credentials
+By default, in addition to the roles configured by an authentication provider,
+the plugin issues one of the three roles to a user.
 
-By default the lifetime of the token is 15 minutes. The `token_lifetime`
-can be used to change it to 1 hour (3600 seconds).
+* `authp/admin`: this is the admin user. It must be granted by authentication
+  provider or added to a user via `transform user` directive
+* `authp/user`: the user can access `/settings` endpoint. It must be granted
+  by authentication provider or added to a user via `transform user` directive
+* `authp/guest`: can access portal only. This is the default role assigned by
+  the portal to a user when neither `authp/admin` nor `authp/user` are being
+  assigned
 
-```
-      jwt {
-        token_name access_token
-        token_secret 0e2fdcf8-6868-41a7-884b-7308795fc286
-        token_lifetime 3600
-      }
-```
+The plugin supports the issuance and verification of RSA, ECDSA, and shared keys.
+See docs [here](https://github.com/greenpau/caddy-auth-jwt#token-verification).
 
-The issued JWT token could be of two types:
+#### Auto-Generated Encryption Keys
 
-1. `HS512`: signed using shared secret key
-2. `RS512` and `ES512`: signed using private PEM key
+By default, if there is no `crypto key` directive, the plugin auto-generated
+ECDSA key pair for signing and verification of tokens. The key pair changes
+with each restart of the plugin.
 
-The `HS512` is being configured with `token_secret`
+In this case, there is no need to define `crypto key` directive in `jwt` plugin
+because the two plugins would know about the keypair.
 
-```
-      jwt {
-        ...
-        # token_secret <shared_key>
-        token_secret 0e2fdcf8-6868-41a7-884b-7308795fc286
-        ...
-      }
-```
+This is a perfect option for standalone servers.
 
-The `RS512` is being configured with `token_rsa_file` directive:
+#### Encryption Key Configuration
 
-```
-      jwt {
-        ...
-        token_rsa_file <key_id> <file_path>
-        token_rsa_file Hz789bc303f0db /etc/gatekeeper/auth/jwt/sign_key.pem
-        ...
-      }
-```
+##### Shared Key
 
-If necessary, generate the signing key:
-
-```bash
-$ openssl genrsa -out /etc/gatekeeper/auth/jwt/sign_key.pem 2048
-Generating RSA private key, 2048 bit long modulus (2 primes)
-.....................................................................................................................+++++
-....+++++
-e is 65537 (0x010001)
-```
-
-#### JWT Signing Method
-
-By default, the plugin uses HS512 (shared secret) and RS512/ES512 (public/private keys) for
-the signing of JWT tokens. User `token_sign_method` to change the algorithm, e.g.
+The following configuration instructs the plugin to sign/verify token
+with shared key `428f41ab-67ec-47d1-8633-bcade9dcc7ed` and add key id of
+`a2f19072b6d6` to the token's header. It uses the default token lifetime
+of 900 seconds (15 minutes). The name of the token is `access_token`.
 
 ```
-      jwt {
-        ...
-        token_secret 0e2fdcf8-6868-41a7-884b-7308795fc286
-        token_sign_method HS256
-        ...
-      }
+authp {
+  crypto key a2f19072b6d6 sign-verify 428f41ab-67ec-47d1-8633-bcade9dcc7ed
+}
 ```
 
-or:
+The corresponding `jwt` plugin config is:
 
 ```
-      jwt {
-        ...
-        token_rsa_file Hz789bc303f0db /etc/gatekeeper/auth/jwt/sign_key.pem
-        token_sign_method RS256
-        ...
-      }
+jwt {
+  crypto key a2f19072b6d6 verify 428f41ab-67ec-47d1-8633-bcade9dcc7ed
+}
+```
+
+The following configuration instructs the plugin to sign/verify token
+with shared key `428f41ab-67ec-47d1-8633-bcade9dcc7ed` and add key id of
+`a2f19072b6d6` to the token's header. It uses the default token lifetime
+of 1800 seconds (900 minutes). The name of the token is `JWT_TOKEN`.
+
+
+```
+authp {
+  crypto default token name JWT_TOKEN
+  crypto default token lifetime 1800
+  crypto key a2f19072b6d6 sign-verify 428f41ab-67ec-47d1-8633-bcade9dcc7ed
+}
+```
+
+The corresponding `jwt` plugin config is:
+
+```
+jwt {
+  crypto key a2f19072b6d6 verify 428f41ab-67ec-47d1-8633-bcade9dcc7ed
+}
+```
+
+The following configuration instructs the plugin to sign/verify token
+with shared key `428f41ab-67ec-47d1-8633-bcade9dcc7ed` and add key id of
+`a2f19072b6d6` to the token's header. It uses the default token lifetime
+of 1800 seconds (900 minutes). The name of the token is `JWT_TOKEN`.
+
+
+```
+authp {
+  crypto key sign-verify 428f41ab-67ec-47d1-8633-bcade9dcc7ed
+}
+```
+
+The corresponding `jwt` plugin config is:
+
+```
+jwt {
+  crypto key verify 428f41ab-67ec-47d1-8633-bcade9dcc7ed
+}
 ```
 
 [:arrow_up: Back to Top](#table-of-contents)
