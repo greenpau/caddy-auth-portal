@@ -40,6 +40,7 @@ Download Caddy with the plugins enabled:
     * [Auto-Generated Encryption Keys](#auto-generated-encryption-keys)
     * [Encryption Key Configuration](#encryption-key-configuration)
       * [Shared Key](#shared-key)
+* [User Transforms](#user-transforms)
 * [Usage Examples](#usage-examples)
   * [Secure Prometheus](#secure-prometheus)
   * [Secure Kibana](#secure-kibana)
@@ -365,6 +366,56 @@ The corresponding `jwt` plugin config is:
 ```
 jwt {
   crypto key verify 428f41ab-67ec-47d1-8633-bcade9dcc7ed
+}
+```
+
+[:arrow_up: Back to Top](#table-of-contents)
+
+<!--- end of section -->
+
+## User Transforms
+
+A user transform allows to perform the following one a user passed
+authentication:
+
+* add/remove user roles
+* add link to UI portal page
+* require multi-factor authentication (MFA/2FA)
+* require accepting term and conditions
+
+The following transform matches `sub` field and grants `authp/viewer` role:
+
+```
+authp {
+  transform user {
+    exact match sub github.com/greenpau
+    action add role authp/viewer
+  }
+}
+```
+
+The following transform, in addition to the above adds a link to a user's
+portal page:
+
+```
+authp {
+  transform user {
+    exact match sub github.com/greenpau
+    action add role authp/viewer
+    ui link "Caddy Version" /version icon "las la-code-branch"
+  }
+}
+```
+
+The following transform requires to pass multi-factor authentication when the
+authenticated user's email is `webadmin@localdomain.local`:
+
+```
+authp {
+  transform user {
+    exact match email webadmin@localdomain.local
+    action require mfa
+  }
 }
 ```
 
