@@ -13,7 +13,7 @@ clears the cookie and redirects the user to the path specified in
 ```
 https://chat.example.com {
   jwt {
-    auth_url https://auth.example.com/auth?redirect_url=https://chat.example.com
+    set auth url https://auth.example.com/auth?redirect_url=https://chat.example.com
   }
 }
 ```

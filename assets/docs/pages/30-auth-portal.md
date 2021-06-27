@@ -110,7 +110,7 @@ These templates are the parts of `pkg/ui/pages.go`. They are compiled in the
 portal's binary. That is, there is no need to store them on the disk.
 
 Next, if a user wants to use a different template, then it could be passed via
-Caddyfile directives. Specifically, use `<PAGE>_template` directive to point
+Caddyfile directives. Specifically, use `template <PAGE_NAME>` directive to point
 to a file on disk.
 
 ```
@@ -119,7 +119,7 @@ localhost {
     authp {
       ui {
         theme basic
-        login_template "/etc/gatekeeper/ui/login.template"
+        template login "/etc/gatekeeper/ui/login.template"
       }
 ```
 

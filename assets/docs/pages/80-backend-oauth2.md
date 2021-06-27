@@ -118,7 +118,7 @@ came from.
 ```
   route /sso/oauth2/generic* {
     jwt {
-      auth_url /auth/oauth2/generic
+      set auth url /auth/oauth2/generic
     }
     respond * "generic oauth2 sso" 200
   }
@@ -238,7 +238,7 @@ came from.
 ```
   route /sso/oauth2/okta* {
     jwt {
-      auth_url /auth/oauth2/okta
+      set auth url /auth/oauth2/okta
     }
     respond * "okta oauth2 sso" 200
   }
@@ -289,7 +289,7 @@ came from.
 ```
   route /sso/oauth2/google* {
     jwt {
-      auth_url /auth/oauth2/google
+      set auth url /auth/oauth2/google
     }
     respond * "google oauth2 sso" 200
   }

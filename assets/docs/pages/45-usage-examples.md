@@ -15,16 +15,14 @@ The following `Caddyfile` secures Prometheus/Alertmanager services:
 localhost:8443 {
   route /auth* {
     authp {
+      crypto default token lifetime 3600
+      crypto key sign-verify 0e2fdcf8-6868-41a7-884b-7308795fc286
       backends {
         local_backend {
           method local
           path /etc/gatekeeper/auth/local/users.json
           realm local
         }
-      }
-      jwt {
-        token_name access_token
-        token_secret 0e2fdcf8-6868-41a7-884b-7308795fc286
       }
       ui {
         links {
@@ -39,14 +37,9 @@ localhost:8443 {
   route /prometheus* {
     jwt {
       primary yes
-      trusted_tokens {
-        static_secret {
-          token_name access_token
-          token_secret 0e2fdcf8-6868-41a7-884b-7308795fc286
-        }
-      }
-      auth_url /auth
-      allow roles anonymous guest admin
+      crypto key verify 0e2fdcf8-6868-41a7-884b-7308795fc286
+      set auth url /auth
+      allow roles authp/admin authp/user authp/guest
       allow roles superadmin
     }
     uri strip_prefix /prometheus
@@ -79,10 +72,10 @@ templates and settings:
 
 ```
       ui {
-        login_template "/etc/gatekeeper/ui/login.template"
-        portal_template "/etc/gatekeeper/ui/portal.template"
-        logo_url "https://caddyserver.com/resources/images/caddy-circle-lock.svg"
-        logo_description "Caddy"
+        template login "/etc/gatekeeper/ui/login.template"
+        template portal "/etc/gatekeeper/ui/portal.template"
+        logo url "https://caddyserver.com/resources/images/caddy-circle-lock.svg"
+        logo description "Caddy"
         links {
           "Prometheus" /prometheus
           "Alertmanager" /alertmanager

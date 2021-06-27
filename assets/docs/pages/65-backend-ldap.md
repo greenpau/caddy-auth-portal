@@ -95,6 +95,7 @@ using local and LDAP credentials.
   route /auth* {
     authp {
       backends {
+        crypto key sign-verify 0e2fdcf8-6868-41a7-884b-7308795fc286
         local_backend {
           method local
           path assets/conf/local/auth/user_db.json
@@ -128,13 +129,9 @@ using local and LDAP credentials.
           }
         }
       }
-      jwt {
-        token_name access_token
-        token_secret 0e2fdcf8-6868-41a7-884b-7308795fc286
-      }
       ui {
-        logo_url "https://caddyserver.com/resources/images/caddy-circle-lock.svg"
-        logo_description "Caddy"
+        logo url "https://caddyserver.com/resources/images/caddy-circle-lock.svg"
+        logo description "Caddy"
         links {
           "Prometheus" /prometheus
           "Alertmanager" /alertmanager
@@ -147,14 +144,9 @@ using local and LDAP credentials.
   route /prometheus* {
     jwt {
       primary yes
-      trusted_tokens {
-        static_secret {
-          token_name access_token
-          token_secret 0e2fdcf8-6868-41a7-884b-7308795fc286
-        }
-      }
-      auth_url /auth
-      allow roles anonymous guest admin
+      crypto key verify 0e2fdcf8-6868-41a7-884b-7308795fc286
+      set auth url /auth
+      allow roles authp/admin authp/user authp/guest
       allow roles superadmin
       allow roles admin editor viewer
       allow roles AzureAD_Administrator AzureAD_Editor AzureAD_Viewer

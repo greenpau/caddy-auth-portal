@@ -88,7 +88,6 @@ Download Caddy with the plugins enabled:
   * [Binding to Privileged Ports](#binding-to-privileged-ports)
   * [Recording Source IP Address in JWT Token](#recording-source-ip-address-in-jwt-token)
   * [Session ID Cache](#session-id-cache)
-  * [Caddyfile Shortcuts](#caddyfile-shortcuts)
 
 <!-- end-markdown-toc -->
 
@@ -231,7 +230,7 @@ These templates are the parts of `pkg/ui/pages.go`. They are compiled in the
 portal's binary. That is, there is no need to store them on the disk.
 
 Next, if a user wants to use a different template, then it could be passed via
-Caddyfile directives. Specifically, use `<PAGE>_template` directive to point
+Caddyfile directives. Specifically, use `template <PAGE_NAME>` directive to point
 to a file on disk.
 
 ```
@@ -240,7 +239,7 @@ localhost {
     authp {
       ui {
         theme basic
-        login_template "/etc/gatekeeper/ui/login.template"
+        template login "/etc/gatekeeper/ui/login.template"
       }
 ```
 
@@ -389,16 +388,14 @@ The following `Caddyfile` secures Prometheus/Alertmanager services:
 localhost:8443 {
   route /auth* {
     authp {
+      crypto default token lifetime 3600
+      crypto key sign-verify 0e2fdcf8-6868-41a7-884b-7308795fc286
       backends {
         local_backend {
           method local
           path /etc/gatekeeper/auth/local/users.json
           realm local
         }
-      }
-      jwt {
-        token_name access_token
-        token_secret 0e2fdcf8-6868-41a7-884b-7308795fc286
       }
       ui {
         links {
@@ -413,14 +410,9 @@ localhost:8443 {
   route /prometheus* {
     jwt {
       primary yes
-      trusted_tokens {
-        static_secret {
-          token_name access_token
-          token_secret 0e2fdcf8-6868-41a7-884b-7308795fc286
-        }
-      }
-      auth_url /auth
-      allow roles anonymous guest admin
+      crypto key verify 0e2fdcf8-6868-41a7-884b-7308795fc286
+      set auth url /auth
+      allow roles authp/admin authp/user authp/guest
       allow roles superadmin
     }
     uri strip_prefix /prometheus
@@ -453,10 +445,10 @@ templates and settings:
 
 ```
       ui {
-        login_template "/etc/gatekeeper/ui/login.template"
-        portal_template "/etc/gatekeeper/ui/portal.template"
-        logo_url "https://caddyserver.com/resources/images/caddy-circle-lock.svg"
-        logo_description "Caddy"
+        template login "/etc/gatekeeper/ui/login.template"
+        template portal "/etc/gatekeeper/ui/portal.template"
+        logo url "https://caddyserver.com/resources/images/caddy-circle-lock.svg"
+        logo description "Caddy"
         links {
           "Prometheus" /prometheus
           "Alertmanager" /alertmanager
@@ -575,7 +567,7 @@ clears the cookie and redirects the user to the path specified in
 ```
 https://chat.example.com {
   jwt {
-    auth_url https://auth.example.com/auth?redirect_url=https://chat.example.com
+    set auth url https://auth.example.com/auth?redirect_url=https://chat.example.com
   }
 }
 ```
@@ -917,6 +909,7 @@ using local and LDAP credentials.
   route /auth* {
     authp {
       backends {
+        crypto key sign-verify 0e2fdcf8-6868-41a7-884b-7308795fc286
         local_backend {
           method local
           path assets/conf/local/auth/user_db.json
@@ -950,13 +943,9 @@ using local and LDAP credentials.
           }
         }
       }
-      jwt {
-        token_name access_token
-        token_secret 0e2fdcf8-6868-41a7-884b-7308795fc286
-      }
       ui {
-        logo_url "https://caddyserver.com/resources/images/caddy-circle-lock.svg"
-        logo_description "Caddy"
+        logo url "https://caddyserver.com/resources/images/caddy-circle-lock.svg"
+        logo description "Caddy"
         links {
           "Prometheus" /prometheus
           "Alertmanager" /alertmanager
@@ -969,14 +958,9 @@ using local and LDAP credentials.
   route /prometheus* {
     jwt {
       primary yes
-      trusted_tokens {
-        static_secret {
-          token_name access_token
-          token_secret 0e2fdcf8-6868-41a7-884b-7308795fc286
-        }
-      }
-      auth_url /auth
-      allow roles anonymous guest admin
+      crypto key verify 0e2fdcf8-6868-41a7-884b-7308795fc286
+      set auth url /auth
+      allow roles authp/admin authp/user authp/guest
       allow roles superadmin
       allow roles admin editor viewer
       allow roles AzureAD_Administrator AzureAD_Editor AzureAD_Viewer
@@ -1522,7 +1506,7 @@ came from.
 ```
   route /sso/oauth2/generic* {
     jwt {
-      auth_url /auth/oauth2/generic
+      set auth url /auth/oauth2/generic
     }
     respond * "generic oauth2 sso" 200
   }
@@ -1642,7 +1626,7 @@ came from.
 ```
   route /sso/oauth2/okta* {
     jwt {
-      auth_url /auth/oauth2/okta
+      set auth url /auth/oauth2/okta
     }
     respond * "okta oauth2 sso" 200
   }
@@ -1693,7 +1677,7 @@ came from.
 ```
   route /sso/oauth2/google* {
     jwt {
-      auth_url /auth/oauth2/google
+      set auth url /auth/oauth2/google
     }
     respond * "google oauth2 sso" 200
   }
@@ -2024,87 +2008,3 @@ certain portal's capabilities, e.g. add public SSH/GPG key, configure
 MFA tokens, change password, etc.
 
 [:arrow_up: Back to Top](#table-of-contents)
-
-### Caddyfile Shortcuts
-
-The following snippet with either `jwt_token_file` or `jwt_token_rsa_file`
-Caddyfile directive:
-
-```
-    authp {
-      jwt_token_file 1 /etc/caddy/auth/jwt/jwt_privatekey.pem
-      jwt_token_rsa_file 2 /etc/caddy/auth/jwt/jwt_privatekey.pem
-      ...
-    }
-```
-
-Replaces:
-
-```
-    authp {
-      jwt {
-        token_rsa_file 1 /etc/caddy/auth/jwt/jwt_privatekey.pem
-      }
-      ...
-    }
-```
-
-The following snippet with `jwt_token_name` Caddyfile directive:
-
-```
-    authp {
-      jwt_token_name access_token
-      ...
-    }
-```
-
-Replaces:
-
-```
-    authp {
-      jwt {
-        token_name access_token
-      }
-      ...
-    }
-```
-
-The following snippet with `jwt_token_secret` Caddyfile directive:
-
-```
-    authp {
-      jwt_token_secret bcc8fd6e-8e45-493e-a146-f178ac676841
-      ...
-    }
-```
-
-Replaces:
-
-```
-    authp {
-      jwt {
-        token_secret bcc8fd6e-8e45-493e-a146-f178ac676841
-      }
-      ...
-    }
-```
-
-The following snippet with `jwt_token_lifetime` Caddyfile directive:
-
-```
-    authp {
-      jwt_token_lifetime 3600
-      ...
-    }
-```
-
-Replaces:
-
-```
-    authp {
-      jwt {
-        token_lifetime 3600
-      }
-      ...
-    }
-```
