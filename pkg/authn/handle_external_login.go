@@ -25,6 +25,7 @@ import (
 
 func (p *Authenticator) handleHTTPExternalLogin(ctx context.Context, w http.ResponseWriter, r *http.Request, rr *requests.Request, authMethod string) error {
 	p.disableClientCache(w)
+	p.injectRedirectURL(ctx, w, r, rr)
 	authRealm, err := getEndpoint(r.URL.Path, "/"+authMethod+"/")
 	if err != nil {
 		return p.handleHTTPError(ctx, w, r, rr, http.StatusBadRequest)

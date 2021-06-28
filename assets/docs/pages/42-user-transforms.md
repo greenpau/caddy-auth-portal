@@ -45,6 +45,19 @@ authp {
 }
 ```
 
+The following transform adds role `verified` to Facebook-authenticated user
+with id of `123456789`:
+
+```
+authp {
+  transform user {
+    exact match sub 123456789
+    exact match origin facebook
+    action add role verified
+  }
+}
+```
+
 [:arrow_up: Back to Top](#table-of-contents)
 
 <!--- end of section -->

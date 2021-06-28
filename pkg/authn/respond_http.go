@@ -227,6 +227,12 @@ func (p *Authenticator) authorizeRequest(ctx context.Context, w http.ResponseWri
 			if strings.Contains(r.URL.Path, "/assets/") || strings.Contains(r.URL.Path, "/favicon") {
 				return nil, nil
 			}
+			p.logger.Debug(
+				"token error",
+				zap.String("session_id", rr.Upstream.SessionID),
+				zap.String("request_id", rr.ID),
+				zap.Error(err),
+			)
 			return nil, err
 		}
 	}
