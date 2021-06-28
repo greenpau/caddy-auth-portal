@@ -142,14 +142,23 @@ func (b *Backend) fetchClaims(tokenData map[string]interface{}) (map[string]inte
 	m["origin"] = userURL
 	switch b.Config.Provider {
 	case "github":
-		if v, exists := data["login"]; exists {
-			m["sub"] = "github.com/" + v.(string)
+		if _, exists := data["login"]; exists {
+			switch v := data["login"].(type) {
+			case string:
+				m["sub"] = "github.com/" + v
+			}
 		}
-		if v, exists := data["name"]; exists {
-			m["name"] = v.(string)
+		if _, exists := data["name"]; exists {
+			switch v := data["name"].(type) {
+			case string:
+				m["name"] = v
+			}
 		}
-		if v, exists := data["avatar_url"]; exists {
-			m["picture"] = v.(string)
+		if _, exists := data["avatar_url"]; exists {
+			switch v := data["avatar_url"].(type) {
+			case string:
+				m["picture"] = v
+			}
 		}
 		metadata := make(map[string]interface{})
 		if v, exists := data["id"]; exists {
@@ -158,10 +167,10 @@ func (b *Backend) fetchClaims(tokenData map[string]interface{}) (map[string]inte
 		m["metadata"] = metadata
 	case "facebook":
 		if v, exists := data["email"]; exists {
-			m["email"] = v.(string)
+			m["email"] = v
 		}
-		m["sub"] = data["id"].(string)
-		m["name"] = data["name"].(string)
+		m["sub"] = data["id"]
+		m["name"] = data["name"]
 	}
 	return m, nil
 }
