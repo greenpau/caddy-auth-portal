@@ -63,15 +63,41 @@ func NewFactory(cfgs []*Config) (*Factory, error) {
 			if err != nil {
 				return nil, fmt.Errorf("transformer for %q erred: %v", encodedArgs, err)
 			}
-			actions = append(actions, args)
 			switch args[0] {
 			case "require":
+				actions = append(actions, args)
 			case "block", "deny":
-			case "link":
+				actions = append(actions, args)
+			case "ui":
+				if len(args) < 4 {
+					return nil, fmt.Errorf("transformer for %q erred: invalid config", encodedArgs)
+				}
+				switch args[1] {
+				case "link":
+					actions = append(actions, args[1:])
+				default:
+					return nil, fmt.Errorf("transformer for %q erred: invalid config", encodedArgs)
+				}
+			case "add", "overwrite":
 				if len(args) < 3 {
 					return nil, fmt.Errorf("transformer for %q erred: invalid config", encodedArgs)
 				}
-			case "add", "delete", "overwrite":
+				actions = append(actions, args)
+			case "delete":
+				if len(args) < 2 {
+					return nil, fmt.Errorf("transformer for %q erred: invalid config", encodedArgs)
+				}
+				actions = append(actions, args)
+			case "action":
+				if len(args) < 3 {
+					return nil, fmt.Errorf("transformer for %q erred: invalid config", encodedArgs)
+				}
+				switch args[1] {
+				case "add", "overwrite", "delete":
+				default:
+					return nil, fmt.Errorf("transformer for %q erred: invalid config", encodedArgs)
+				}
+				actions = append(actions, args[1:])
 			default:
 				return nil, fmt.Errorf("transformer has unsupported action: %v", args)
 			}

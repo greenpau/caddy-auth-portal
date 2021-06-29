@@ -125,9 +125,11 @@ func parseCaddyfileAuthenticator(h httpcaddyfile.Helper) ([]httpcaddyfile.Config
 				case "user", "users":
 					tc := &transformer.Config{}
 					for nesting := h.Nesting(); h.NextBlock(nesting); {
+						k := h.Val()
 						trArgs := h.RemainingArgs()
-						var matchArgs bool
+						trArgs = append([]string{k}, trArgs...)
 						encodedArgs := cfgutils.EncodeArgs(trArgs)
+						var matchArgs bool
 						for _, arg := range trArgs {
 							if arg == "match" {
 								matchArgs = true
@@ -135,6 +137,10 @@ func parseCaddyfileAuthenticator(h httpcaddyfile.Helper) ([]httpcaddyfile.Config
 							}
 						}
 						if matchArgs {
+							if trArgs[0] == "match" {
+								trArgs = append([]string{"exact"}, trArgs...)
+								encodedArgs = cfgutils.EncodeArgs(trArgs)
+							}
 							tc.Matchers = append(tc.Matchers, encodedArgs)
 						} else {
 							tc.Actions = append(tc.Actions, encodedArgs)
@@ -314,17 +320,6 @@ func parseCaddyfileAuthenticator(h httpcaddyfile.Helper) ([]httpcaddyfile.Config
 							cfg["acs_urls"] = acsURLs
 						case "scopes":
 							cfg["scopes"] = h.RemainingArgs()
-						case "require":
-							if !h.NextArg() {
-								return backendValueErr(h, backendName, backendArg)
-							}
-							requirement := h.Val()
-							switch requirement {
-							case "mfa":
-								cfg["require_mfa"] = true
-							default:
-								return backendPropErr(h, backendName, backendArg, requirement, "is unsupported")
-							}
 						default:
 							return backendUnsupportedValueErr(h, backendName, backendArg)
 						}

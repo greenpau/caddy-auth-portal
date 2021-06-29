@@ -8,6 +8,7 @@ authentication:
 * add link to UI portal page
 * require multi-factor authentication (MFA/2FA)
 * require accepting term and conditions
+* block/deny issuing a token
 
 The following transform matches `sub` field and grants `authp/viewer` role:
 
@@ -39,8 +40,8 @@ authenticated user's email is `webadmin@localdomain.local`:
 ```
 authp {
   transform user {
-    exact match email webadmin@localdomain.local
-    action require mfa
+    match email webadmin@localdomain.local
+    require mfa
   }
 }
 ```
@@ -54,6 +55,30 @@ authp {
     exact match sub 123456789
     exact match origin facebook
     action add role verified
+  }
+}
+```
+
+The following transform blocks a user with email `anonymous@badactor.com`
+from getting authenticated:
+
+```
+authp {
+  transform user {
+    match email anonymous@badactor.com
+    block
+  }
+}
+```
+
+The following transform adds role `contoso_users` to the users with emai
+address from contoso.com domain:
+
+```
+authp {
+  transform user {
+    suffix match email @contoso.com
+    add role contoso_users
   }
 }
 ```

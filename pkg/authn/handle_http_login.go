@@ -134,7 +134,11 @@ func (p *Authenticator) authorizeLoginRequest(ctx context.Context, w http.Respon
 					zap.Any("user", m),
 					zap.Error(err),
 				)
-				rr.Response.Code = http.StatusInternalServerError
+				if strings.HasSuffix(err.Error(), "block/deny") {
+					rr.Response.Code = http.StatusForbidden
+				} else {
+					rr.Response.Code = http.StatusInternalServerError
+				}
 				return err
 			}
 			p.logger.Debug(
