@@ -47,3 +47,17 @@ certain portal's capabilities, e.g. add public SSH/GPG key, configure
 MFA tokens, change password, etc.
 
 [:arrow_up: Back to Top](#table-of-contents)
+
+### Shortcuts
+
+The following Caddyfile shortcuts could be used to configure local, OAuth 2.0
+backends:
+
+```
+backend local <path> <realm>
+backend google <client_id> <client_secret>
+backend github <client_id> <client_secret>
+backend facebook <client_id> <client_secret>
+```
+
+[:arrow_up: Back to Top](#table-of-contents)

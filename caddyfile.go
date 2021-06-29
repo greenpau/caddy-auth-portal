@@ -16,6 +16,7 @@ package portal
 
 import (
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	// "regexp"
 	"strconv"
@@ -57,7 +58,11 @@ func init() {
 //	       }
 //	     }
 //
-//       local_backend <file/path/to/user/db> <realm/name>
+//       backend local <file/path/to/user/db> <realm/name>
+
+//       backend local <file/path/to/user/db> <realm/name>
+//       backend local <file/path/to/user/db> <realm/name>
+//       backend local <file/path/to/user/db> <realm/name>
 //
 //	     jwt {
 //	       token_name <value>
@@ -199,19 +204,56 @@ func parseCaddyfileAuthenticator(h httpcaddyfile.Helper) ([]httpcaddyfile.Config
 					return nil, h.Errf("auth backend %s directive has no value", rootDirective)
 				}
 				portal.Context = args[0]
-			case "local_backend":
+			case "backend":
 				args := h.RemainingArgs()
 				if len(args) == 0 {
 					return nil, h.Errf("auth backend %s directive has no value", rootDirective)
 				}
 				cfg := make(map[string]interface{})
-				cfg["name"] = "local_backend"
-				cfg["method"] = "local"
-				cfg["path"] = args[0]
-				if len(args) > 1 {
-					cfg["realm"] = args[1]
-				} else {
-					cfg["realm"] = "local"
+				switch args[0] {
+				case "local":
+					if len(args) != 3 {
+						return nil, h.Errf("authp directive is invalid: backend %s", cfgutils.EncodeArgs(args))
+					}
+					cfg["name"] = fmt.Sprintf("local_backend_%d", len(portal.BackendConfigs))
+					cfg["method"] = "local"
+					cfg["path"] = args[1]
+					cfg["realm"] = args[2]
+				case "google":
+					if len(args) != 3 {
+						return nil, h.Errf("authp directive is invalid: backend %s", cfgutils.EncodeArgs(args))
+					}
+					cfg["name"] = fmt.Sprintf("google_backend_%d", len(portal.BackendConfigs))
+					cfg["method"] = "oauth2"
+					cfg["realm"] = "google"
+					cfg["provider"] = "google"
+					cfg["client_id"] = repl.ReplaceAll(args[1], badRepl)
+					cfg["client_secret"] = repl.ReplaceAll(args[2], badRepl)
+					cfg["scopes"] = []string{"openid", "email", "profile"}
+				case "github":
+					if len(args) != 3 {
+						return nil, h.Errf("authp directive is invalid: backend %s", cfgutils.EncodeArgs(args))
+					}
+					cfg["name"] = fmt.Sprintf("github_backend_%d", len(portal.BackendConfigs))
+					cfg["method"] = "oauth2"
+					cfg["realm"] = "github"
+					cfg["provider"] = "github"
+					cfg["client_id"] = repl.ReplaceAll(args[1], badRepl)
+					cfg["client_secret"] = repl.ReplaceAll(args[2], badRepl)
+					cfg["scopes"] = []string{"user"}
+				case "facebook":
+					if len(args) != 3 {
+						return nil, h.Errf("authp directive is invalid: backend %s", cfgutils.EncodeArgs(args))
+					}
+					cfg["name"] = fmt.Sprintf("facebook_backend_%d", len(portal.BackendConfigs))
+					cfg["method"] = "oauth2"
+					cfg["realm"] = "facebook"
+					cfg["provider"] = "facebook"
+					cfg["client_id"] = repl.ReplaceAll(args[1], badRepl)
+					cfg["client_secret"] = repl.ReplaceAll(args[2], badRepl)
+					cfg["scopes"] = []string{"email"}
+				default:
+					return nil, h.Errf("auth backend directive is invalid: backend %v", args)
 				}
 				backendConfig, err := backends.NewConfig(cfg)
 				if err != nil {
