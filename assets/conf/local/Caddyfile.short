@@ -7,7 +7,7 @@
 localhost, 127.0.0.1 {
   route /auth* {
     authp {
-      local_backend assets/conf/local/auth/user_db.json
+      backend local assets/conf/local/auth/user_db.json local
     }
   }
 
