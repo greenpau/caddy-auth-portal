@@ -80,10 +80,10 @@ func (p *Authenticator) handleHTTPLoginRequest(ctx context.Context, w http.Respo
 	}
 
 	if err := p.authenticateLoginRequest(ctx, w, r, rr, credentials); err != nil {
-		return p.handleJSONErrorWithLog(ctx, w, r, rr, rr.Response.Code, err.Error())
+		return p.handleHTTPErrorWithLog(ctx, w, r, rr, rr.Response.Code, err.Error())
 	}
 	if err := p.authorizeLoginRequest(ctx, w, r, rr); err != nil {
-		return p.handleJSONErrorWithLog(ctx, w, r, rr, rr.Response.Code, err.Error())
+		return p.handleHTTPErrorWithLog(ctx, w, r, rr, rr.Response.Code, err.Error())
 	}
 	w.WriteHeader(rr.Response.Code)
 	return nil
