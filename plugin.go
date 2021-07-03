@@ -18,6 +18,8 @@ import (
 	"net/http"
 
 	"github.com/caddyserver/caddy/v2"
+	"github.com/caddyserver/caddy/v2/caddyconfig/caddyfile"
+	"github.com/caddyserver/caddy/v2/caddyconfig/httpcaddyfile"
 	"github.com/caddyserver/caddy/v2/modules/caddyhttp"
 	"github.com/greenpau/caddy-auth-portal/pkg/authn"
 	"github.com/greenpau/go-identity/pkg/requests"
@@ -48,6 +50,19 @@ func (m *AuthMiddleware) Provision(ctx caddy.Context) error {
 	return m.Portal.Provision()
 }
 
+// UnmarshalCaddyfile unmarshals a caddyfile
+func (m *AuthMiddleware) UnmarshalCaddyfile(d *caddyfile.Dispenser) (err error) {
+
+	portal, err := parseCaddyfileAuthenticator(httpcaddyfile.Helper{Dispenser: d})
+	if err != nil {
+		return err
+	}
+
+	m.Portal = portal
+
+	return nil
+}
+
 // Validate implements caddy.Validator.
 func (m *AuthMiddleware) Validate() error {
 	return m.Portal.Validate()
@@ -76,4 +91,5 @@ var (
 	_ caddy.Provisioner           = (*AuthMiddleware)(nil)
 	_ caddy.Validator             = (*AuthMiddleware)(nil)
 	_ caddyhttp.MiddlewareHandler = (*AuthMiddleware)(nil)
+	_ caddyfile.Unmarshaler       = (*AuthMiddleware)(nil)
 )

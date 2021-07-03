@@ -42,7 +42,7 @@ import (
 const badRepl string = "ERROR_BAD_REPL"
 
 func init() {
-	httpcaddyfile.RegisterDirective("authp", parseCaddyfileAuthenticator)
+	httpcaddyfile.RegisterDirective("authp", getRouteFromParseCaddyfileAuthenticator)
 }
 
 // parseCaddyfileAuthenticator sets up an authentication portal. Syntax:
@@ -98,7 +98,7 @@ func init() {
 //       validate source address
 //     }
 //
-func parseCaddyfileAuthenticator(h httpcaddyfile.Helper) ([]httpcaddyfile.ConfigValue, error) {
+func parseCaddyfileAuthenticator(h httpcaddyfile.Helper) (*authn.Authenticator, error) {
 	var cryptoKeyConfig []string
 	portal := authn.Authenticator{
 		PrimaryInstance: true,
@@ -584,6 +584,17 @@ func parseCaddyfileAuthenticator(h httpcaddyfile.Helper) ([]httpcaddyfile.Config
 
 	h.Reset()
 	h.Next()
+
+	return &portal, nil
+}
+
+func getRouteFromParseCaddyfileAuthenticator(h httpcaddyfile.Helper) ([]httpcaddyfile.ConfigValue, error) {
+
+	portal, err := parseCaddyfileAuthenticator(h)
+	if err != nil {
+		return nil, err
+	}
+
 	pathMatcher := caddy.ModuleMap{
 		"path": h.JSON(caddyhttp.MatchPath{"*"}),
 	}
@@ -591,8 +602,8 @@ func parseCaddyfileAuthenticator(h httpcaddyfile.Helper) ([]httpcaddyfile.Config
 	route := caddyhttp.Route{
 		HandlersRaw: []json.RawMessage{
 			caddyconfig.JSONModuleObject(
-				AuthMiddleware{
-					Portal: &portal,
+				&AuthMiddleware{
+					Portal: portal,
 				},
 				"handler",
 				"authp",
@@ -603,16 +614,17 @@ func parseCaddyfileAuthenticator(h httpcaddyfile.Helper) ([]httpcaddyfile.Config
 	subroute := new(caddyhttp.Subroute)
 	subroute.Routes = append([]caddyhttp.Route{route}, subroute.Routes...)
 	return h.NewRoute(pathMatcher, subroute), nil
+
 }
 
-func backendValueErr(h httpcaddyfile.Helper, backendName, backendArg string) ([]httpcaddyfile.ConfigValue, error) {
+func backendValueErr(h httpcaddyfile.Helper, backendName, backendArg string) (*authn.Authenticator, error) {
 	return nil, h.Errf("auth backend %s subdirective %s has no value", backendName, backendArg)
 }
 
-func backendUnsupportedValueErr(h httpcaddyfile.Helper, backendName, backendArg string) ([]httpcaddyfile.ConfigValue, error) {
+func backendUnsupportedValueErr(h httpcaddyfile.Helper, backendName, backendArg string) (*authn.Authenticator, error) {
 	return nil, h.Errf("auth backend %s subdirective %s is unsupported", backendName, backendArg)
 }
 
-func backendPropErr(h httpcaddyfile.Helper, backendName, backendArg, attrName, attrErr string) ([]httpcaddyfile.ConfigValue, error) {
+func backendPropErr(h httpcaddyfile.Helper, backendName, backendArg, attrName, attrErr string) (*authn.Authenticator, error) {
 	return nil, h.Errf("auth backend %q subdirective %q key %q %s", backendName, backendArg, attrName, attrErr)
 }
