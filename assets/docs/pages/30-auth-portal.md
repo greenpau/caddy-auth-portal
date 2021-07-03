@@ -28,20 +28,19 @@ The following screenshot is from `/auth/settings/` endpoint:
 
 #### Enabling MFA
 
-MFA can be enabled globally and on per-backend basis via `require mfa` directive.
+MFA can be enabled by adding `require mfa` directive inside `transform user` directive:
 
 ```
-        local_backend {
-          method local
-          path /etc/gatekeeper/auth/local/users_db.json
-          realm local
-          require mfa
-        }
+    authp {
+      backend local /etc/gatekeeper/auth/local/users_db.json local
+      transform user {
+        match origin local
+        require mfa
+      }
+    }
 ```
 
 Currently, the MFA requirement can be applied only to `local` backend type.
-
-Importantly, a user may choose to enable MFA via the user's settings page.
 
 #### Add MFA Authenticator Application
 
