@@ -42,11 +42,18 @@
           <div class="row center">
             <p>
               Your session requires multi-factor authentication.
+            </p>
               {{ if eq .Data.view "mfa_mixed_register" }}
+              <p>
               However, you do not have second factor authentication method configured.
+              </p>
+              <p>
               Please click the authentication methods below to proceed with the configuration.
+              </p>
               {{ else }}
+              <p>
               Please click the appropriate second factor authentication method to proceed further.
+              </p>
               {{ end }}
             </p>
           </div>
@@ -54,11 +61,19 @@
             <ul class="collection">
               <li class="collection-item">
                 <i class="las la-mobile la-lg"></i>
+                {{ if eq .Data.view "mfa_mixed_register" }}
+                <a href="{{ pathjoin .ActionEndpoint "sandbox" .Data.id "mfa-app-register" }}">Authenticator App</a>
+                {{ else }}
                 <a href="{{ pathjoin .ActionEndpoint "sandbox" .Data.id "mfa-app-auth" }}">Authenticator App</a>
+                {{ end }}
               </li>
               <li class="collection-item">
                 <i class="las la-microchip la-lg"></i>
+                {{ if eq .Data.view "mfa_mixed_register" }}
+                <a href="{{ pathjoin .ActionEndpoint "sandbox" .Data.id "mfa-u2f-register" }}">Hardware Token</a>
+                {{ else }}
                 <a href="{{ pathjoin .ActionEndpoint "sandbox" .Data.id "mfa-u2f-auth" }}">Hardware Token</a>
+                {{ end }}
               </li>
             </ul>
           </div>
@@ -142,7 +157,112 @@
           </div>
           {{ else if eq .Data.view "mfa_app_register" }}
           <div class="row">
-            <p>The {{ .Data.view }} view is under construction.</p>
+            <form class="mfa-add-app-form"
+                  action="{{ pathjoin .ActionEndpoint "sandbox" .Data.id "mfa-app-register" }}"
+                  method="POST"
+                  autocomplete="off"
+                  >
+              <div class="row">
+                <div class="col s12 m12 l12">
+                  <div id="token-params">
+                    <h6 id="token-params-mode" class="hide">Token Parameters</h6>
+                    <p><b>Step 1</b>: If necessary, amend the label and comment associated with the authenticator.
+                      The label is what you would see in your authenticator app.
+                      The comment is what you would see in this portal.
+                    </p>
+                    <div class="input-field">
+                      <input id="label" name="label" type="text" class="validate" pattern="[A-Za-z0-9 -@]{4,25}"
+                        title="Authentication code should contain 4-25 characters and consists of A-Z, a-z, 0-9, space, and dash characters."
+                        maxlength="25"
+                        autocorrect="off" autocapitalize="off" autocomplete="off"
+                        value="{{ .Data.mfa_label }}"
+                        required />
+                      <label for="label">Label</label>
+                    </div>
+                    <div class="input-field">
+                      <input id="comment" name="comment" type="text" class="validate" pattern="[A-Za-z0-9 -@]{4,25}"
+                        title="Authentication code should contain 4-25 characters and consists of A-Z, a-z, 0-9, space, and dash characters."
+                        maxlength="25"
+                        autocorrect="off" autocapitalize="off" autocomplete="off"
+                        value="{{ .Data.mfa_comment }}"
+                        required />
+                      <label for="comment">Comment</label>
+                    </div>
+                    <p><b>Step 1a</b> (<i>optional</i>): If necessary, click
+                      <a href="#advanced-setup-mode" onclick="toggleAdvancedSetupMode()">here</a> to customize default values.
+                    </p>
+                    <div id="advanced-setup-all" class="hide">
+                      <h6 id="advanced-setup-mode" class="hide">Advanced Setup Mode</h6>
+                      <div id="advanced-setup-secret" class="input-field">
+                        <input id="secret" name="secret" type="text" class="validate" pattern="[A-Za-z0-9]{10,100}"
+                          title="Token secret should contain 10-200 characters and consists of A-Z and 0-9 characters only."
+                          autocorrect="off" autocapitalize="off" autocomplete="off"
+                          maxlength="100"
+                          value="{{ .Data.mfa_secret }}"
+                          required />
+                        <label for="secret">Token Secret</label>
+                      </div>
+                      <div id="advanced-setup-period" class="input-field">
+                        <select id="period" name="period" class="browser-default">
+                          <option value="15" {{ if eq .Data.mfa_period "15" }} selected{{ end }}>15 Seconds Lifetime</option>
+                          <option value="30" {{ if eq .Data.mfa_period "30" }} selected{{ end }}>30 Seconds Lifetime</option>
+                          <option value="60" {{ if eq .Data.mfa_period "60" }} selected{{ end }}>60 Seconds Lifetime</option>
+                          <option value="90" {{ if eq .Data.mfa_period "90" }} selected{{ end }}>90 Seconds Lifetime</option>
+                        </select>
+                      </div>
+                      <div id="advanced-setup-digits" class="input-field">
+                        <select id="digits" name="digits" class="browser-default">
+                          <option value="4" {{ if eq .Data.mfa_digits "4" }} selected{{ end }}>4 Digit Code</option>
+                          <option value="6" {{ if eq .Data.mfa_digits "6" }} selected{{ end }}>6 Digit Code</option>
+                          <option value="8" {{ if eq .Data.mfa_digits "8" }} selected{{ end }}>8 Digit Code</option>
+                        </select>
+                      </div>
+                    </div>
+                    <p><b>Step 2</b>: Open your MFA authenticator application, e.g. Microsoft/Google Authenticator, Authy, etc.,
+                      add new entry and click the "Get QR" link.
+                    </p>
+                    <div id="mfa-get-qr-code" class="center-align">
+                      <a href="#qr-code-mode" onclick="getQRCode()">Get QR Code</a>
+                    </div>
+                  </div>
+                  <div id="mfa-qr-code" class="hide">
+                    <h6 id="qr-code-mode" class="hide">QR Code Mode</h6>
+                    <div class="center-align">
+                      <p>&raquo; Scan the QR code image.</p>
+                    </div>
+                    <div id="mfa-qr-code-image" class="center-align">
+                      <img src="{{ pathjoin .ActionEndpoint "sandbox" .Data.id "mfa-app-barcode" .Data.code_uri_encoded }}.png" alt="QR Code" />
+                    </div>
+                    <div class="center-align">
+                      <p>&raquo; Can't scan? Click or copy the link below.</p>
+                    </div>
+                    <div id="mfa-no-camera-link" class="center-align">
+                      <a href="{{ .Data.code_uri }}">No Camera Link</a>
+                    </div>
+                    <p><b>Step 3</b>: Enter the authentication code you see in the app and click "Add".</p>
+                    <div class="input-field mfa-app-auth-ctrl mfa-app-auth-form">
+                      <input class="mfa-app-auth-passcode" id="passcode" name="passcode" type="text" class="validate" pattern="[0-9]{4,8}"
+                        title="Authentication code should contain 4-8 characters and consists of 0-9 characters."
+                        autocorrect="off" autocapitalize="off" autocomplete="off"
+                        placeholder="______"
+                        required />
+                    </div>
+                    <input id="email" name="email" type="hidden" value="{{ .Data.mfa_email }}" />
+                    <input id="type" name="type" type="hidden" value="{{ .Data.mfa_type }}" />
+                    <input id="barcode_uri" name "barcode_uri" type="hidden" value="{{ pathjoin .ActionEndpoint "sandbox" .Data.id "mfa-app-barcode" }}" />
+                    <div class="mfa-app-auth-btn">
+                      <button type="reset" name="reset" class="btn waves-effect waves-light navbtn active navbtn-last red lighten-1">
+                        <i class="las la-redo-alt left app-btn-icon"></i>
+                      </button>
+                      <button type="submit" name="submit" class="btn waves-effect waves-light navbtn active navbtn-last">
+                        <i class="las la-plus-circle left app-btn-icon"></i>
+                        <span class="app-btn-text">Add</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </form>
           </div>
           {{ else if eq .Data.view "mfa_u2f_register" }}
           <div class="row">
@@ -172,6 +292,10 @@
     <script src="{{ pathjoin .ActionEndpoint "/assets/materialize-css/js/materialize.js" }}"></script>
     {{ if eq .Data.ui_options.custom_js_required "yes" }}
     <script src="{{ pathjoin .ActionEndpoint "/assets/js/custom.js" }}"></script>
+    {{ end }}
+    {{ if eq .Data.view "mfa_app_register" }}
+    <!-- App Authentication Registration Scripts -->
+    <script src="{{ pathjoin .ActionEndpoint "/assets/js/mfa_add_app.js" }}"></script>
     {{ end }}
     {{ if .Message }}
     <script>

@@ -20,7 +20,9 @@ import (
 	"fmt"
 	"github.com/greenpau/caddy-auth-jwt/pkg/user"
 	"github.com/greenpau/caddy-auth-portal/pkg/enums/operator"
+	"github.com/greenpau/caddy-auth-portal/pkg/utils"
 	"github.com/greenpau/go-identity"
+	"github.com/greenpau/go-identity/pkg/qr"
 	"github.com/greenpau/go-identity/pkg/requests"
 	"net/http"
 	// "time"
@@ -99,6 +101,12 @@ func (p *Authenticator) handleHTTPSandbox(ctx context.Context, w http.ResponseWr
 			zap.String("error", "sandbox id mismatch"),
 		)
 		return p.handleHTTPError(ctx, w, r, rr, http.StatusUnauthorized)
+	}
+
+	if strings.HasPrefix(sandboxPartition, "mfa-app-barcode/") {
+		// Handle App Authenticator barcode.
+		sandboxPartition = strings.TrimPrefix(sandboxPartition, "mfa-app-barcode/")
+		return p.handleHTTPMfaBarcode(ctx, w, r, sandboxPartition)
 	}
 
 	p.logger.Debug(
@@ -239,6 +247,7 @@ func (p *Authenticator) nextSandboxCheckpoint(r *http.Request, rr *requests.Requ
 						tokenErrors = append(tokenErrors, "No available application tokens found")
 					}
 					m["view"] = "error"
+					checkpoint.FailedAttempts++
 					return m, fmt.Errorf(strings.Join(tokenErrors, "\n"))
 				}
 			case uniConfigured && (action == "mfa-u2f-auth" || action == ""):
@@ -249,6 +258,42 @@ func (p *Authenticator) nextSandboxCheckpoint(r *http.Request, rr *requests.Requ
 				m["title"] = "Authenticator App Registration"
 				m["view"] = "mfa_app_register"
 				m["action"] = "register"
+				if r.Method == "POST" {
+					// Perform the validation of the newly registered token.
+					if err := validateAddMfaTokenForm(r, rr); err != nil {
+						m["view"] = "error"
+						checkpoint.FailedAttempts++
+						return m, err
+					}
+					if err := backend.Request(operator.AddMfaToken, rr); err != nil {
+						m["view"] = "error"
+						checkpoint.FailedAttempts++
+						return m, err
+					}
+					checkpoint.Passed = true
+					checkpoint.FailedAttempts = 0
+				} else {
+					// Display QR code for token registration.
+					qr := qr.NewCode()
+					qr.Secret = utils.GetRandomStringFromRange(64, 92)
+					qr.Type = "totp"
+					qr.Label = fmt.Sprintf("AUTHP:%s", usr.Claims.Email)
+					qr.Period = 30
+					qr.Issuer = "AUTHP"
+					qr.Digits = 6
+					if err := qr.Build(); err != nil {
+						return m, fmt.Errorf("Failed creating QR code: %v", err)
+					}
+					m["mfa_label"] = qr.Issuer
+					m["mfa_comment"] = "My Authentication App"
+					m["mfa_email"] = usr.Claims.Email
+					m["mfa_type"] = qr.Type
+					m["mfa_secret"] = qr.Secret
+					m["mfa_period"] = fmt.Sprintf("%d", qr.Period)
+					m["mfa_digits"] = fmt.Sprintf("%d", qr.Digits)
+					m["code_uri"] = qr.Get()
+					m["code_uri_encoded"] = qr.GetEncoded()
+				}
 			case !uniConfigured && (action == "mfa-u2f-register"):
 				m["title"] = "Hardware Token Registration"
 				m["view"] = "mfa_u2f_register"
