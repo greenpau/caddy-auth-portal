@@ -361,7 +361,13 @@ func parseCaddyfileAuthenticator(h httpcaddyfile.Helper) (*authn.Authenticator, 
 							acsURLs = append(acsURLs, h.Val())
 							cfg["acs_urls"] = acsURLs
 						case "scopes":
-							cfg["scopes"] = h.RemainingArgs()
+							if _, exists := cfg["scopes"]; exists {
+								scopes := cfg["scopes"].([]string)
+								scopes = append(scopes, h.RemainingArgs()...)
+								cfg["scopes"] = scopes
+							} else {
+								cfg["scopes"] = h.RemainingArgs()
+							}
 						default:
 							return backendUnsupportedValueErr(h, backendName, backendArg)
 						}

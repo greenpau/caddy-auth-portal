@@ -33,6 +33,7 @@ const (
 	ErrBackendOauthAuthorizationFailed                 StandardError = "failed OAuth 2.0 authorization flow, error: %s"
 	ErrBackendOauthFetchAccessTokenFailed              StandardError = "failed fetching OAuth 2.0 access token: %s"
 	ErrBackendOauthFetchClaimsFailed                   StandardError = "failed fetching OAuth 2.0 claims: %s"
+	ErrBackendOauthFetchUserGroupsFailed               StandardError = "failed fetching OAuth 2.0 user groups: %v"
 	ErrBackendOauthValidateAccessTokenFailed           StandardError = "failed validating OAuth 2.0 access token: %s"
 	ErrBackendOauthResponseProcessingFailed            StandardError = "unable to process OAuth 2.0 response"
 	ErrBackendLoggerNotFound                           StandardError = "%s backend logger is nil"

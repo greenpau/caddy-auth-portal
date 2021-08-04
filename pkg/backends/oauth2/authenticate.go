@@ -124,6 +124,19 @@ func (b *Backend) Authenticate(r *requests.Request) error {
 				}
 			}
 
+			// Fetch subsequent user info, e.g. user groups.
+			switch b.Config.Provider {
+			case "google":
+				if b.Config.ScopeExists(
+					"https://www.googleapis.com/auth/admin.directory.group.readonly",
+					"admin.directory.group.readonly",
+				) {
+					if err := b.fetchUserGroups(accessToken, m); err != nil {
+						return errors.ErrBackendOauthFetchUserGroupsFailed.WithArgs(err)
+					}
+				}
+			}
+
 			r.Response.Payload = m
 			r.Response.Code = http.StatusOK
 			b.logger.Debug(

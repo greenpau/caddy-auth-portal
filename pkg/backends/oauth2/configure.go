@@ -49,6 +49,18 @@ type Config struct {
 	BaseAuthURL string `json:"base_auth_url,omitempty"`
 	// The URL to OAuth 2.0 metadata related to your Custom Authorization Server.
 	MetadataURL string `json:"metadata_url,omitempty"`
+
+	scopeMap map[string]interface{}
+}
+
+// ScopeExists returns true if any of the provided scopes exist.
+func (c *Config) ScopeExists(scopes ...string) bool {
+	for _, scope := range scopes {
+		if _, exists := c.scopeMap[scope]; exists {
+			return true
+		}
+	}
+	return false
 }
 
 // Configure configures Backend.
@@ -72,6 +84,11 @@ func (b *Backend) Configure() error {
 
 	if len(b.Config.Scopes) < 1 {
 		b.Config.Scopes = []string{"openid", "email", "profile"}
+	}
+
+	b.Config.scopeMap = make(map[string]interface{})
+	for _, scope := range b.Config.Scopes {
+		b.Config.scopeMap[scope] = true
 	}
 
 	switch b.Config.IdentityTokenName {
