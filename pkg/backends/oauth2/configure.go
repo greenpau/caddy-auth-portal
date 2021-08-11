@@ -43,6 +43,15 @@ type Config struct {
 
 	Scopes []string `json:"scopes,omitempty"`
 
+	// The number if seconds to wait before getting key material
+	// from an OAuth 2.0 backend.
+	DelayStart int `json:"delay_start,omitempty"`
+	// The number of the retry attempts getting key material
+	// from an OAuth 2.0 backend.
+	RetryAttempts int `json:"retry_attempts,omitempty"`
+	// The number of seconds to wait until the retrying.
+	RetryInterval int `json:"retry_interval,omitempty"`
+
 	UserRoleMapList []map[string]interface{} `json:"user_roles,omitempty"`
 
 	// The URL to OAuth 2.0 Custom Authorization Server.
@@ -80,6 +89,34 @@ func (b *Backend) Configure() error {
 	}
 	if b.Config.ClientSecret == "" {
 		return errors.ErrBackendClientSecretNotFound.WithArgs(b.Config.Provider)
+	}
+
+	if b.Config.DelayStart > 0 {
+		if b.Config.RetryAttempts < 1 {
+			b.Config.RetryAttempts = 2
+		}
+		if b.Config.RetryInterval == 0 {
+			b.Config.RetryInterval = b.Config.DelayStart
+		}
+		b.logger.Debug(
+			"Configured delayed start for OAuth 2.0 backend",
+			zap.String("backend_name", b.Config.Name),
+			zap.Int("delayed_by", b.Config.DelayStart),
+			zap.Int("retry_attempts", b.Config.RetryAttempts),
+			zap.Int("retry_interval", b.Config.RetryInterval),
+		)
+	}
+
+	if b.Config.RetryAttempts > 0 && b.Config.DelayStart == 0 {
+		if b.Config.RetryInterval == 0 {
+			b.Config.RetryInterval = 5
+		}
+		b.logger.Debug(
+			"Configured connection retries for OAuth 2.0 backend",
+			zap.String("backend_name", b.Config.Name),
+			zap.Int("retry_attempts", b.Config.RetryAttempts),
+			zap.Int("retry_interval", b.Config.RetryInterval),
+		)
 	}
 
 	if len(b.Config.Scopes) < 1 {
@@ -167,15 +204,62 @@ func (b *Backend) Configure() error {
 		return errors.ErrBackendOauthAuthorizationURLNotFound.WithArgs(b.Config.Provider)
 	}
 
+	if b.Config.DelayStart > 0 {
+		b.logger.Debug(
+			"Delaying backend configuration",
+			zap.String("backend_name", b.Config.Name),
+			zap.Int("delayed_by", b.Config.DelayStart),
+		)
+		time.Sleep(time.Duration(b.Config.DelayStart) * time.Second)
+	}
+
 	if b.authorizationURL == "" {
-		if err := b.fetchMetadataURL(); err != nil {
-			return errors.ErrBackendOauthMetadataFetchFailed.WithArgs(err)
+		if b.Config.RetryAttempts > 0 {
+			for i := 0; i < b.Config.RetryAttempts; i++ {
+				err := b.fetchMetadataURL()
+				if err == nil {
+					break
+				}
+				if i >= (b.Config.RetryAttempts - 1) {
+					return errors.ErrBackendOauthMetadataFetchFailed.WithArgs(err)
+				}
+				b.logger.Debug(
+					"fetchMetadataURL failed",
+					zap.String("backend_name", b.Config.Name),
+					zap.Int("attempt_id", i),
+					zap.Error(errors.ErrBackendOauthMetadataFetchFailed.WithArgs(err)),
+				)
+				time.Sleep(time.Duration(b.Config.RetryInterval) * time.Second)
+			}
+		} else {
+			if err := b.fetchMetadataURL(); err != nil {
+				return errors.ErrBackendOauthMetadataFetchFailed.WithArgs(err)
+			}
 		}
 	}
 
 	if !b.disableKeyVerification {
-		if err := b.fetchKeysURL(); err != nil {
-			return errors.ErrBackendOauthKeyFetchFailed.WithArgs(err)
+		if b.Config.RetryAttempts > 0 {
+			for i := 0; i < b.Config.RetryAttempts; i++ {
+				err := b.fetchKeysURL()
+				if err == nil {
+					break
+				}
+				if i >= (b.Config.RetryAttempts - 1) {
+					return errors.ErrBackendOauthKeyFetchFailed.WithArgs(err)
+				}
+				b.logger.Debug(
+					"fetchKeysURL failed",
+					zap.String("backend_name", b.Config.Name),
+					zap.Int("attempt_id", i),
+					zap.Error(errors.ErrBackendOauthKeyFetchFailed.WithArgs(err)),
+				)
+				time.Sleep(time.Duration(b.Config.RetryInterval) * time.Second)
+			}
+		} else {
+			if err := b.fetchKeysURL(); err != nil {
+				return errors.ErrBackendOauthKeyFetchFailed.WithArgs(err)
+			}
 		}
 	}
 

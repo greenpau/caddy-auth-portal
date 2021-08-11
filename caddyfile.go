@@ -209,6 +209,9 @@ func parseCaddyfileAuthenticator(h httpcaddyfile.Helper) (*authn.Authenticator, 
 				if len(args) == 0 {
 					return nil, h.Errf("auth backend %s directive has no value", rootDirective)
 				}
+				if args[len(args)-1] == "disabled" {
+					break
+				}
 				cfg := make(map[string]interface{})
 				switch args[0] {
 				case "local":
@@ -368,6 +371,13 @@ func parseCaddyfileAuthenticator(h httpcaddyfile.Helper) (*authn.Authenticator, 
 							} else {
 								cfg["scopes"] = h.RemainingArgs()
 							}
+						case "delay_start", "retry_attempts", "retry_interval":
+							backendVal := strings.Join(h.RemainingArgs(), "|")
+							i, err := strconv.Atoi(backendVal)
+							if err != nil {
+								return backendValueConversionErr(h, backendName, backendArg, backendVal, err)
+							}
+							cfg[backendArg] = i
 						default:
 							return backendUnsupportedValueErr(h, backendName, backendArg)
 						}
@@ -633,4 +643,8 @@ func backendUnsupportedValueErr(h httpcaddyfile.Helper, backendName, backendArg 
 
 func backendPropErr(h httpcaddyfile.Helper, backendName, backendArg, attrName, attrErr string) (*authn.Authenticator, error) {
 	return nil, h.Errf("auth backend %q subdirective %q key %q %s", backendName, backendArg, attrName, attrErr)
+}
+
+func backendValueConversionErr(h httpcaddyfile.Helper, backendName, k, v string, err error) (*authn.Authenticator, error) {
+	return nil, h.Errf("auth backend %s subdirective %s value %q error: %v", backendName, k, v, err)
 }

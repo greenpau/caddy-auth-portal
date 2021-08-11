@@ -84,6 +84,8 @@ Download Caddy with the plugins enabled:
     * [Microsoft](#microsoft)
     * [Github](#github)
     * [Facebook](#facebook)
+  * [OAuth 2.0 Endpoint Delayed Start](#oauth-20-endpoint-delayed-start)
+  * [OAuth 2.0 Endpoint Retry Attempts](#oauth-20-endpoint-retry-attempts)
 * [X.509 Certificate-based Authentication Backend](#x509-certificate-based-authentication-backend)
 * [Miscellaneous](#miscellaneous)
   * [Binding to Privileged Ports](#binding-to-privileged-ports)
@@ -2038,6 +2040,42 @@ The Caddyfile config is as follows:
 When a user get redirected to Facebook Login, the screen looks as follows:
 
 ![Facebook Developers - Facebook Login - User Login](./assets/docs/images/oauth2_facebook_user_login_screen.png)
+
+[:arrow_up: Back to Top](#table-of-contents)
+
+### OAuth 2.0 Endpoint Delayed Start
+
+The following configuration allows delaying getting key material of upstream
+OAuth 2.0 server.
+
+```
+      backends {
+        google_oauth2_backend {
+          method oauth2
+          ...
+          delay_start 5
+```
+
+This would delay querying the upstream server for 5 seconds.
+
+[:arrow_up: Back to Top](#table-of-contents)
+
+### OAuth 2.0 Endpoint Retry Attempts
+
+The following configuration permits for retries when getting key material of
+upstream OAuth 2.0 server.
+
+```
+      backends {
+        google_oauth2_backend {
+          method oauth2
+          ...
+          retry_attempts 3
+          retry_interval 10
+```
+
+If unsuccessful at reaching a remote OAuth 2.0 server, the plugin would
+try connecting 2 more times at 10 second intervals.
 
 [:arrow_up: Back to Top](#table-of-contents)
 
