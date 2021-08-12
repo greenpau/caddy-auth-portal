@@ -111,7 +111,7 @@ dep:
 	@go get -u github.com/google/addlicense || true
 
 license:
-	@for f in `find ./ -type f -name '*.go'`; do addlicense -c "Paul Greenberg greenpau@outlook.com" -y 2020 $$f; done
+	@for f in `find ./ -type f -name '*.go'`; do addlicense -c "Paul Greenberg greenpau@outlook.com" -y 2020 $$f || true; done
 	@#for f in `find ./ -type f -name '*.go'`; do addlicense --check -c "Paul Greenberg greenpau@outlook.com" -y 2020 $$f; done
 
 mod:
