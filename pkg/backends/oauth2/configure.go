@@ -205,6 +205,28 @@ func (b *Backend) Configure() error {
 	}
 
 	if b.Config.DelayStart > 0 {
+		go b.fetchConfig()
+	} else {
+		if err := b.fetchConfig(); err != nil {
+			return err
+		}
+	}
+
+	b.logger.Info(
+		"successfully configured OAuth 2.0 backend",
+		zap.String("provider", b.Config.Provider),
+		zap.String("client_id", b.Config.ClientID),
+		zap.String("server_id", b.Config.ServerID),
+		zap.String("domain_name", b.Config.DomainName),
+		zap.Any("metadata", b.metadata),
+		zap.Any("jwks_keys", b.keys),
+	)
+
+	return nil
+}
+
+func (b *Backend) fetchConfig() error {
+	if b.Config.DelayStart > 0 {
 		b.logger.Debug(
 			"Delaying backend configuration",
 			zap.String("backend_name", b.Config.Name),
@@ -262,17 +284,6 @@ func (b *Backend) Configure() error {
 			}
 		}
 	}
-
-	b.logger.Info(
-		"successfully configured OAuth 2.0 backend",
-		zap.String("provider", b.Config.Provider),
-		zap.String("client_id", b.Config.ClientID),
-		zap.String("server_id", b.Config.ServerID),
-		zap.String("domain_name", b.Config.DomainName),
-		zap.Any("metadata", b.metadata),
-		zap.Any("jwks_keys", b.keys),
-	)
-
 	return nil
 }
 
