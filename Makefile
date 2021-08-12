@@ -108,7 +108,7 @@ dep:
 	@go get -u github.com/kyoh86/richgo
 	@go get -u github.com/caddyserver/xcaddy/cmd/xcaddy
 	@go get -u github.com/greenpau/versioned/cmd/versioned
-	@go get -u github.com/google/addlicense
+	@go get -u github.com/google/addlicense || true
 
 license:
 	@for f in `find ./ -type f -name '*.go'`; do addlicense -c "Paul Greenberg greenpau@outlook.com" -y 2020 $$f; done
