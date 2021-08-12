@@ -99,7 +99,8 @@ func init() {
 //     }
 //
 func parseCaddyfileAuthenticator(h httpcaddyfile.Helper) (*authn.Authenticator, error) {
-	var cryptoKeyConfig []string
+	var cryptoKeyConfig, cryptoKeyStoreConfig []string
+	var cryptoKeyConfigFound, cryptoKeyStoreConfigFound bool
 	portal := authn.Authenticator{
 		PrimaryInstance: true,
 		Context:         "default",
@@ -190,11 +191,15 @@ func parseCaddyfileAuthenticator(h httpcaddyfile.Helper) (*authn.Authenticator, 
 				if len(args) < 3 {
 					return nil, h.Errf("%s directive %q is too short", rootDirective, strings.Join(args, " "))
 				}
+				encodedArgs := cfgutils.EncodeArgs(args)
+				encodedArgs = repl.ReplaceAll(encodedArgs, badRepl)
+				cryptoKeyConfig = append(cryptoKeyConfig, encodedArgs)
 				switch args[0] {
-				case "key", "default":
-					encodedArgs := cfgutils.EncodeArgs(args)
-					encodedArgs = repl.ReplaceAll(encodedArgs, badRepl)
-					cryptoKeyConfig = append(cryptoKeyConfig, encodedArgs)
+				case "key":
+					cryptoKeyConfigFound = true
+				case "default":
+					cryptoKeyStoreConfig = append(cryptoKeyStoreConfig, encodedArgs)
+					cryptoKeyStoreConfigFound = true
 				default:
 					return nil, h.Errf("%s directive value of %q is unsupported", rootDirective, strings.Join(args, " "))
 				}
@@ -590,12 +595,20 @@ func parseCaddyfileAuthenticator(h httpcaddyfile.Helper) (*authn.Authenticator, 
 		}
 	}
 
-	if len(cryptoKeyConfig) != 0 {
+	if cryptoKeyConfigFound {
 		configs, err := kms.ParseCryptoKeyConfigs(strings.Join(cryptoKeyConfig, "\n"))
 		if err != nil {
 			return nil, h.Errf("crypto key config error: %v", err)
 		}
 		portal.CryptoKeyConfigs = configs
+	}
+
+	if cryptoKeyStoreConfigFound {
+		configs, err := kms.ParseCryptoKeyStoreConfig(strings.Join(cryptoKeyStoreConfig, "\n"))
+		if err != nil {
+			return nil, h.Errf("crypto key store config error: %v", err)
+		}
+		portal.CryptoKeyStoreConfig = configs
 	}
 
 	h.Reset()

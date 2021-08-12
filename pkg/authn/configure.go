@@ -436,6 +436,23 @@ func (mgr *InstanceManager) configureCryptoKeyStore(primaryInstance, m *Authenti
 
 	m.keystore = kms.NewCryptoKeyStore()
 	m.keystore.SetLogger(m.logger)
+
+	// Load token configuration into key managers, extract token verification
+	// keys and add them to token validator.
+	if m.CryptoKeyStoreConfig == nil && !m.PrimaryInstance {
+		m.CryptoKeyStoreConfig = primaryInstance.CryptoKeyStoreConfig
+	}
+	if len(m.CryptoKeyConfigs) == 0 && !m.PrimaryInstance {
+		m.CryptoKeyConfigs = primaryInstance.CryptoKeyConfigs
+	}
+
+	if m.CryptoKeyStoreConfig != nil {
+		// Add default token name, lifetime, etc.
+		if err := m.keystore.AddDefaults(m.CryptoKeyStoreConfig); err != nil {
+			return errors.ErrCryptoKeyStoreConfig.WithArgs(m.Name, err)
+		}
+	}
+
 	if len(m.CryptoKeyConfigs) == 0 {
 		if m.PrimaryInstance {
 			if err := m.keystore.AutoGenerate("default", "ES512"); err != nil {
@@ -450,6 +467,7 @@ func (mgr *InstanceManager) configureCryptoKeyStore(primaryInstance, m *Authenti
 			return errors.ErrCryptoKeyStoreConfig.WithArgs(m.Name, err)
 		}
 	}
+
 	if err := m.keystore.HasVerifyKeys(); err != nil {
 		return errors.ErrCryptoKeyStoreConfig.WithArgs(m.Name, err)
 	}

@@ -61,6 +61,8 @@ type Authenticator struct {
 	TokenValidatorOptions *options.TokenValidatorOptions `json:"token_validator_options,omitempty"`
 	// CryptoKeyConfigs hold the configurations for the keys used to issue and validate user tokens.
 	CryptoKeyConfigs []*kms.CryptoKeyConfig `json:"crypto_key_configs,omitempty"`
+	// CryptoKeyStoreConfig hold the default configuration for the keys, e.g. token name and lifetime.
+	CryptoKeyStoreConfig map[string]interface{} `json:"crypto_key_store_config,omitempty"`
 	// TokenGrantorOptions holds the configuration for the tokens issues by Authenticator.
 	TokenGrantorOptions *options.TokenGrantorOptions `json:"token_grantor_options,omitempty"`
 
