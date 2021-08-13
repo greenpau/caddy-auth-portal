@@ -103,16 +103,14 @@ qtest:
 
 dep:
 	@echo "Making dependencies check ..."
-	@go get -u golang.org/x/lint/golint
+	@golint || go get -u golang.org/x/lint/golint
 	@go get -u golang.org/x/tools/cmd/godoc
 	@go get -u github.com/kyoh86/richgo
 	@go get -u github.com/caddyserver/xcaddy/cmd/xcaddy
-	@go get -u github.com/greenpau/versioned/cmd/versioned
-	@go get -u github.com/google/addlicense || true
 
 license:
-	@for f in `find ./ -type f -name '*.go'`; do addlicense -c "Paul Greenberg greenpau@outlook.com" -y 2020 $$f || true; done
-	@#for f in `find ./ -type f -name '*.go'`; do addlicense --check -c "Paul Greenberg greenpau@outlook.com" -y 2020 $$f; done
+	@versioned || go get -u github.com/greenpau/versioned/cmd/versioned@v1.0.26
+	@for f in `find ./ -type f -name '*.go'`; do versioned -addlicense -copyright="Paul Greenberg greenpau@outlook.com" -year=2020 -filepath=$$f; done
 
 mod:
 	@echo "Verifying modules"
