@@ -45,43 +45,34 @@ References:
 
 ### Adding Role Claims
 
-The Caddyfile `user` directive allows adding roles to
-a user based on the user's email.
+By default, all users authenticated with the plugin get `authp/guest`
+role, unless the following applies.
 
-A user with email claim of `contoso.com` would get an additional `superuser` role.
+The Caddyfile `transform user` directive allows adding roles based on the
+information provided by OAuth 2.0 provider.
 
-```
-          user jsmith@contoso.com add role superuser
-```
+See [User Transforms](#user-transforms) section for explanation about
+the `transform user` directive.
 
-A user with the email address beginning with `jsmith` would get additional roles.
-Specifically, it would be viewer, editor, and admin.
-
-```
-          user "^greenpau" regex add roles viewer editor admin
-```
-
-All users with `contoso.com` email address would get "employee" role:
+For example, the following transform matches any user authenticated
+via `google` OAuth provider. Upon the match, the plugin adds `authp/user`
+role to the token issued by the it.
 
 ```
-          user "@contoso.com$" regex add role employee
-
+      transform user {
+        match origin google
+        action add role authp/user
+      }
 ```
 
-In sum, Caddyfile may look as follows:
+The next transform requires the Google authenticated user to have
+email address of `jsmith@contoso.com` to get `authp/admin` role.
+
 
 ```
-myapp.localdomain.local, localhost, 127.0.0.1 {
-  route /auth* {
-    authp {
-      backends {
-        google_oauth2_backend {
-          method oauth2
-          realm google
-          provider google
-          client_id XXXXXXXXXXXXXX.apps.googleusercontent.com
-          client_secret YYYYYYYYYYYYYYYYY
-          scopes openid email profile
-          user "^greenpau" regex add role superuser
-        }
+      transform user {
+        match origin google
+        match email jsmith@contoso.com
+        action add role authp/user
+      }
 ```

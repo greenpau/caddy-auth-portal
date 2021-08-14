@@ -92,7 +92,8 @@ func init() {
 //         title "User Registration"
 //         code "NY2020"
 //         dropbox <file/path/to/registration/dir/>
-//         require accept_terms
+//         require accept terms
+//         require domain mx
 //       }
 //
 //       validate source address

@@ -18,10 +18,19 @@ browses to the endpoint, the user will be redirected to Google.
           method oauth2
           realm google
           provider google
-          client_id XXXXXXXXXXXXXXXXX.apps.googleusercontent.com
-          client_secret YYYYYYYYYYYYYYYYYY
+          client_id XXX.apps.googleusercontent.com
+          client_secret YYY
           scopes openid email profile
         }
+```
+
+Alternatively, use [Shortcuts](#shortcuts") to accomplish the same:
+
+```
+127.0.0.1, localhost {
+  route /auth* {
+    authp {
+      backend google XXX YYY
 ```
 
 Next, protect a route, e.g. `/sso/oauth2/google*`. When a user accesses the page, the

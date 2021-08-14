@@ -29,8 +29,8 @@ registration {
   dropbox /etc/gatekeeper/auth/local/registrations_db.json
   title "User Registration"
   code "NY2020"
-  require accept_terms
-  require domain_mx
+  require accept terms
+  require domain mx
 }
 ```
 
@@ -39,11 +39,11 @@ The parameters are:
 * `dropbox`: The file path pointing to registration database.
 * `code`: The registration code. A user must know what that code is to
   successfully submit a registration request.
-* `require accept_terms`: A user must accept terms and conditions, as well
+* `require accept terms`: A user must accept terms and conditions, as well
   as privacy policy to proceed
 * `disabled on`: disables user registration
 * `title`: changes the title of the registration page
-* `require domain_mx`: forces the check of domain MX record
+* `require domain mx`: forces the check of domain MX record
 
 This screenshot is the registration screen with default options:
 
