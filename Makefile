@@ -58,7 +58,7 @@ coverage:
 docs:
 	@mkdir -p .doc
 	@assets/scripts/generate_downloads.sh
-	@cat ./assets/docs/pages/*.md > README.md
+	@assets/scripts/generate_readme.sh
 	@versioned -toc
 
 clean:

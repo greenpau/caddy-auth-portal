@@ -20,8 +20,10 @@ Please see other plugins:
 Download Caddy with the plugins enabled:
 
 
+
 * <a href="https://caddyserver.com/api/download?os=linux&arch=amd64&p=github.com%2Fgreenpau%2Fcaddy-auth-portal%40v1.4.21&p=github.com%2Fgreenpau%2Fcaddy-auth-jwt%40v1.3.15&p=github.com%2Fgreenpau%2Fcaddy-trace%40v1.1.7" target="_blank">linux/amd64</a>
 * <a href="https://caddyserver.com/api/download?os=windows&arch=amd64&p=github.com%2Fgreenpau%2Fcaddy-auth-portal%40v1.4.21&p=github.com%2Fgreenpau%2Fcaddy-auth-jwt%40v1.3.15&p=github.com%2Fgreenpau%2Fcaddy-trace%40v1.1.7" target="_blank">windows/amd64</a>
+
 
 <!-- begin-markdown-toc -->
 ## Table of Contents
@@ -122,6 +124,7 @@ The following digram is visual representation of the configuration of
 [:arrow_up: Back to Top](#table-of-contents)
 
 <!--- end of section -->
+
 
 ## Authentication Portal
 
@@ -253,6 +256,7 @@ and [Refactoring UI Website](https://refactoringui.com/).
 
 <!--- end of section -->
 
+
 ## Authorization Cookie
 
 ### Intra-Domain Cookies
@@ -375,6 +379,7 @@ jwt {
 
 <!--- end of section -->
 
+
 ## User Transforms
 
 A user transform allows to perform the following one a user passed
@@ -462,6 +467,7 @@ authp {
 [:arrow_up: Back to Top](#table-of-contents)
 
 <!--- end of section -->
+
 
 ## Usage Examples
 
@@ -589,6 +595,7 @@ Also, add the link to Kibana in `ui` section of Caddyfile:
 
 <!--- end of section -->
 
+
 ## Authentication Methods
 
 ### Basic Authentication
@@ -644,6 +651,7 @@ TBD.
 [:arrow_up: Back to Top](#table-of-contents)
 
 <!--- end of section -->
+
 ## User Interface Features
 
 ### Auto-Redirect URL
@@ -811,6 +819,7 @@ and begin serving it with content type of `text/css`  at
 
 <!--- end of section -->
 
+
 ## Local Authentication Backend
 
 ### Configuration Primer
@@ -904,6 +913,7 @@ Finally, replace the newly generated password is user database file.
 [:arrow_up: Back to Top](#table-of-contents)
 
 <!--- end of section -->
+
 ## LDAP Authentication Backend
 
 It is recommended reading the documentation for Local backend, because
@@ -1185,6 +1195,7 @@ If the re-binding is successful, the plugin issues a JWT token.
 [:arrow_up: Back to Top](#table-of-contents)
 
 <!--- end of section -->
+
 
 ## SAML Authentication Backend
 
@@ -1855,7 +1866,6 @@ TBD.
 
 [:arrow_up: Back to Top](#table-of-contents)
 
-
 #### Microsoft
 
 To register an OAuth2 application for login with Microsoft accounts
@@ -2081,11 +2091,13 @@ try connecting 2 more times at 10 second intervals.
 
 <!--- end of section -->
 
+
 ## X.509 Certificate-based Authentication Backend
 
 TBD.
 
 [:arrow_up: Back to Top](#table-of-contents)
+
 
 ## Miscellaneous
 
@@ -2149,3 +2161,4 @@ backend facebook <client_id> <client_secret>
 ```
 
 [:arrow_up: Back to Top](#table-of-contents)
+
