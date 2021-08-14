@@ -156,6 +156,11 @@ func (b *Backend) Configure() error {
 			b.Config.BaseAuthURL = "https://accounts.google.com/o/oauth2/v2/"
 			b.Config.MetadataURL = "https://accounts.google.com/.well-known/openid-configuration"
 		}
+		// If Google client_id does not contains domain name, append with
+		// the default of .apps.googleusercontent.com.
+		if !strings.Contains(b.Config.ClientID, ".") {
+			b.Config.ClientID = b.Config.ClientID + ".apps.googleusercontent.com"
+		}
 	case "github":
 		if b.Config.BaseAuthURL == "" {
 			b.Config.BaseAuthURL = "https://github.com/login/oauth/"
