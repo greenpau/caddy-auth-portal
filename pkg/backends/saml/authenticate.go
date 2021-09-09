@@ -29,7 +29,7 @@ import (
 func (b *Backend) Authenticate(r *requests.Request) error {
 	r.Response.Code = 400
 	if r.Upstream.Request.Method != "POST" {
-		r.Response.Code = 200
+		r.Response.Code = 302
 		r.Response.RedirectURL = b.loginURL
 		return nil
 	}
