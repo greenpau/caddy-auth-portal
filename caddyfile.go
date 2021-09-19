@@ -54,15 +54,23 @@ func init() {
 //		     method <local>
 //		     file <file_path>
 //		     realm <name>
-//           require mfa
 //	       }
+//         generic_oauth2_backend {
+//           method oauth2
+//           realm generic
+//           provider generic
+//           base_auth_url <base_url>
+//           metadata_url <metadata_url>
+//           client_id <client_id>
+//           client_secret <client_secret>
+//           scopes openid email profile
+//         }
 //	     }
 //
 //       backend local <file/path/to/user/db> <realm/name>
-
-//       backend local <file/path/to/user/db> <realm/name>
-//       backend local <file/path/to/user/db> <realm/name>
-//       backend local <file/path/to/user/db> <realm/name>
+//       backend google <client_id> <client_secret>
+//       backend github <client_id> <client_secret>
+//       backend facebook <client_id> <client_secret>
 //
 //	     jwt {
 //	       token_name <value>

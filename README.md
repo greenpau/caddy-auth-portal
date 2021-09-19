@@ -86,6 +86,7 @@ Download Caddy with the plugins enabled:
     * [Microsoft](#microsoft)
     * [Github](#github)
     * [Facebook](#facebook)
+    * [Gitlab](#gitlab)
   * [OAuth 2.0 Endpoint Delayed Start](#oauth-20-endpoint-delayed-start)
   * [OAuth 2.0 Endpoint Retry Attempts](#oauth-20-endpoint-retry-attempts)
 * [X.509 Certificate-based Authentication Backend](#x509-certificate-based-authentication-backend)
@@ -2050,6 +2051,20 @@ The Caddyfile config is as follows:
 When a user get redirected to Facebook Login, the screen looks as follows:
 
 ![Facebook Developers - Facebook Login - User Login](./assets/docs/images/oauth2_facebook_user_login_screen.png)
+
+[:arrow_up: Back to Top](#table-of-contents)
+
+#### Gitlab
+
+![Gitlab - New Application](./assets/docs/images/oauth_gitlab_new_app_1.png)
+
+![Gitlab - New Application - Scopes](./assets/docs/images/oauth_gitlab_new_app_2.png)
+
+![Gitlab - New Application - Review](./assets/docs/images/oauth_gitlab_new_app_2.png)
+
+![Gitlab - Authorize App](./assets/docs/images/oauth_gitlab_authorize_app_1.png)
+
+![Gitlab - User Identity](./assets/docs/images/oauth_gitlab_user_identity.png)
 
 [:arrow_up: Back to Top](#table-of-contents)
 
