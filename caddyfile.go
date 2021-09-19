@@ -55,6 +55,7 @@ func init() {
 //		     file <file_path>
 //		     realm <name>
 //	       }
+//
 //         generic_oauth2_backend {
 //           method oauth2
 //           realm generic
@@ -65,7 +66,17 @@ func init() {
 //           client_secret <client_secret>
 //           scopes openid email profile
 //         }
-//	     }
+//
+//         gitlab_backend {
+//           method oauth2
+//           realm gitlab
+//           provider gitlab
+//           domain_name <domain>
+//           client_id <client_id>
+//           client_secret <client_secret>
+//           user_group_filters <regex_pattern>
+//         }
+//       }
 //
 //       backend local <file/path/to/user/db> <realm/name>
 //       backend google <client_id> <client_secret>
@@ -377,13 +388,13 @@ func parseCaddyfileAuthenticator(h httpcaddyfile.Helper) (*authn.Authenticator, 
 							}
 							acsURLs = append(acsURLs, h.Val())
 							cfg["acs_urls"] = acsURLs
-						case "scopes":
-							if _, exists := cfg["scopes"]; exists {
-								scopes := cfg["scopes"].([]string)
-								scopes = append(scopes, h.RemainingArgs()...)
-								cfg["scopes"] = scopes
+						case "scopes", "user_group_filters":
+							if _, exists := cfg[backendArg]; exists {
+								values := cfg[backendArg].([]string)
+								values = append(values, h.RemainingArgs()...)
+								cfg[backendArg] = values
 							} else {
-								cfg["scopes"] = h.RemainingArgs()
+								cfg[backendArg] = h.RemainingArgs()
 							}
 						case "delay_start", "retry_attempts", "retry_interval":
 							backendVal := strings.Join(h.RemainingArgs(), "|")

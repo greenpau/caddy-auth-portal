@@ -46,9 +46,19 @@ func (b *Backend) fetchClaims(tokenData map[string]interface{}) (map[string]inte
 		return nil, err
 	}
 
+	// Configure user info URL.
 	switch b.Config.Provider {
 	case "github":
 		userURL = "https://api.github.com/user"
+	case "gitlab":
+		userURL = b.userInfoURL
+	case "facebook":
+		userURL = "https://graph.facebook.com/me"
+	}
+
+	// Setup http request for the URL.
+	switch b.Config.Provider {
+	case "github", "gitlab":
 		req, err = http.NewRequest("GET", userURL, nil)
 		if err != nil {
 			return nil, err
@@ -57,7 +67,6 @@ func (b *Backend) fetchClaims(tokenData map[string]interface{}) (map[string]inte
 		h := hmac.New(sha256.New, []byte(b.Config.ClientSecret))
 		h.Write([]byte(tokenString))
 		appSecretProof := hex.EncodeToString(h.Sum(nil))
-		userURL = "https://graph.facebook.com/me"
 		params := url.Values{}
 		// See https://developers.facebook.com/docs/graph-api/reference/user/
 		params.Set("fields", "id,first_name,last_name,name,email")
@@ -77,8 +86,11 @@ func (b *Backend) fetchClaims(tokenData map[string]interface{}) (map[string]inte
 	switch b.Config.Provider {
 	case "github":
 		req.Header.Add("Authorization", "token "+tokenString)
+	case "gitlab":
+		req.Header.Add("Authorization", "Bearer "+tokenString)
 	}
 
+	// Fetch data from the URL.
 	resp, err := cli.Do(req)
 	if err != nil {
 		return nil, err
@@ -102,6 +114,10 @@ func (b *Backend) fetchClaims(tokenData map[string]interface{}) (map[string]inte
 	}
 
 	switch b.Config.Provider {
+	case "gitlab":
+		if _, exists := data["profile"]; !exists {
+			return nil, fmt.Errorf("failed obtaining user profile with OAuth 2.0 access token, profile field not found")
+		}
 	case "github":
 		if _, exists := data["message"]; exists {
 			return nil, fmt.Errorf("failed obtaining user profile with OAuth 2.0 access token, error: %s", data["message"].(string))
@@ -139,6 +155,7 @@ func (b *Backend) fetchClaims(tokenData map[string]interface{}) (map[string]inte
 	}
 
 	m := make(map[string]interface{})
+	var userGroups []string
 	m["origin"] = userURL
 	switch b.Config.Provider {
 	case "github":
@@ -165,12 +182,55 @@ func (b *Backend) fetchClaims(tokenData map[string]interface{}) (map[string]inte
 			metadata["id"] = v
 		}
 		m["metadata"] = metadata
+	case "gitlab":
+		for _, k := range []string{"name", "picture", "profile", "email"} {
+			if _, exists := data[k]; !exists {
+				continue
+			}
+			switch v := data[k].(type) {
+			case string:
+				switch k {
+				case "profile":
+					m["sub"] = v
+				default:
+					m[k] = v
+				}
+			}
+		}
+		if len(b.userGroupFilters) > 0 {
+			if _, exists := data["groups"]; exists {
+				switch groups := data["groups"].(type) {
+				case []interface{}:
+					for _, v := range groups {
+						switch groupName := v.(type) {
+						case string:
+							for _, rp := range b.userGroupFilters {
+								if !rp.MatchString(groupName) {
+									continue
+								}
+								userGroups = append(userGroups, b.serverName+"/"+groupName)
+								break
+							}
+						}
+					}
+				}
+			}
+		}
+		b.logger.Debug(
+			"Extracted UserInfo endpoint data",
+			zap.String("backend_name", b.Config.Name),
+			zap.Any("data", m),
+		)
 	case "facebook":
 		if v, exists := data["email"]; exists {
 			m["email"] = v
 		}
 		m["sub"] = data["id"]
 		m["name"] = data["name"]
+	}
+
+	if len(userGroups) > 0 {
+		m["groups"] = userGroups
 	}
 	return m, nil
 }

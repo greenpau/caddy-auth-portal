@@ -112,7 +112,7 @@ func (b *Backend) Authenticate(r *requests.Request) error {
 			var m map[string]interface{}
 
 			switch b.Config.Provider {
-			case "github", "facebook":
+			case "github", "gitlab", "facebook":
 				m, err = b.fetchClaims(accessToken)
 				if err != nil {
 					return errors.ErrBackendOauthFetchClaimsFailed.WithArgs(err)

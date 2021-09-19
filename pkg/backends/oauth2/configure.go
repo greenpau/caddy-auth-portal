@@ -19,6 +19,8 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"net/url"
+	"regexp"
 	"strings"
 	"time"
 
@@ -58,6 +60,8 @@ type Config struct {
 	BaseAuthURL string `json:"base_auth_url,omitempty"`
 	// The URL to OAuth 2.0 metadata related to your Custom Authorization Server.
 	MetadataURL string `json:"metadata_url,omitempty"`
+
+	UserGroupFilters []string `json:"user_group_filters,omitempty"`
 
 	scopeMap map[string]interface{}
 }
@@ -175,6 +179,14 @@ func (b *Backend) Configure() error {
 		b.requiredTokenFields = map[string]interface{}{
 			"access_token": true,
 		}
+	case "gitlab":
+		if b.Config.DomainName == "" {
+			b.Config.DomainName = "gitlab.com"
+		}
+		if b.Config.BaseAuthURL == "" {
+			b.Config.BaseAuthURL = fmt.Sprintf("https://%s/", b.Config.DomainName)
+			b.Config.MetadataURL = b.Config.BaseAuthURL + ".well-known/openid-configuration"
+		}
 	case "azure":
 		if b.Config.TenantID == "" {
 			b.Config.TenantID = "common"
@@ -209,11 +221,28 @@ func (b *Backend) Configure() error {
 		return errors.ErrBackendOauthAuthorizationURLNotFound.WithArgs(b.Config.Provider)
 	}
 
+	parsedBaseAuthURL, err := url.Parse(b.Config.BaseAuthURL)
+	if err != nil {
+		return errors.ErrBackendConfigureInvalidBaseURL.WithArgs(b.Config.Provider, b.Config.BaseAuthURL, err)
+	}
+	b.serverName = parsedBaseAuthURL.Host
+
 	if b.Config.DelayStart > 0 {
 		go b.fetchConfig()
 	} else {
 		if err := b.fetchConfig(); err != nil {
 			return err
+		}
+	}
+
+	// Configure user group filters, if any.
+	if len(b.Config.UserGroupFilters) > 0 {
+		for _, pattern := range b.Config.UserGroupFilters {
+			compiledPattern, err := regexp.Compile(pattern)
+			if err != nil {
+				return errors.ErrBackendOAuthUserGroupFilterInvalid.WithArgs(pattern, err)
+			}
+			b.userGroupFilters = append(b.userGroupFilters, compiledPattern)
 		}
 	}
 
@@ -260,9 +289,20 @@ func (b *Backend) fetchConfig() error {
 			}
 		} else {
 			if err := b.fetchMetadataURL(); err != nil {
+				b.logger.Debug(
+					"fetchMetadataURL failed",
+					zap.String("backend_name", b.Config.Name),
+					zap.Error(errors.ErrBackendOauthMetadataFetchFailed.WithArgs(err)),
+				)
 				return errors.ErrBackendOauthMetadataFetchFailed.WithArgs(err)
 			}
 		}
+		b.logger.Debug(
+			"fetchMetadataURL succeeded",
+			zap.String("backend_name", b.Config.Name),
+			zap.Any("metadata", b.metadata),
+			zap.Any("userinfo_endpoint", b.userInfoURL),
+		)
 	}
 
 	if !b.disableKeyVerification {
@@ -313,6 +353,9 @@ func (b *Backend) fetchMetadataURL() error {
 	b.authorizationURL = b.metadata["authorization_endpoint"].(string)
 	b.tokenURL = b.metadata["token_endpoint"].(string)
 	b.keysURL = b.metadata["jwks_uri"].(string)
+	if _, exists := b.metadata["userinfo_endpoint"]; exists {
+		b.userInfoURL = b.metadata["userinfo_endpoint"].(string)
+	}
 	return nil
 }
 

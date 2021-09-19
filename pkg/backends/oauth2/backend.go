@@ -16,6 +16,7 @@ package oauth2
 
 import (
 	"crypto/rsa"
+	"regexp"
 	//"encoding/base64"
 
 	"github.com/greenpau/caddy-auth-portal/pkg/enums/operator"
@@ -27,13 +28,26 @@ import (
 
 // Backend represents authentication provider with OAuth 2.0 backend.
 type Backend struct {
-	Config                 *Config
-	metadata               map[string]interface{}
-	keys                   map[string]*JwksKey
-	publicKeys             map[string]*rsa.PublicKey
-	authorizationURL       string
-	tokenURL               string
-	keysURL                string
+	Config           *Config
+	metadata         map[string]interface{}
+	keys             map[string]*JwksKey
+	publicKeys       map[string]*rsa.PublicKey
+	authorizationURL string
+	tokenURL         string
+	keysURL          string
+	// The UserInfo API endpoint URL. Please
+	// see https://openid.net/specs/openid-connect-core-1_0.html#UserInfo
+	// for details.
+	userInfoURL string
+	// The regex filters for user groups extracted via the UserInfo API. If
+	// a group matches the filter, the group will be include into user
+	// roles issued by the portal.
+	userGroupFilters []*regexp.Regexp
+	// The name of the server hosting OAuth 2.0 IDP. For example, with public
+	// Gitlab the server would be gitlab.com. However, if it is a hosted
+	// instance, the name could be gitlab.mydomain.com. It is derived from
+	// base url config entry.
+	serverName             string
 	lastKeyFetch           time.Time
 	keyFetchAttempts       int
 	disableKeyVerification bool

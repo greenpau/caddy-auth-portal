@@ -63,6 +63,7 @@ const (
 	ErrBackendOAuthInvalidToken                      StandardError = "OAuth 2.0 %s is invalid: %v"
 	ErrBackendOAuthNonceValidationFailed             StandardError = "OAuth 2.0 %s nonce claim validation failed: %v"
 	ErrBackendOAuthEmailNotFound                     StandardError = "OAuth 2.0 %s email claim not found"
+	ErrBackendOAuthUserGroupFilterInvalid            StandardError = "user group filter %q erred: %v"
 
 	// Local backend errors.
 	ErrBackendLocalConfigurePathEmpty    StandardError = "backend configuration has empty database path"
@@ -88,6 +89,7 @@ const (
 	ErrBackendConfigureRealmEmpty        StandardError = "backend configuration has empty realm"
 	ErrBackendNewConfig                  StandardError = "backend config %v error: %v"
 	ErrBackendNewConfigInvalidAuthMethod StandardError = "backend config %v has invalid auth method"
+	ErrBackendConfigureInvalidBaseURL    StandardError = "backend config %q has invalid base auth url %q: %v"
 
 	// Authentication Errors.
 	ErrBackendLocalAuthFailed StandardError = "local backed authentication failed: %v"
