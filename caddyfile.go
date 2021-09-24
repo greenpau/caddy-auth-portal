@@ -18,6 +18,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+
 	// "regexp"
 	"strconv"
 	"strings"
@@ -75,6 +76,24 @@ func init() {
 //           client_id <client_id>
 //           client_secret <client_secret>
 //           user_group_filters <regex_pattern>
+//         }
+//
+//         // Use the following when you have multiple instances of caddy running like in HA
+//         // mode i.e. k8s, fargate, any other scheduler or any type of load balancing.
+//         multiple_servers_aware_oauth2_backend {
+//           method oauth2
+//           realm generic
+//           provider generic
+//           base_auth_url <base_url>
+//           metadata_url <metadata_url>
+//           client_id <client_id>
+//           client_secret <client_secret>
+//           scopes openid email profile
+//           storage_backend memcached
+//           // Multiple servers can be used for key distribution
+//           memcached_server memcached-0.m.memcached.svc.cluster.local:11211
+//           memcached_server memcached-1.m.memcached.svc.cluster.local:11211
+//           memcached_server memcached-2.m.memcached.svc.cluster.local:11211
 //         }
 //       }
 //
@@ -404,6 +423,18 @@ func parseCaddyfileAuthenticator(h httpcaddyfile.Helper) (*authn.Authenticator, 
 								return backendValueConversionErr(h, backendName, backendArg, backendVal, err)
 							}
 							cfg[backendArg] = i
+						case "storage_backend":
+							values := h.RemainingArgs()
+							if len(values) > 0 {
+								cfg[backendArg] = values[0]
+							}
+						case "memcached_server":
+							if values, ok := cfg[backendArg]; ok {
+								values := values.([]string)
+								cfg[backendArg] = append(values, h.RemainingArgs()...)
+							} else {
+								cfg[backendArg] = h.RemainingArgs()
+							}
 						default:
 							return backendUnsupportedValueErr(h, backendName, backendArg)
 						}

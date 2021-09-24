@@ -17,13 +17,16 @@ package oauth2
 import (
 	"crypto/rsa"
 	"regexp"
+
 	//"encoding/base64"
 
+	"time"
+
+	"github.com/greenpau/caddy-auth-portal/pkg/backends/oauth2/state"
 	"github.com/greenpau/caddy-auth-portal/pkg/enums/operator"
 	"github.com/greenpau/caddy-auth-portal/pkg/errors"
 	"github.com/greenpau/go-identity/pkg/requests"
 	"go.uber.org/zap"
-	"time"
 )
 
 // Backend represents authentication provider with OAuth 2.0 backend.
@@ -61,7 +64,7 @@ type Backend struct {
 	enableBodyDecoder      bool
 	requiredTokenFields    map[string]interface{}
 	// state stores cached state IDs
-	state  *stateManager
+	state  state.State
 	logger *zap.Logger
 }
 
@@ -70,7 +73,6 @@ type Backend struct {
 func NewDatabaseBackend(cfg *Config, logger *zap.Logger) *Backend {
 	b := &Backend{
 		Config:     cfg,
-		state:      newStateManager(),
 		keys:       make(map[string]*JwksKey),
 		publicKeys: make(map[string]*rsa.PublicKey),
 		requiredTokenFields: map[string]interface{}{
@@ -79,7 +81,6 @@ func NewDatabaseBackend(cfg *Config, logger *zap.Logger) *Backend {
 		},
 		logger: logger,
 	}
-	go manageStateManager(b.state)
 	return b
 }
 

@@ -62,14 +62,14 @@ func (b *Backend) validateAccessToken(state string, data map[string]interface{})
 		return nil, errors.ErrBackendOAuthParseToken.WithArgs(b.Config.IdentityTokenName, err)
 	}
 
-	if _, ok := token.Claims.(jwtlib.Claims); !ok && !token.Valid {
+	if token.Claims != nil && !token.Valid {
 		return nil, errors.ErrBackendOAuthInvalidToken.WithArgs(b.Config.IdentityTokenName, tokenString)
 	}
 	claims := token.Claims.(jwtlib.MapClaims)
 	if _, exists := claims["nonce"]; !exists {
 		return nil, errors.ErrBackendOAuthNonceValidationFailed.WithArgs(b.Config.IdentityTokenName, "nonce not found")
 	}
-	if err := b.state.validateNonce(state, claims["nonce"].(string)); err != nil {
+	if err := b.state.ValidateNonce(state, claims["nonce"].(string)); err != nil {
 		return nil, errors.ErrBackendOAuthNonceValidationFailed.WithArgs(b.Config.IdentityTokenName, err)
 	}
 

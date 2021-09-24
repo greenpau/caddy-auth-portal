@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package oauth2
+package state
 
 import (
 	"fmt"
@@ -20,7 +20,8 @@ import (
 	"time"
 )
 
-type stateManager struct {
+// Memory is a state store that stores state in memory on the current process.
+type Memory struct {
 	mux    sync.Mutex
 	nonces map[string]string
 	states map[string]time.Time
@@ -28,8 +29,9 @@ type stateManager struct {
 	status map[string]interface{}
 }
 
-func newStateManager() *stateManager {
-	return &stateManager{
+// NewMemoryState creates a new in memory state store.
+func NewMemoryState() *Memory {
+	return &Memory{
 		nonces: make(map[string]string),
 		states: make(map[string]time.Time),
 		codes:  make(map[string]string),
@@ -37,32 +39,38 @@ func newStateManager() *stateManager {
 	}
 }
 
-func (sm *stateManager) add(state, nonce string) {
+// Add a new state to the store.
+func (sm *Memory) Add(state, nonce string) error {
 	sm.mux.Lock()
 	defer sm.mux.Unlock()
 	sm.nonces[state] = nonce
 	sm.states[state] = time.Now()
+	return nil
 }
 
-func (sm *stateManager) del(state string) {
+// Del deletes a state from the store.
+func (sm *Memory) Del(state string) error {
 	sm.mux.Lock()
 	defer sm.mux.Unlock()
 	delete(sm.nonces, state)
 	delete(sm.states, state)
 	delete(sm.codes, state)
 	delete(sm.status, state)
+	return nil
 }
 
-func (sm *stateManager) exists(state string) bool {
+// Exists checks if a state exists in the store.
+func (sm *Memory) Exists(state string) (bool, error) {
 	sm.mux.Lock()
 	defer sm.mux.Unlock()
 	if _, exists := sm.states[state]; exists {
-		return true
+		return true, nil
 	}
-	return false
+	return false, nil
 }
 
-func (sm *stateManager) validateNonce(state, nonce string) error {
+// ValidateNonce validates the nonce for the give state.
+func (sm *Memory) ValidateNonce(state, nonce string) error {
 	sm.mux.Lock()
 	defer sm.mux.Unlock()
 	v, exists := sm.nonces[state]
@@ -75,39 +83,44 @@ func (sm *stateManager) validateNonce(state, nonce string) error {
 	return nil
 }
 
-func (sm *stateManager) addCode(state, code string) {
+// AddCode adds a new code to the store.
+func (sm *Memory) AddCode(state, code string) error {
 	sm.mux.Lock()
 	defer sm.mux.Unlock()
 	sm.codes[state] = code
+	return nil
 }
 
-func manageStateManager(sm *stateManager) {
-	intervals := time.NewTicker(time.Minute * time.Duration(2))
-	for range intervals.C {
-		if sm.states == nil {
-			return
-		}
-		now := time.Now()
-		sm.mux.Lock()
-		for state, ts := range sm.states {
-			deleteState := false
-			if _, exists := sm.status[state]; !exists {
-				if ts.Sub(now).Minutes() > 5 {
-					deleteState = true
+// Init initializes a memory cleanup routine.
+func (sm *Memory) Init() error {
+	go func() {
+		intervals := time.NewTicker(time.Minute * time.Duration(2))
+		for range intervals.C {
+			if sm.states == nil {
+				return
+			}
+			now := time.Now()
+			sm.mux.Lock()
+			for state, ts := range sm.states {
+				deleteState := false
+				if _, exists := sm.status[state]; !exists {
+					if ts.Sub(now).Minutes() > 5 {
+						deleteState = true
+					}
+				} else {
+					if ts.Sub(now).Hours() > 12 {
+						deleteState = true
+					}
 				}
-			} else {
-				if ts.Sub(now).Hours() > 12 {
-					deleteState = true
+				if deleteState {
+					delete(sm.nonces, state)
+					delete(sm.states, state)
+					delete(sm.codes, state)
+					delete(sm.status, state)
 				}
 			}
-			if deleteState {
-				delete(sm.nonces, state)
-				delete(sm.states, state)
-				delete(sm.codes, state)
-				delete(sm.status, state)
-			}
+			sm.mux.Unlock()
 		}
-		sm.mux.Unlock()
-	}
-	return
+	}()
+	return nil
 }

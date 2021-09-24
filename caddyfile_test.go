@@ -78,7 +78,7 @@ func initAuthRequest(authPath string) *http.Request {
 
 func TestLocalCaddyfile(t *testing.T) {
 	scheme := "https"
-	host := "127.0.0.1"
+	host := "localhost"
 	securePort := "8443"
 	authPath := "auth"
 	hostPort := host + ":" + securePort
@@ -142,7 +142,7 @@ func TestLocalCaddyfile(t *testing.T) {
 
 func TestLdapCaddyfile(t *testing.T) {
 	scheme := "https"
-	host := "127.0.0.1"
+	host := "localhost"
 	securePort := "8443"
 	authPath := "auth"
 	hostPort := host + ":" + securePort

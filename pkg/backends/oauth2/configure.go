@@ -24,6 +24,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/greenpau/caddy-auth-portal/pkg/backends/oauth2/state"
+
 	"github.com/greenpau/caddy-auth-portal/pkg/errors"
 	"go.uber.org/zap"
 )
@@ -65,6 +67,9 @@ type Config struct {
 	UserGroupFilters []string `json:"user_group_filters,omitempty"`
 	// The regex filters for user orgs extracted via IdP API.
 	UserOrgFilters []string `json:"user_org_filters,omitempty"`
+
+	StorageBackend  string   `json:"storage_backend,omitempty"`
+	MemcachedServer []string `json:"memcached_server"`
 
 	scopeMap map[string]interface{}
 }
@@ -258,6 +263,23 @@ func (b *Backend) Configure() error {
 			return errors.ErrBackendOAuthUserOrgFilterInvalid.WithArgs(pattern, err)
 		}
 		b.userOrgFilters = append(b.userOrgFilters, compiledPattern)
+	}
+
+	switch b.Config.StorageBackend {
+	case "memcached":
+		if len(b.Config.MemcachedServer) == 0 {
+			return errors.ErrBackendOauthInitFailed.WithArgs(
+				"memcached_servers is required when storage_backend is memcached",
+			)
+		}
+		b.state = state.NewMemcachedState(b.Config.MemcachedServer...)
+	case "memory":
+	default:
+		b.state = state.NewMemoryState()
+	}
+
+	if err = b.state.Init(); err != nil {
+		return errors.ErrBackendOauthInitFailed.WithArgs(err)
 	}
 
 	b.logger.Info(
