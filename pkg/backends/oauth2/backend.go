@@ -22,7 +22,7 @@ import (
 
 	"time"
 
-	"github.com/greenpau/caddy-auth-portal/pkg/backends/oauth2/state"
+	"github.com/greenpau/caddy-auth-portal/pkg/cache/state"
 	"github.com/greenpau/caddy-auth-portal/pkg/enums/operator"
 	"github.com/greenpau/caddy-auth-portal/pkg/errors"
 	"github.com/greenpau/go-identity/pkg/requests"
