@@ -24,8 +24,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/greenpau/caddy-auth-portal/pkg/cache/state"
-
+	"github.com/greenpau/caddy-auth-portal/pkg/cache"
 	"github.com/greenpau/caddy-auth-portal/pkg/errors"
 	"go.uber.org/zap"
 )
@@ -272,13 +271,13 @@ func (b *Backend) Configure() error {
 				"memcached_servers is required when storage_backend is memcached",
 			)
 		}
-		b.state = state.NewMemcachedState(b.Config.MemcachedServer...)
+		b.cache = cache.NewMemcachedCache(b.Config.MemcachedServer...)
 	case "memory":
 	default:
-		b.state = state.NewMemoryState()
+		b.cache = cache.NewMemoryCache()
 	}
 
-	if err = b.state.Init(); err != nil {
+	if err = b.cache.Init(); err != nil {
 		return errors.ErrBackendOauthInitFailed.WithArgs(err)
 	}
 

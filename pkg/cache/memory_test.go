@@ -12,14 +12,31 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package state
+package cache
 
-// State stores the state of the OAuth2 flow.
-type State interface {
-	Init() error
-	Add(state, nonce string) error
-	Del(state string) error
-	Exists(state string) (bool, error)
-	ValidateNonce(state, nonce string) error
-	AddCode(state, code string) error
+import (
+	"testing"
+
+	"github.com/stretchr/testify/assert"
+)
+
+func TestMemoryFlow(t *testing.T) {
+	cache := NewMemoryCache()
+	exists, err := cache.Exists("foo")
+	assert.False(t, exists)
+	assert.Nil(t, err, err)
+
+	err = cache.Add("foo", "bar")
+	assert.Nil(t, err, err)
+
+	var rv string 
+	err = cache.Get("foo", &rv)
+	assert.Nil(t, err, err)
+	assert.Equal(t, rv, "bar")
+
+	err = cache.Del("foo")
+	assert.Nil(t, err, err)
+
+	err = cache.Del("foo")
+	assert.Nil(t, err, err)
 }

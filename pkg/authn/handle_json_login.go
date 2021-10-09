@@ -17,8 +17,10 @@ package authn
 import (
 	"context"
 	"encoding/json"
-	"github.com/greenpau/go-identity/pkg/requests"
 	"net/http"
+
+	"github.com/greenpau/caddy-authorize/pkg/user"
+	"github.com/greenpau/go-identity/pkg/requests"
 )
 
 // AuthRequest is authentication request.
@@ -59,7 +61,8 @@ func (p *Authenticator) handleJSONLogin(ctx context.Context, w http.ResponseWrit
 	if err := p.authorizeLoginRequest(ctx, w, r, rr); err != nil {
 		return p.handleJSONErrorWithLog(ctx, w, r, rr, rr.Response.Code, err.Error())
 	}
-	usr, err := p.sessions.Get(rr.Upstream.SessionID)
+	var usr user.User
+	err := p.sessions.Get(rr.Upstream.SessionID, &usr)
 	if err != nil {
 		return p.handleJSONErrorWithLog(ctx, w, r, rr, http.StatusInternalServerError, err.Error())
 	}

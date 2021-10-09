@@ -22,7 +22,7 @@ import (
 
 	"time"
 
-	"github.com/greenpau/caddy-auth-portal/pkg/cache/state"
+	"github.com/greenpau/caddy-auth-portal/pkg/cache"
 	"github.com/greenpau/caddy-auth-portal/pkg/enums/operator"
 	"github.com/greenpau/caddy-auth-portal/pkg/errors"
 	"github.com/greenpau/go-identity/pkg/requests"
@@ -63,8 +63,7 @@ type Backend struct {
 	enableAcceptHeader     bool
 	enableBodyDecoder      bool
 	requiredTokenFields    map[string]interface{}
-	// state stores cached state IDs
-	state  state.State
+	cache  cache.Cache
 	logger *zap.Logger
 }
 

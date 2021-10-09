@@ -75,8 +75,8 @@ type Authenticator struct {
 	logger       *zap.Logger
 	ui           *ui.Factory
 	startedAt    time.Time
-	sessions     *cache.SessionCache
-	sandboxes    *cache.SandboxCache
+	sessions     cache.Cache
+	sandboxes    cache.Cache
 	loginOptions map[string]interface{}
 }
 

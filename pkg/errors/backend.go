@@ -97,4 +97,7 @@ const (
 
 	// Authentication Errors.
 	ErrBackendLocalAuthFailed StandardError = "local backed authentication failed: %v"
+
+	// Cache errors
+	ErrCache StandardError = "cache operation %s failed %v"
 )

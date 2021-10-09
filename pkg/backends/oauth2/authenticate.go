@@ -74,12 +74,12 @@ func (b *Backend) Authenticate(r *requests.Request) error {
 		}
 		if codeExists && stateExists {
 			// Received Authorization Code
-			exists, err := b.state.Exists(reqParamsState)
+			exists, err := b.cache.Exists(getStateCacheKey(reqParamsState))
 			if err != nil {
 				return fmt.Errorf("failed to check if state exists %w", err)
 			}
 			if exists {
-				if err = b.state.AddCode(reqParamsState, reqParamsCode); err != nil {
+				if err = b.cache.Add(getCodeCacheKey(reqParamsState), reqParamsCode); err != nil {
 					return fmt.Errorf("failed to add code to state %w", err)
 				}
 			} else {
@@ -175,7 +175,7 @@ func (b *Backend) Authenticate(r *requests.Request) error {
 	params.Set("client_id", b.Config.ClientID)
 
 	r.Response.RedirectURL = b.authorizationURL + "?" + params.Encode()
-	if err := b.state.Add(state, nonce); err != nil {
+	if err := b.cache.Add(getStateCacheKey(state), nonce); err != nil {
 		return fmt.Errorf("failed to add state %w", err)
 	}
 	b.logger.Debug(

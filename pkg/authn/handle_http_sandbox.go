@@ -18,16 +18,19 @@ import (
 	"context"
 	// "encoding/json"
 	"fmt"
-	"github.com/greenpau/caddy-authorize/pkg/user"
+	"net/http"
+
 	"github.com/greenpau/caddy-auth-portal/pkg/enums/operator"
 	"github.com/greenpau/caddy-auth-portal/pkg/utils"
+	"github.com/greenpau/caddy-authorize/pkg/user"
 	"github.com/greenpau/go-identity"
 	"github.com/greenpau/go-identity/pkg/qr"
 	"github.com/greenpau/go-identity/pkg/requests"
-	"net/http"
+
 	// "time"
-	"go.uber.org/zap"
 	"strings"
+
+	"go.uber.org/zap"
 )
 
 func (p *Authenticator) handleHTTPSandbox(ctx context.Context, w http.ResponseWriter, r *http.Request, rr *requests.Request) error {
@@ -72,7 +75,8 @@ func (p *Authenticator) handleHTTPSandbox(ctx context.Context, w http.ResponseWr
 		return p.handleHTTPError(ctx, w, r, rr, http.StatusUnauthorized)
 	}
 
-	usr, err := p.sandboxes.Get(sandboxID)
+	var usr user.User
+	err = p.sandboxes.Get(sandboxID, &usr)
 	if err != nil {
 		p.logger.Debug(
 			"failed to extract cached entry from sandbox",
@@ -121,7 +125,7 @@ func (p *Authenticator) handleHTTPSandbox(ctx context.Context, w http.ResponseWr
 	rr.User.Username = usr.Claims.Subject
 	rr.User.Email = usr.Claims.Email
 
-	data, err := p.nextSandboxCheckpoint(r, rr, usr, sandboxPartition)
+	data, err := p.nextSandboxCheckpoint(r, rr, &usr, sandboxPartition)
 	if err != nil {
 		p.logger.Warn(
 			"user authorization checkpoint failed",
@@ -147,7 +151,7 @@ func (p *Authenticator) handleHTTPSandbox(ctx context.Context, w http.ResponseWr
 			zap.String("request_id", rr.ID),
 			zap.Any("checkpoints", usr.Checkpoints),
 		)
-		p.grantAccess(ctx, w, r, rr, usr)
+		p.grantAccess(ctx, w, r, rr, &usr)
 		w.WriteHeader(rr.Response.Code)
 		return nil
 	}

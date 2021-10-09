@@ -17,12 +17,14 @@ package authn
 import (
 	"context"
 	"fmt"
+	"net/http"
+	"strings"
+
 	"github.com/greenpau/caddy-authorize/pkg/user"
+
 	addrutils "github.com/greenpau/caddy-authorize/pkg/utils/addr"
 	"github.com/greenpau/go-identity/pkg/requests"
 	"go.uber.org/zap"
-	"net/http"
-	"strings"
 )
 
 func (p *Authenticator) handleHTTPSettings(ctx context.Context, w http.ResponseWriter, r *http.Request, rr *requests.Request, parsedUser *user.User) error {
@@ -34,8 +36,8 @@ func (p *Authenticator) handleHTTPSettings(ctx context.Context, w http.ResponseW
 		}
 		return p.handleHTTPRedirect(ctx, w, r, rr, "/login")
 	}
-
-	usr, err := p.sessions.Get(parsedUser.Claims.ID)
+	var usr user.User
+	err := p.sessions.Get(parsedUser.Claims.ID, &usr)
 	if err != nil {
 		p.logger.Warn(
 			"jti session not found",
@@ -96,25 +98,25 @@ func (p *Authenticator) handleHTTPSettings(ctx context.Context, w http.ResponseW
 
 	switch {
 	case strings.HasPrefix(endpoint, "/password"):
-		if err := p.handleHTTPPasswordSettings(ctx, r, rr, usr, backend, resp.Data); err != nil {
+		if err := p.handleHTTPPasswordSettings(ctx, r, rr, &usr, backend, resp.Data); err != nil {
 			return p.handleHTTPError(ctx, w, r, rr, http.StatusBadRequest)
 		}
 	case strings.HasPrefix(endpoint, "/apikeys"):
-		if err := p.handleHTTPAPIKeysSettings(ctx, r, rr, usr, backend, resp.Data); err != nil {
+		if err := p.handleHTTPAPIKeysSettings(ctx, r, rr, &usr, backend, resp.Data); err != nil {
 			return p.handleHTTPError(ctx, w, r, rr, http.StatusBadRequest)
 		}
 	case strings.HasPrefix(endpoint, "/sshkeys"):
-		if err := p.handleHTTPSSHKeysSettings(ctx, r, rr, usr, backend, resp.Data); err != nil {
+		if err := p.handleHTTPSSHKeysSettings(ctx, r, rr, &usr, backend, resp.Data); err != nil {
 			return p.handleHTTPError(ctx, w, r, rr, http.StatusBadRequest)
 		}
 	case strings.HasPrefix(endpoint, "/gpgkeys"):
-		if err := p.handleHTTPGPGKeysSettings(ctx, r, rr, usr, backend, resp.Data); err != nil {
+		if err := p.handleHTTPGPGKeysSettings(ctx, r, rr, &usr, backend, resp.Data); err != nil {
 			return p.handleHTTPError(ctx, w, r, rr, http.StatusBadRequest)
 		}
 	case strings.HasPrefix(endpoint, "/mfa/barcode/"):
 		return p.handleHTTPMfaBarcode(ctx, w, r, endpoint)
 	case strings.HasPrefix(endpoint, "/mfa"):
-		if err := p.handleHTTPMfaSettings(ctx, r, rr, usr, backend, resp.Data); err != nil {
+		if err := p.handleHTTPMfaSettings(ctx, r, rr, &usr, backend, resp.Data); err != nil {
 			return p.handleHTTPError(ctx, w, r, rr, http.StatusBadRequest)
 		}
 	default:

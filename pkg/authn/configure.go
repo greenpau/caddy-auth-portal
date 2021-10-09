@@ -16,10 +16,9 @@ package authn
 
 import (
 	"context"
-	"github.com/greenpau/caddy-authorize/pkg/acl"
-	"github.com/greenpau/caddy-authorize/pkg/kms"
-	"github.com/greenpau/caddy-authorize/pkg/options"
-	"github.com/greenpau/caddy-authorize/pkg/validator"
+	"path"
+	"strings"
+
 	"github.com/greenpau/caddy-auth-portal/pkg/backends"
 	"github.com/greenpau/caddy-auth-portal/pkg/cache"
 	"github.com/greenpau/caddy-auth-portal/pkg/cookie"
@@ -27,10 +26,12 @@ import (
 	"github.com/greenpau/caddy-auth-portal/pkg/registration"
 	"github.com/greenpau/caddy-auth-portal/pkg/transformer"
 	"github.com/greenpau/caddy-auth-portal/pkg/ui"
+	"github.com/greenpau/caddy-authorize/pkg/acl"
+	"github.com/greenpau/caddy-authorize/pkg/kms"
+	"github.com/greenpau/caddy-authorize/pkg/options"
+	"github.com/greenpau/caddy-authorize/pkg/validator"
 	"github.com/greenpau/go-identity"
 	"go.uber.org/zap"
-	"path"
-	"strings"
 )
 
 func (mgr *InstanceManager) configure(p, m *Authenticator) error {
@@ -58,16 +59,20 @@ func (mgr *InstanceManager) configure(p, m *Authenticator) error {
 func (mgr *InstanceManager) configureEssentials(primaryInstance, m *Authenticator) error {
 	// Configure session cache.
 	if m.PrimaryInstance {
-		m.sessions = cache.NewSessionCache()
-		m.sessions.Run()
+		m.sessions = cache.NewMemoryCache()
+		if err := m.sessions.Init(); err != nil {
+			return err
+		}
 	} else {
 		m.sessions = primaryInstance.sessions
 	}
 
 	// Configure sandbox cache.
 	if m.PrimaryInstance {
-		m.sandboxes = cache.NewSandboxCache()
-		m.sandboxes.Run()
+		m.sandboxes = cache.NewMemoryCache()
+		if err := m.sandboxes.Init(); err != nil {
+			return err
+		}
 	} else {
 		m.sandboxes = primaryInstance.sandboxes
 	}

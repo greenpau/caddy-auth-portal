@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package state
+package cache
 
 import (
 	"fmt"
@@ -26,9 +26,9 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-type Cache map[string]*memcachedServer.Item
+type TestCache map[string]*memcachedServer.Item
 
-func (c Cache) Get(key string) memcachedServer.MemcachedResponse {
+func (c TestCache) Get(key string) memcachedServer.MemcachedResponse {
 	key = strings.TrimSpace(key) // the server library won't parse the command correctly
 	if item, ok := c[key]; ok {
 		if item.IsExpired() {
@@ -40,12 +40,12 @@ func (c Cache) Get(key string) memcachedServer.MemcachedResponse {
 	return nil
 }
 
-func (c Cache) Set(item *memcachedServer.Item) memcachedServer.MemcachedResponse {
+func (c TestCache) Set(item *memcachedServer.Item) memcachedServer.MemcachedResponse {
 	c[strings.TrimSpace(item.Key)] = item
 	return nil
 }
 
-func (c Cache) Delete(key string) memcachedServer.MemcachedResponse {
+func (c TestCache) Delete(key string) memcachedServer.MemcachedResponse {
 	delete(c, strings.TrimSpace(key))
 	return nil
 }
@@ -54,7 +54,7 @@ func newMemcachedServer() (*memcachedServer.Server, string) {
 	rand.Seed(time.Now().UnixNano())
 	port := rand.Int()%30000 + 1000
 	address := fmt.Sprintf("127.0.0.1:%d", port)
-	server := memcachedServer.NewServer(address, &Cache{})
+	server := memcachedServer.NewServer(address, &TestCache{})
 	go func() {
 		if err := server.ListenAndServe(); err != nil {
 			panic(err)
@@ -74,21 +74,12 @@ func newMemcachedServer() (*memcachedServer.Server, string) {
 
 func TestMemcachedFlow(t *testing.T) {
 	_, address := newMemcachedServer()
-	stateManager := NewMemcachedState(address)
+	stateManager := NewMemcachedCache(address)
 	exists, err := stateManager.Exists("foo")
 	assert.False(t, exists)
 	assert.Nil(t, err, err)
 
 	err = stateManager.Add("foo", "bar")
-	assert.Nil(t, err, err)
-
-	err = stateManager.AddCode("foo", "bar")
-	assert.Nil(t, err, err)
-
-	err = stateManager.ValidateNonce("foo", "baz")
-	assert.NotNil(t, err)
-
-	err = stateManager.ValidateNonce("foo", "bar")
 	assert.Nil(t, err, err)
 
 	err = stateManager.Del("foo")

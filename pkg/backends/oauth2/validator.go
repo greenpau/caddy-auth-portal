@@ -69,7 +69,8 @@ func (b *Backend) validateAccessToken(state string, data map[string]interface{})
 	if _, exists := claims["nonce"]; !exists {
 		return nil, errors.ErrBackendOAuthNonceValidationFailed.WithArgs(b.Config.IdentityTokenName, "nonce not found")
 	}
-	if err := b.state.ValidateNonce(state, claims["nonce"].(string)); err != nil {
+	var savedNonce string
+	if err := b.cache.Get(state, &savedNonce); err != nil || savedNonce != claims["nonce"].(string) {
 		return nil, errors.ErrBackendOAuthNonceValidationFailed.WithArgs(b.Config.IdentityTokenName, err)
 	}
 
