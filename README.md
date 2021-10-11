@@ -826,7 +826,7 @@ and begin serving it with content type of `text/css`  at
 ### Configuration Primer
 
 Please refer to the `assets/conf/local/config.json` configuration file when
-configurin the plugin backend. In the example, the route refers to `local` backend in
+configuring the plugin backend. In the example, the route refers to `local` backend in
 the file `assets/backends/local/users.json`. Specify the path to the file
 where you want your database to reside. Do not create a file, but rather
 create leading directories.
