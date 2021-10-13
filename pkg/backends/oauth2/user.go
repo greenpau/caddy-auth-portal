@@ -177,6 +177,12 @@ func (b *Backend) fetchClaims(tokenData map[string]interface{}) (map[string]inte
 				m["picture"] = v
 			}
 		}
+		if _, exists := data["email"]; exists {
+			switch v := data["email"].(type) {
+			case string:
+				m["email"] = v
+			}
+		}
 		metadata := make(map[string]interface{})
 		if v, exists := data["id"]; exists {
 			metadata["id"] = v
