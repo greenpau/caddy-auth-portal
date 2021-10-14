@@ -35,7 +35,7 @@ Before sending your pull requests, make sure you followed this list.
 
 ## Development Environment
 
-The contribution to `portal` and `jwt` plugins requires setting up a development
+The contribution to `portal` and `authorize` plugins requires setting up a development
 environment. The following steps allow developers to test Caddy server with
 the plugins using local source code.
 
@@ -50,7 +50,7 @@ Second, fork the following repositories in Github into to your own Github
 handle, e.g. `anonymous`:
 
 * `https://github.com/greenpau/caddy-auth-portal` => `https://github.com/anonymous/caddy-auth-portal`
-* `https://github.com/greenpau/caddy-auth-jwt` => `https://github.com/anonymous/caddy-auth-jwt`
+* `https://github.com/greenpau/caddy-authorize` => `https://github.com/anonymous/caddy-authorize`
 * `https://github.com/greenpau/caddy-trace` => `https://github.com/anonymous/caddy-trace`
 * `https://github.com/greenpau/go-identity` => `https://github.com/anonymous/go-identity`
 
@@ -58,7 +58,7 @@ Provided you are in `tmpcaddydev` directory, clone the forked repositories:
 
 ```bash
 git clone git@github.com:anonymous/caddy-auth-portal.git
-git clone git@github.com:anonymous/caddy-auth-jwt.git
+git clone git@github.com:anonymous/caddy-authorize.git
 git clone git@github.com:anonymous/caddy-trace.git
 git clone git@github.com:anonymous/go-identity.git
 ```
@@ -80,7 +80,7 @@ module github.com/greenpau/caddy-auth-portal
 
 # intentionally omitted
 
-replace github.com/greenpau/caddy-auth-jwt v1.2.7 => /home/greenpau/dev/go/src/github.com/greenpau/caddy-auth-jwt
+replace github.com/greenpau/caddy-authorize v1.2.7 => /home/greenpau/dev/go/src/github.com/greenpau/caddy-authorize
 
 replace github.com/greenpau/caddy-trace v1.1.6 => /home/greenpau/dev/go/src/github.com/greenpau/caddy-trace
 

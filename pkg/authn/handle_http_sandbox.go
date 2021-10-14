@@ -18,7 +18,7 @@ import (
 	"context"
 	// "encoding/json"
 	"fmt"
-	"github.com/greenpau/caddy-auth-jwt/pkg/user"
+	"github.com/greenpau/caddy-authorize/pkg/user"
 	"github.com/greenpau/caddy-auth-portal/pkg/enums/operator"
 	"github.com/greenpau/caddy-auth-portal/pkg/utils"
 	"github.com/greenpau/go-identity"

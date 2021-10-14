@@ -17,7 +17,7 @@ package authn
 import (
 	"context"
 	"encoding/json"
-	"github.com/greenpau/caddy-auth-jwt/pkg/user"
+	"github.com/greenpau/caddy-authorize/pkg/user"
 	"github.com/greenpau/go-identity/pkg/requests"
 	"net/http"
 	"time"

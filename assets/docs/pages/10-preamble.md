@@ -14,7 +14,7 @@ Please show your appreciation for this work and :star: :star: :star:
 Please ask questions either here or via LinkedIn. I am happy to help you! @greenpau
 
 Please see other plugins:
-* [caddy-auth-jwt](https://github.com/greenpau/caddy-auth-jwt)
+* [caddy-authorize](https://github.com/greenpau/caddy-authorize)
 * [caddy-trace](https://github.com/greenpau/caddy-trace)
 
 Download Caddy with the plugins enabled:

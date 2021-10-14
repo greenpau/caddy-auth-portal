@@ -40,7 +40,7 @@ came from.
 
 ```
   route /sso/oauth2/google* {
-    jwt {
+    authorize {
       set auth url /auth/oauth2/google
     }
     respond * "google oauth2 sso" 200

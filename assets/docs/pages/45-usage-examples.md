@@ -35,7 +35,7 @@ localhost:8443 {
   }
 
   route /prometheus* {
-    jwt {
+    authorize {
       primary yes
       crypto key verify 0e2fdcf8-6868-41a7-884b-7308795fc286
       set auth url /auth
@@ -47,13 +47,13 @@ localhost:8443 {
   }
 
   route /alertmanager* {
-    jwt
+    authorize
     uri strip_prefix /alertmanager
     reverse_proxy http://127.0.0.1:9083
   }
 
   route /myapp* {
-    jwt
+    authorize
     respond * "myapp" 200
   }
 
@@ -102,7 +102,7 @@ Next, add the following route in you Caddyfile:
 
 ```
   route /elk* {
-    jwt
+    authorize
     uri strip_prefix /elk
     reverse_proxy KIBANA_IP:5601
   }

@@ -28,7 +28,7 @@ came from.
 
 ```
   route /sso/oauth2/generic* {
-    jwt {
+    authorize {
       set auth url /auth/oauth2/generic
     }
     respond * "generic oauth2 sso" 200

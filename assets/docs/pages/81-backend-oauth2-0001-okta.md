@@ -111,7 +111,7 @@ came from.
 
 ```
   route /sso/oauth2/okta* {
-    jwt {
+    authorize {
       set auth url /auth/oauth2/okta
     }
     respond * "okta oauth2 sso" 200

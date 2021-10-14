@@ -51,7 +51,7 @@ app.contoso.com {
   }
 
   route {
-    jwt {
+    authorize {
       primary yes
       allow roles authp/admin authp/user
       validate bearer header

@@ -21,7 +21,7 @@ import (
 	"crypto/x509"
 	"encoding/json"
 	"fmt"
-	"github.com/greenpau/caddy-auth-jwt/pkg/acl"
+	"github.com/greenpau/caddy-authorize/pkg/acl"
 	"github.com/greenpau/caddy-auth-portal/internal/tests"
 	"github.com/greenpau/caddy-auth-portal/internal/utils"
 	"github.com/greenpau/caddy-auth-portal/pkg/backends"

@@ -14,15 +14,15 @@ Please show your appreciation for this work and :star: :star: :star:
 Please ask questions either here or via LinkedIn. I am happy to help you! @greenpau
 
 Please see other plugins:
-* [caddy-auth-jwt](https://github.com/greenpau/caddy-auth-jwt)
+* [caddy-authorize](https://github.com/greenpau/caddy-authorize)
 * [caddy-trace](https://github.com/greenpau/caddy-trace)
 
 Download Caddy with the plugins enabled:
 
 
 
-* <a href="https://caddyserver.com/api/download?os=linux&arch=amd64&p=github.com%2Fgreenpau%2Fcaddy-auth-portal%40v1.4.24&p=github.com%2Fgreenpau%2Fcaddy-auth-jwt%40v1.3.16&p=github.com%2Fgreenpau%2Fcaddy-trace%40v1.1.7" target="_blank">linux/amd64</a>
-* <a href="https://caddyserver.com/api/download?os=windows&arch=amd64&p=github.com%2Fgreenpau%2Fcaddy-auth-portal%40v1.4.24&p=github.com%2Fgreenpau%2Fcaddy-auth-jwt%40v1.3.16&p=github.com%2Fgreenpau%2Fcaddy-trace%40v1.1.7" target="_blank">windows/amd64</a>
+* <a href="https://caddyserver.com/api/download?os=linux&arch=amd64&p=github.com%2Fgreenpau%2Fcaddy-auth-portal%40v1.4.24&p=github.com%2Fgreenpau%2Fcaddy-authorize%40v1.3.17&p=github.com%2Fgreenpau%2Fcaddy-trace%40v1.1.7" target="_blank">linux/amd64</a>
+* <a href="https://caddyserver.com/api/download?os=windows&arch=amd64&p=github.com%2Fgreenpau%2Fcaddy-auth-portal%40v1.4.24&p=github.com%2Fgreenpau%2Fcaddy-authorize%40v1.3.17&p=github.com%2Fgreenpau%2Fcaddy-trace%40v1.1.7" target="_blank">windows/amd64</a>
 
 
 <!-- begin-markdown-toc -->
@@ -102,7 +102,7 @@ Download Caddy with the plugins enabled:
 
 The purpose of this plugin is providing **authentication** only. The plugin
 issue JWT tokens upon successful authentication. In turn, the **authorization**
-of the tokens is being handled by [`caddy-auth-jwt`](https://github.com/greenpau/caddy-auth-jwt).
+of the tokens is being handled by [`caddy-authorize`](https://github.com/greenpau/caddy-authorize).
 
 The plugin supports the following **authentication** backends:
 
@@ -118,7 +118,7 @@ The plugin accepts user credentials for **authentication** with:
 
 The following digram is visual representation of the configuration of
 [`caddy-auth-portal`](https://github.com/greenpau/caddy-auth-portal) and
-[`caddy-auth-jwt`](https://github.com/greenpau/caddy-auth-jwt).
+[`caddy-authorize`](https://github.com/greenpau/caddy-authorize).
 
 ![Authentication Plugins](assets/docs/images/auth_plugin_arch.png)
 
@@ -284,7 +284,7 @@ for more information.
 The plugin issues JWT tokens to authenticated users. The tokens
 contains user attributes, e.g. name, email, avatar, etc. They also
 contains roles. The roles are used to authorize user access with
-`jwt` plugin.
+`authorize` plugin.
 
 By default, in addition to the roles configured by an authentication provider,
 the plugin issues one of the three roles to a user.
@@ -298,7 +298,7 @@ the plugin issues one of the three roles to a user.
   assigned
 
 The plugin supports the issuance and verification of RSA, ECDSA, and shared keys.
-See docs [here](https://github.com/greenpau/caddy-auth-jwt#token-verification).
+See docs [here](https://github.com/greenpau/caddy-authorize#token-verification).
 
 #### Auto-Generated Encryption Keys
 
@@ -306,7 +306,7 @@ By default, if there is no `crypto key` directive, the plugin auto-generated
 ECDSA key pair for signing and verification of tokens. The key pair changes
 with each restart of the plugin.
 
-In this case, there is no need to define `crypto key` directive in `jwt` plugin
+In this case, there is no need to define `crypto key` directive in `authorize` plugin
 because the two plugins would know about the keypair.
 
 This is a perfect option for standalone servers.
@@ -326,10 +326,10 @@ authp {
 }
 ```
 
-The corresponding `jwt` plugin config is:
+The corresponding `authorize` plugin config is:
 
 ```
-jwt {
+authorize {
   crypto key a2f19072b6d6 verify 428f41ab-67ec-47d1-8633-bcade9dcc7ed
 }
 ```
@@ -348,10 +348,10 @@ authp {
 }
 ```
 
-The corresponding `jwt` plugin config is:
+The corresponding `authorize` plugin config is:
 
 ```
-jwt {
+authorize {
   crypto key a2f19072b6d6 verify 428f41ab-67ec-47d1-8633-bcade9dcc7ed
 }
 ```
@@ -368,10 +368,10 @@ authp {
 }
 ```
 
-The corresponding `jwt` plugin config is:
+The corresponding `authorize` plugin config is:
 
 ```
-jwt {
+authorize {
   crypto key verify 428f41ab-67ec-47d1-8633-bcade9dcc7ed
 }
 ```
@@ -506,7 +506,7 @@ localhost:8443 {
   }
 
   route /prometheus* {
-    jwt {
+    authorize {
       primary yes
       crypto key verify 0e2fdcf8-6868-41a7-884b-7308795fc286
       set auth url /auth
@@ -518,13 +518,13 @@ localhost:8443 {
   }
 
   route /alertmanager* {
-    jwt
+    authorize
     uri strip_prefix /alertmanager
     reverse_proxy http://127.0.0.1:9083
   }
 
   route /myapp* {
-    jwt
+    authorize
     respond * "myapp" 200
   }
 
@@ -573,7 +573,7 @@ Next, add the following route in you Caddyfile:
 
 ```
   route /elk* {
-    jwt
+    authorize
     uri strip_prefix /elk
     reverse_proxy KIBANA_IP:5601
   }
@@ -666,7 +666,7 @@ clears the cookie and redirects the user to the path specified in
 
 ```
 https://chat.example.com {
-  jwt {
+  authorize {
     set auth url https://auth.example.com/auth?redirect_url=https://chat.example.com
   }
 }
@@ -1058,7 +1058,7 @@ using local and LDAP credentials.
   }
 
   route /prometheus* {
-    jwt {
+    authorize {
       primary yes
       crypto key verify 0e2fdcf8-6868-41a7-884b-7308795fc286
       set auth url /auth
@@ -1072,13 +1072,13 @@ using local and LDAP credentials.
   }
 
   route /alertmanager* {
-    jwt
+    authorize
     uri strip_prefix /alertmanager
     reverse_proxy http://127.0.0.1:9083
   }
 
   route /myapp* {
-    jwt
+    authorize
     respond * "myapp" 200
   }
 
@@ -1599,7 +1599,7 @@ came from.
 
 ```
   route /sso/oauth2/generic* {
-    jwt {
+    authorize {
       set auth url /auth/oauth2/generic
     }
     respond * "generic oauth2 sso" 200
@@ -1719,7 +1719,7 @@ came from.
 
 ```
   route /sso/oauth2/okta* {
-    jwt {
+    authorize {
       set auth url /auth/oauth2/okta
     }
     respond * "okta oauth2 sso" 200
@@ -1779,7 +1779,7 @@ came from.
 
 ```
   route /sso/oauth2/google* {
-    jwt {
+    authorize {
       set auth url /auth/oauth2/google
     }
     respond * "google oauth2 sso" 200
@@ -2107,7 +2107,7 @@ app.contoso.com {
   }
 
   route {
-    jwt {
+    authorize {
       primary yes
       allow roles authp/admin authp/user
       validate bearer header

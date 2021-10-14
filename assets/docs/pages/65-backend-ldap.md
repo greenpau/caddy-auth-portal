@@ -142,7 +142,7 @@ using local and LDAP credentials.
   }
 
   route /prometheus* {
-    jwt {
+    authorize {
       primary yes
       crypto key verify 0e2fdcf8-6868-41a7-884b-7308795fc286
       set auth url /auth
@@ -156,13 +156,13 @@ using local and LDAP credentials.
   }
 
   route /alertmanager* {
-    jwt
+    authorize
     uri strip_prefix /alertmanager
     reverse_proxy http://127.0.0.1:9083
   }
 
   route /myapp* {
-    jwt
+    authorize
     respond * "myapp" 200
   }
 

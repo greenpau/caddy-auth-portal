@@ -22,16 +22,16 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/greenpau/caddy-auth-jwt/pkg/kms"
-	"github.com/greenpau/caddy-auth-jwt/pkg/options"
+	"github.com/greenpau/caddy-authorize/pkg/kms"
+	"github.com/greenpau/caddy-authorize/pkg/options"
 
-	"github.com/greenpau/caddy-auth-jwt/pkg/utils/cfgutils"
 	"github.com/greenpau/caddy-auth-portal/pkg/authn"
 	"github.com/greenpau/caddy-auth-portal/pkg/backends"
 	"github.com/greenpau/caddy-auth-portal/pkg/cookie"
 	"github.com/greenpau/caddy-auth-portal/pkg/registration"
 	"github.com/greenpau/caddy-auth-portal/pkg/transformer"
 	"github.com/greenpau/caddy-auth-portal/pkg/ui"
+	"github.com/greenpau/caddy-authorize/pkg/utils/cfgutils"
 
 	"github.com/caddyserver/caddy/v2"
 	"github.com/caddyserver/caddy/v2/caddyconfig"
@@ -83,12 +83,8 @@ func init() {
 //       backend github <client_id> <client_secret>
 //       backend facebook <client_id> <client_secret>
 //
-//	     jwt {
-//	       token_name <value>
-//	       token_secret <value>
-//         token_lifetime <seconds>
-//         token_sign_method <HS256|HS384|HS512|RS256|RS384|RS512>
-//	     }
+//	     crypto key sign-verify <shared_secret>
+//
 //	     ui {
 //	       template <login|portal> <file_path>
 //	       logo_url <file_path|url_path>

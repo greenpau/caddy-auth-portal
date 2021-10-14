@@ -91,7 +91,7 @@
   }
 
   route /prometheus* {
-    jwt {
+    authorize {
       primary yes
       crypto key token name access_token
       crypto key verify 0e2fdcf8-6868-41a7-884b-7308795fc286
@@ -107,13 +107,13 @@
   }
 
   route /alertmanager* {
-    jwt
+    authorize
     uri strip_prefix /alertmanager
     reverse_proxy http://127.0.0.1:9083
   }
 
   route /myapp* {
-    jwt
+    authorize
     respond * "myapp" 200
   }
 
@@ -122,14 +122,14 @@
   }
 
   route /sso/saml/azure* {
-    jwt {
+    authorize {
       set auth url /auth/saml/azure
     }
     respond * "azure saml sso" 200
   }
 
   route /sso/oauth2/okta* {
-    jwt {
+    authorize {
       set auth url /auth/oauth2/okta
     }
     respond * "okta oauth2 sso" 200

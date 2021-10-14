@@ -16,7 +16,7 @@ package authn
 
 import (
 	"context"
-	"github.com/greenpau/caddy-auth-jwt/pkg/user"
+	"github.com/greenpau/caddy-authorize/pkg/user"
 	"github.com/greenpau/caddy-auth-portal/pkg/utils"
 	"github.com/greenpau/go-identity/pkg/requests"
 	"go.uber.org/zap"

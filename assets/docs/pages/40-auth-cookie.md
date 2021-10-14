@@ -25,7 +25,7 @@ for more information.
 The plugin issues JWT tokens to authenticated users. The tokens
 contains user attributes, e.g. name, email, avatar, etc. They also
 contains roles. The roles are used to authorize user access with
-`jwt` plugin.
+`authorize` plugin.
 
 By default, in addition to the roles configured by an authentication provider,
 the plugin issues one of the three roles to a user.
@@ -39,7 +39,7 @@ the plugin issues one of the three roles to a user.
   assigned
 
 The plugin supports the issuance and verification of RSA, ECDSA, and shared keys.
-See docs [here](https://github.com/greenpau/caddy-auth-jwt#token-verification).
+See docs [here](https://github.com/greenpau/caddy-authorize#token-verification).
 
 #### Auto-Generated Encryption Keys
 
@@ -47,7 +47,7 @@ By default, if there is no `crypto key` directive, the plugin auto-generated
 ECDSA key pair for signing and verification of tokens. The key pair changes
 with each restart of the plugin.
 
-In this case, there is no need to define `crypto key` directive in `jwt` plugin
+In this case, there is no need to define `crypto key` directive in `authorize` plugin
 because the two plugins would know about the keypair.
 
 This is a perfect option for standalone servers.
@@ -67,10 +67,10 @@ authp {
 }
 ```
 
-The corresponding `jwt` plugin config is:
+The corresponding `authorize` plugin config is:
 
 ```
-jwt {
+authorize {
   crypto key a2f19072b6d6 verify 428f41ab-67ec-47d1-8633-bcade9dcc7ed
 }
 ```
@@ -89,10 +89,10 @@ authp {
 }
 ```
 
-The corresponding `jwt` plugin config is:
+The corresponding `authorize` plugin config is:
 
 ```
-jwt {
+authorize {
   crypto key a2f19072b6d6 verify 428f41ab-67ec-47d1-8633-bcade9dcc7ed
 }
 ```
@@ -109,10 +109,10 @@ authp {
 }
 ```
 
-The corresponding `jwt` plugin config is:
+The corresponding `authorize` plugin config is:
 
 ```
-jwt {
+authorize {
   crypto key verify 428f41ab-67ec-47d1-8633-bcade9dcc7ed
 }
 ```

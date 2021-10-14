@@ -17,8 +17,8 @@ package transformer
 import (
 	"context"
 	"fmt"
-	"github.com/greenpau/caddy-auth-jwt/pkg/acl"
-	"github.com/greenpau/caddy-auth-jwt/pkg/utils/cfgutils"
+	"github.com/greenpau/caddy-authorize/pkg/acl"
+	"github.com/greenpau/caddy-authorize/pkg/utils/cfgutils"
 	"strings"
 )
 
