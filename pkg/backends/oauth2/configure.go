@@ -61,7 +61,10 @@ type Config struct {
 	// The URL to OAuth 2.0 metadata related to your Custom Authorization Server.
 	MetadataURL string `json:"metadata_url,omitempty"`
 
+	// The regex filters for user groups extracted via IdP API.
 	UserGroupFilters []string `json:"user_group_filters,omitempty"`
+	// The regex filters for user orgs extracted via IdP API.
+	UserOrgFilters []string `json:"user_org_filters,omitempty"`
 
 	scopeMap map[string]interface{}
 }
@@ -236,14 +239,21 @@ func (b *Backend) Configure() error {
 	}
 
 	// Configure user group filters, if any.
-	if len(b.Config.UserGroupFilters) > 0 {
-		for _, pattern := range b.Config.UserGroupFilters {
-			compiledPattern, err := regexp.Compile(pattern)
-			if err != nil {
-				return errors.ErrBackendOAuthUserGroupFilterInvalid.WithArgs(pattern, err)
-			}
-			b.userGroupFilters = append(b.userGroupFilters, compiledPattern)
+	for _, pattern := range b.Config.UserGroupFilters {
+		compiledPattern, err := regexp.Compile(pattern)
+		if err != nil {
+			return errors.ErrBackendOAuthUserGroupFilterInvalid.WithArgs(pattern, err)
 		}
+		b.userGroupFilters = append(b.userGroupFilters, compiledPattern)
+	}
+
+	// Configure user org filters, if any.
+	for _, pattern := range b.Config.UserOrgFilters {
+		compiledPattern, err := regexp.Compile(pattern)
+		if err != nil {
+			return errors.ErrBackendOAuthUserOrgFilterInvalid.WithArgs(pattern, err)
+		}
+		b.userOrgFilters = append(b.userOrgFilters, compiledPattern)
 	}
 
 	b.logger.Info(

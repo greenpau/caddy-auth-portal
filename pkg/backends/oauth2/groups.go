@@ -15,12 +15,10 @@
 package oauth2
 
 import (
-	// "encoding/json"
 	"fmt"
 	"go.uber.org/zap"
 	"io/ioutil"
 	"net/http"
-	// "net/url"
 )
 
 func (b *Backend) fetchUserGroups(tokenData, userData map[string]interface{}) error {
@@ -71,21 +69,6 @@ func (b *Backend) fetchUserGroups(tokenData, userData map[string]interface{}) er
 		zap.Any("body", respBody),
 		zap.String("url", userURL),
 	)
-
-	/*
-		data := make(map[string]interface{})
-		if err := json.Unmarshal(respBody, &data); err != nil {
-			return err
-		}
-
-		switch b.Config.Provider {
-		case "google":
-			b.logger.Debug(
-				"XXX User groups decoded",
-				zap.Any("data", data),
-			)
-		}
-	*/
 
 	return nil
 }

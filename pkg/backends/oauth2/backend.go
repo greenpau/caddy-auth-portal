@@ -43,6 +43,8 @@ type Backend struct {
 	// a group matches the filter, the group will be include into user
 	// roles issued by the portal.
 	userGroupFilters []*regexp.Regexp
+	// The regex filters for user orgs extracted from an identity provider.
+	userOrgFilters []*regexp.Regexp
 	// The name of the server hosting OAuth 2.0 IDP. For example, with public
 	// Gitlab the server would be gitlab.com. However, if it is a hosted
 	// instance, the name could be gitlab.mydomain.com. It is derived from

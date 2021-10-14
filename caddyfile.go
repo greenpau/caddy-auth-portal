@@ -388,7 +388,7 @@ func parseCaddyfileAuthenticator(h httpcaddyfile.Helper) (*authn.Authenticator, 
 							}
 							acsURLs = append(acsURLs, h.Val())
 							cfg["acs_urls"] = acsURLs
-						case "scopes", "user_group_filters":
+						case "scopes", "user_group_filters", "user_org_filters":
 							if _, exists := cfg[backendArg]; exists {
 								values := cfg[backendArg].([]string)
 								values = append(values, h.RemainingArgs()...)

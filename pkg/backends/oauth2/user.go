@@ -28,6 +28,79 @@ import (
 	"strings"
 )
 
+type userData struct {
+	Groups []string `json:"groups,omitempty"`
+}
+
+func (b *Backend) fetchGithubUserInfo(params map[string]interface{}) (*userData, error) {
+	var req *http.Request
+	var reqMethod, reqURL, authToken string
+	data := &userData{}
+	reqURL = params["url"].(string)
+	if _, exists := params["method"]; exists {
+		reqMethod = params["method"].(string)
+	} else {
+		reqMethod = "GET"
+	}
+	authToken = params["token"].(string)
+
+	// Create new http client instance.
+	cli, err := newBrowser()
+	if err != nil {
+		return nil, err
+	}
+	req, err = http.NewRequest(reqMethod, reqURL, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Accept", "application/json")
+	req.Header.Add("Authorization", "token "+authToken)
+
+	// Fetch data from the URL.
+	resp, err := cli.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	respBody, err := ioutil.ReadAll(resp.Body)
+	resp.Body.Close()
+	if err != nil {
+		return nil, err
+	}
+
+	b.logger.Debug("Additional user data received", zap.String("url", reqURL), zap.Any("body", respBody))
+
+	orgs := []map[string]interface{}{}
+	if err := json.Unmarshal(respBody, &orgs); err != nil {
+		return nil, err
+	}
+	for _, org := range orgs {
+		if _, exists := org["login"]; !exists {
+			continue
+		}
+		orgName := org["login"].(string)
+		// Exclude org from processing if it does not match org filters.
+		included := false
+		for _, rp := range b.userOrgFilters {
+			if rp.MatchString(orgName) {
+				included = true
+				break
+			}
+		}
+		if !included {
+			continue
+		}
+		data.Groups = append(data.Groups, fmt.Sprintf("github.com/%s/members", orgName))
+	}
+
+	b.logger.Debug(
+		"Parsed additional user data",
+		zap.String("url", reqURL),
+		zap.Any("data", data),
+	)
+
+	return data, nil
+}
+
 func (b *Backend) fetchClaims(tokenData map[string]interface{}) (map[string]interface{}, error) {
 	var userURL string
 	var req *http.Request
@@ -182,6 +255,38 @@ func (b *Backend) fetchClaims(tokenData map[string]interface{}) (map[string]inte
 			metadata["id"] = v
 		}
 		m["metadata"] = metadata
+
+		if orgURL, exists := data["organizations_url"]; exists && len(b.userOrgFilters) > 0 {
+			params := map[string]interface{}{
+				"url":      orgURL.(string),
+				"method":   "GET",
+				"token":    tokenString,
+				"username": data["login"].(string),
+			}
+			userData, err := b.fetchGithubUserInfo(params)
+			if err != nil {
+				b.logger.Error(
+					"Failed extracting user org data",
+					zap.String("backend_name", b.Config.Name),
+					zap.Error(err),
+				)
+			} else {
+				userGroups = append(userGroups, userData.Groups...)
+				b.logger.Debug(
+					"Successfully extracted user org data",
+					zap.String("backend_name", b.Config.Name),
+					zap.Any("extracted", userData),
+				)
+			}
+		}
+
+		b.logger.Debug(
+			"Extracted UserInfo endpoint data",
+			zap.String("backend_name", b.Config.Name),
+			zap.Any("inputted", data),
+			zap.Any("extracted", m),
+		)
+
 	case "gitlab":
 		for _, k := range []string{"name", "picture", "profile", "email"} {
 			if _, exists := data[k]; !exists {

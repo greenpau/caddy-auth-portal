@@ -64,6 +64,7 @@ const (
 	ErrBackendOAuthNonceValidationFailed             StandardError = "OAuth 2.0 %s nonce claim validation failed: %v"
 	ErrBackendOAuthEmailNotFound                     StandardError = "OAuth 2.0 %s email claim not found"
 	ErrBackendOAuthUserGroupFilterInvalid            StandardError = "user group filter %q erred: %v"
+	ErrBackendOAuthUserOrgFilterInvalid              StandardError = "user org filter %q erred: %v"
 
 	// Local backend errors.
 	ErrBackendLocalConfigurePathEmpty    StandardError = "backend configuration has empty database path"
