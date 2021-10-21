@@ -63,7 +63,7 @@ func (p *Authenticator) handleHTTPSettings(ctx context.Context, w http.ResponseW
 		return p.handleHTTPLogoutWithLocalRedirect(ctx, w, r, rr)
 	}
 
-	if permitted := usr.HasRole("authp/admin", "authp/user"); !permitted {
+	if permitted := usr.HasRole("authp/admin", "authp/user", "superadmin"); !permitted {
 		return p.handleHTTPError(ctx, w, r, rr, http.StatusForbidden)
 	}
 
