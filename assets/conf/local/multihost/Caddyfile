@@ -1,48 +1,47 @@
 {
-  http_port     8080
-  https_port    8443
-  debug
+	http_port 8080
+	https_port 8443
+	debug
 }
 
-
 auth.myfiosgateway.com {
-  tls /home/greenpau/.local/tls/myfiosgateway/server.crt /home/greenpau/.local/tls/myfiosgateway/server.key
-  route {
-    authp {
-      crypto default token lifetime 3600
-      crypto key sign-verify a3c6eeee16e4479e9f31786e30b3ebdc
-      backend local /home/greenpau/.local/caddy/users.json local
-      cookie domain myfiosgateway.com
-      ui {
-        links {
-          "My Website" https://foobar.myfiosgateway.com:8443/ icon "las la-star"
-          "My Identity" "/whoami" icon "las la-star"
-        }
-      }
-      transform user {
-        match origin local
-        action add role authp/user
-      }
-      transform user {
-        match origin local
-        match roles authp/user
-        ui link "Portal Settings" /settings icon "las la-code-branch"
-      }
-    }
-  }
+	tls /home/greenpau/.local/tls/myfiosgateway/server.crt /home/greenpau/.local/tls/myfiosgateway/server.key
+	route {
+		authp {
+			crypto default token lifetime 3600
+			crypto key sign-verify a3c6eeee16e4479e9f31786e30b3ebdc
+			backend local /home/greenpau/.local/caddy/users.json local
+			cookie domain myfiosgateway.com
+			ui {
+				links {
+					"My Website" https://foobar.myfiosgateway.com:8443/ icon "las la-star"
+					"My Identity" "/whoami" icon "las la-star"
+				}
+			}
+			transform user {
+				match origin local
+				action add role authp/user
+			}
+			transform user {
+				match origin local
+				match roles authp/user
+				ui link "Portal Settings" /settings icon "las la-code-branch"
+			}
+		}
+	}
 }
 
 foobar.myfiosgateway.com {
-  tls /home/greenpau/.local/tls/myfiosgateway/server.crt /home/greenpau/.local/tls/myfiosgateway/server.key
-  route {
-    authorize {
-      primary yes
-      crypto key verify a3c6eeee16e4479e9f31786e30b3ebdc
-      set auth url https://auth.myfiosgateway.com:8443/
-      allow roles authp/admin authp/user
-      validate bearer header
-      inject headers with claims
-    }
-    respond * "foobar website" 200
-  }
+	tls /home/greenpau/.local/tls/myfiosgateway/server.crt /home/greenpau/.local/tls/myfiosgateway/server.key
+	route {
+		authorize {
+			primary yes
+			crypto key verify a3c6eeee16e4479e9f31786e30b3ebdc
+			set auth url https://auth.myfiosgateway.com:8443/
+			allow roles authp/admin authp/user
+			validate bearer header
+			inject headers with claims
+		}
+		respond * "foobar website" 200
+	}
 }
