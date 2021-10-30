@@ -127,7 +127,12 @@ func (b *Backend) Configure() error {
 	}
 
 	if len(b.Config.Scopes) < 1 {
-		b.Config.Scopes = []string{"openid", "email", "profile"}
+		switch b.Config.Provider {
+		case "facebook":
+			b.Config.Scopes = []string{"public_profile", "email"}
+		default:
+			b.Config.Scopes = []string{"openid", "email", "profile"}
+		}
 	}
 
 	b.Config.scopeMap = make(map[string]interface{})
@@ -200,16 +205,15 @@ func (b *Backend) Configure() error {
 		}
 	case "facebook":
 		if b.Config.BaseAuthURL == "" {
-			b.Config.BaseAuthURL = "https://www.facebook.com/v8.0/dialog/"
+			b.Config.BaseAuthURL = "https://www.facebook.com/v12.0/dialog/"
 		}
-		b.authorizationURL = "https://www.facebook.com/v8.0/dialog/oauth"
-		b.tokenURL = "https://graph.facebook.com/v8.0/oauth/access_token"
+		b.authorizationURL = "https://www.facebook.com/v12.0/dialog/oauth"
+		b.tokenURL = "https://graph.facebook.com/v12.0/oauth/access_token"
 		b.disableKeyVerification = true
 		b.disablePassGrantType = true
 		b.disableResponseType = true
 		b.disableNonce = true
 		b.enableAcceptHeader = true
-		b.disableScope = true
 		b.requiredTokenFields = map[string]interface{}{
 			"access_token": true,
 		}
