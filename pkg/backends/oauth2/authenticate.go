@@ -265,6 +265,7 @@ func newBrowser() (*http.Client, error) {
 	   }
 	*/
 	tr := &http.Transport{
+		Proxy: http.ProxyFromEnvironment,
 		Dial: (&net.Dialer{
 			Timeout: 5 * time.Second,
 		}).Dial,
