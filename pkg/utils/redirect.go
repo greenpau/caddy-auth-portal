@@ -44,6 +44,26 @@ func GetCurrentURL(r *http.Request) string {
 	return GetCurrentBaseURL(r) + r.URL.Path
 }
 
+// GetIssuerURL returns issuer URL.
+func GetIssuerURL(r *http.Request) string {
+	s := GetCurrentURL(r)
+	if !strings.HasSuffix(s, "callback") {
+		return s
+	}
+	s = strings.TrimRightFunc(s, func(r rune) bool {
+		if r == '/' {
+			return false
+		}
+		return true
+	})
+
+	// i := strings.LastIndexByte(s, '/')
+	// if i > 0 {
+	//
+	// }
+	return s
+}
+
 // GetCurrentBaseURL returns current base URL.
 func GetCurrentBaseURL(r *http.Request) string {
 	redirHost := r.Header.Get("X-Forwarded-Host")

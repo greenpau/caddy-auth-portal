@@ -122,7 +122,7 @@ func (p *Authenticator) authorizeLoginRequest(ctx context.Context, w http.Respon
 		m["iat"] = time.Now().UTC().Unix()
 		m["nbf"] = time.Now().Add(time.Duration(60) * time.Second * -1).UTC().Unix()
 		m["origin"] = rr.Upstream.Realm
-		m["iss"] = utils.GetCurrentURL(r)
+		m["iss"] = utils.GetIssuerURL(r)
 		m["addr"] = addrutils.GetSourceAddress(r)
 		// Perform user claim transformation if necessary.
 		if p.transformer != nil {
