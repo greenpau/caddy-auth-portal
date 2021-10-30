@@ -26,7 +26,7 @@ import (
 	"strings"
 
 	"github.com/greenpau/caddy-auth-portal/internal/tests"
-	"github.com/greenpau/caddy-auth-portal/internal/utils"
+	logutils "github.com/greenpau/caddy-authorize/pkg/utils/log"
 	"go.uber.org/zap"
 	"testing"
 )
@@ -382,7 +382,7 @@ func TestBackendConfig(t *testing.T) {
 			msgs := []string{fmt.Sprintf("test name: %s", tc.name)}
 			msgs = append(msgs, fmt.Sprintf("config:\n%v", tc.config))
 			if !tc.disableLogger {
-				logger = utils.NewLogger()
+				logger = logutils.NewLogger()
 			}
 
 			if tc.fromConfigMap {
@@ -523,7 +523,7 @@ func TestBackend(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			msgs := []string{fmt.Sprintf("test name: %s", tc.name)}
 			msgs = append(msgs, fmt.Sprintf("config:\n%v", tc.config))
-			logger := utils.NewLogger()
+			logger := logutils.NewLogger()
 			b, err := NewBackend(tc.config, logger)
 			if err != nil {
 				t.Fatalf("initialization error: %v", err)

@@ -16,8 +16,9 @@ package authn
 
 import (
 	"context"
-	"github.com/greenpau/caddy-authorize/pkg/user"
 	"github.com/greenpau/caddy-auth-portal/pkg/utils"
+	"github.com/greenpau/caddy-authorize/pkg/user"
+	addrutils "github.com/greenpau/caddy-authorize/pkg/utils/addr"
 	"github.com/greenpau/go-identity/pkg/requests"
 	"go.uber.org/zap"
 	"net/http"
@@ -86,7 +87,7 @@ func (p *Authenticator) handleHTTPErrorWithLog(ctx context.Context, w http.Respo
 		zap.String("session_id", rr.Upstream.SessionID),
 		zap.String("request_id", rr.ID),
 		zap.Any("error", msg),
-		zap.String("source_address", utils.GetSourceAddress(r)),
+		zap.String("source_address", addrutils.GetSourceAddress(r)),
 	)
 	return p.handleHTTPError(ctx, w, r, rr, code)
 }
@@ -152,7 +153,7 @@ func (p *Authenticator) logRequest(msg string, r *http.Request, rr *requests.Req
 		zap.String("request_id", rr.ID),
 		zap.String("url_path", r.URL.Path),
 		zap.Any("request", rr.Upstream),
-		zap.String("source_address", utils.GetSourceAddress(r)),
+		zap.String("source_address", addrutils.GetSourceAddress(r)),
 	)
 }
 

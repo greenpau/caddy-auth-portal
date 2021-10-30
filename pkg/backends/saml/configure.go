@@ -21,7 +21,7 @@ import (
 	samllib "github.com/crewjam/saml"
 	"github.com/crewjam/saml/samlsp"
 	"github.com/greenpau/caddy-auth-portal/pkg/errors"
-	"github.com/greenpau/caddy-auth-portal/pkg/utils"
+	fileutils "github.com/greenpau/caddy-authorize/pkg/utils/file"
 	"io/ioutil"
 	"net/http"
 	"net/url"
@@ -109,7 +109,7 @@ func (b *Backend) Configure() error {
 		return fmt.Errorf("IdP Signing Certificate not found")
 	}
 
-	idpSignCert, err := utils.ReadCertFile(b.Config.IdpSignCertLocation)
+	idpSignCert, err := fileutils.ReadCertFile(b.Config.IdpSignCertLocation)
 	if err != nil {
 		return err
 	}

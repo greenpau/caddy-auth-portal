@@ -17,7 +17,7 @@ package authn
 import (
 	"context"
 	"encoding/json"
-	"github.com/greenpau/caddy-auth-portal/pkg/utils"
+	addrutils "github.com/greenpau/caddy-authorize/pkg/utils/addr"
 	"github.com/greenpau/go-identity/pkg/requests"
 	"go.uber.org/zap"
 	"net/http"
@@ -75,7 +75,7 @@ func (p *Authenticator) handleJSON(ctx context.Context, w http.ResponseWriter, r
 		zap.String("session_id", rr.Upstream.SessionID),
 		zap.String("request_id", rr.ID),
 		zap.String("url_path", r.URL.Path),
-		zap.String("source_address", utils.GetSourceAddress(r)),
+		zap.String("source_address", addrutils.GetSourceAddress(r)),
 	)
 
 	usr, err := p.authorizeRequest(ctx, w, r, rr)

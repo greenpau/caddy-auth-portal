@@ -17,7 +17,7 @@ package ui
 import (
 	"bytes"
 	"fmt"
-	"github.com/greenpau/caddy-authorize/pkg/utils/cfgutils"
+	cfgutils "github.com/greenpau/caddy-authorize/pkg/utils/cfg"
 	"io/ioutil"
 	"path"
 	"strings"

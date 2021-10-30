@@ -17,10 +17,11 @@ package authn
 import (
 	"context"
 	"fmt"
-	"github.com/greenpau/caddy-authorize/pkg/user"
 	"github.com/greenpau/caddy-auth-portal/pkg/backends"
 	"github.com/greenpau/caddy-auth-portal/pkg/enums/operator"
 	"github.com/greenpau/caddy-auth-portal/pkg/utils"
+	"github.com/greenpau/caddy-authorize/pkg/user"
+	addrutils "github.com/greenpau/caddy-authorize/pkg/utils/addr"
 	"github.com/greenpau/go-identity/pkg/requests"
 	"go.uber.org/zap"
 	"net/http"
@@ -122,7 +123,7 @@ func (p *Authenticator) authorizeLoginRequest(ctx context.Context, w http.Respon
 		m["nbf"] = time.Now().Add(time.Duration(60) * time.Second * -1).UTC().Unix()
 		m["origin"] = rr.Upstream.Realm
 		m["iss"] = utils.GetCurrentURL(r)
-		m["addr"] = utils.GetSourceAddress(r)
+		m["addr"] = addrutils.GetSourceAddress(r)
 		// Perform user claim transformation if necessary.
 		if p.transformer != nil {
 			m["realm"] = rr.Upstream.Realm

@@ -31,7 +31,7 @@ import (
 	"github.com/greenpau/caddy-auth-portal/pkg/registration"
 	"github.com/greenpau/caddy-auth-portal/pkg/transformer"
 	"github.com/greenpau/caddy-auth-portal/pkg/ui"
-	"github.com/greenpau/caddy-authorize/pkg/utils/cfgutils"
+	cfgutils "github.com/greenpau/caddy-authorize/pkg/utils/cfg"
 
 	"github.com/caddyserver/caddy/v2"
 	"github.com/caddyserver/caddy/v2/caddyconfig"

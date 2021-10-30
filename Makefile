@@ -78,7 +78,6 @@ qtest:
 	@#go test $(VERBOSE) -coverprofile=.coverage/coverage.out -run TestLdapConfig ./*.go
 	@#go test $(VERBOSE) -coverprofile=.coverage/coverage.out -run TestLdapCaddyfile ./*.go
 	@#go test $(VERBOSE) -coverprofile=.coverage/coverage.out -run TestSamlCaddyfile ./*.go
-	@#time richgo test $(VERBOSE) -coverprofile=.coverage/coverage.out -run TestGetSourceAddress ./*.go
 	@#time richgo test $(VERBOSE) -coverprofile=.coverage/coverage.out -run TestNewFactory ./pkg/ui/*.go
 	@#time richgo test $(VERBOSE) -coverprofile=.coverage/coverage.out -run TestCookies ./pkg/cookies/*.go
 	@#time richgo test $(VERBOSE) -coverprofile=.coverage/coverage.out -run TestCookieLifetime ./*.go

@@ -16,12 +16,12 @@ package authn
 
 import (
 	"fmt"
-	"github.com/greenpau/caddy-authorize/pkg/acl"
 	"github.com/greenpau/caddy-auth-portal/internal/tests"
-	"github.com/greenpau/caddy-auth-portal/internal/utils"
 	"github.com/greenpau/caddy-auth-portal/pkg/backends"
 	"github.com/greenpau/caddy-auth-portal/pkg/backends/local"
 	"github.com/greenpau/caddy-auth-portal/pkg/errors"
+	"github.com/greenpau/caddy-authorize/pkg/acl"
+	logutils "github.com/greenpau/caddy-authorize/pkg/utils/log"
 
 	"testing"
 )
@@ -131,7 +131,7 @@ func TestNewAuthenticator(t *testing.T) {
 			AuthManager = NewInstanceManager()
 			var err error
 			msgs := []string{fmt.Sprintf("test name: %s", tc.name)}
-			logger := utils.NewLogger()
+			logger := logutils.NewLogger()
 			portals := []*Authenticator{}
 
 			for _, p := range tc.portals {

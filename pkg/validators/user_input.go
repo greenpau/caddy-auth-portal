@@ -16,7 +16,7 @@ package validators
 
 import (
 	"fmt"
-	"github.com/greenpau/caddy-auth-portal/pkg/utils"
+	charsetutils "github.com/greenpau/caddy-authorize/pkg/utils/charset"
 	"net"
 	"regexp"
 	"strings"
@@ -55,7 +55,7 @@ func ValidateUserInputHandle(v string, opts map[string]interface{}) error {
 	if len(v) > 25 {
 		return fmt.Errorf("the handle character length should not exceed 25 characters")
 	}
-	if err := utils.ContainsInvalidChars(usernameCharset, v); err != nil {
+	if err := charsetutils.ContainsInvalidChars(usernameCharset, v); err != nil {
 		return fmt.Errorf("the handle %s", err.Error())
 	}
 	return nil

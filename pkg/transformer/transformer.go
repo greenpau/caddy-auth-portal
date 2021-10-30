@@ -18,7 +18,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/greenpau/caddy-authorize/pkg/acl"
-	"github.com/greenpau/caddy-authorize/pkg/utils/cfgutils"
+	cfgutils "github.com/greenpau/caddy-authorize/pkg/utils/cfg"
 	"strings"
 )
 

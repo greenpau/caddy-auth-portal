@@ -1,6 +1,6 @@
 module github.com/greenpau/caddy-auth-portal
 
-go 1.15
+go 1.16
 
 require (
 	github.com/caddyserver/caddy/v2 v2.4.3
@@ -8,7 +8,7 @@ require (
 	github.com/go-ldap/ldap v3.0.3+incompatible
 	github.com/golang-jwt/jwt v3.2.1+incompatible
 	github.com/google/go-cmp v0.5.6
-	github.com/greenpau/caddy-authorize v1.3.18
+	github.com/greenpau/caddy-authorize v1.3.19
 	github.com/greenpau/caddy-trace v1.1.7
 	github.com/greenpau/go-identity v1.1.2
 	github.com/iancoleman/strcase v0.1.3

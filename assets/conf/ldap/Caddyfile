@@ -1,7 +1,8 @@
 {
+  debug
+  local_certs
   http_port     8080
   https_port    8443
-  debug
 }
 
 127.0.0.1, localhost {

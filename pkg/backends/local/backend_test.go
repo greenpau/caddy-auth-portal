@@ -24,7 +24,7 @@ import (
 	"strings"
 
 	"github.com/greenpau/caddy-auth-portal/internal/tests"
-	"github.com/greenpau/caddy-auth-portal/internal/utils"
+	logutils "github.com/greenpau/caddy-authorize/pkg/utils/log"
 	"testing"
 )
 
@@ -194,7 +194,7 @@ func TestBackend(t *testing.T) {
 			var backends []*Backend
 			got := make(map[string]interface{})
 			msgs := []string{fmt.Sprintf("test name: %s", tc.name)}
-			logger := utils.NewLogger()
+			logger := logutils.NewLogger()
 
 			for j, config := range tc.configs {
 				msgs = append(msgs, fmt.Sprintf("config:\n%v", config))
@@ -337,7 +337,7 @@ func TestAuthenticate(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			msgs := []string{fmt.Sprintf("test name: %s", tc.name)}
 			msgs = append(msgs, fmt.Sprintf("config:\n%v", tc.config))
-			logger := utils.NewLogger()
+			logger := logutils.NewLogger()
 			b := NewDatabaseBackend(tc.config, logger)
 			if err := b.Configure(); err != nil {
 				t.Fatalf("configuration error: %v", err)

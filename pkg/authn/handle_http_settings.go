@@ -18,9 +18,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/greenpau/caddy-authorize/pkg/user"
-	//"github.com/greenpau/caddy-auth-portal/pkg/backends"
-	//"github.com/greenpau/caddy-auth-portal/pkg/enums/operator"
-	"github.com/greenpau/caddy-auth-portal/pkg/utils"
+	addrutils "github.com/greenpau/caddy-authorize/pkg/utils/addr"
 	"github.com/greenpau/go-identity/pkg/requests"
 	"go.uber.org/zap"
 	"net/http"
@@ -45,7 +43,7 @@ func (p *Authenticator) handleHTTPSettings(ctx context.Context, w http.ResponseW
 			zap.String("request_id", rr.ID),
 			zap.String("jti", parsedUser.Claims.ID),
 			zap.Any("error", err),
-			zap.String("source_address", utils.GetSourceAddress(r)),
+			zap.String("source_address", addrutils.GetSourceAddress(r)),
 		)
 		return p.handleHTTPLogoutWithLocalRedirect(ctx, w, r, rr)
 	}
@@ -58,7 +56,7 @@ func (p *Authenticator) handleHTTPSettings(ctx context.Context, w http.ResponseW
 			zap.String("request_id", rr.ID),
 			zap.String("realm", usr.Authenticator.Realm),
 			zap.String("jti", parsedUser.Claims.ID),
-			zap.String("source_address", utils.GetSourceAddress(r)),
+			zap.String("source_address", addrutils.GetSourceAddress(r)),
 		)
 		return p.handleHTTPLogoutWithLocalRedirect(ctx, w, r, rr)
 	}
@@ -84,7 +82,7 @@ func (p *Authenticator) handleHTTPSettings(ctx context.Context, w http.ResponseW
 		zap.String("request_id", rr.ID),
 		zap.String("realm", usr.Authenticator.Realm),
 		zap.String("jti", parsedUser.Claims.ID),
-		zap.String("source_address", utils.GetSourceAddress(r)),
+		zap.String("source_address", addrutils.GetSourceAddress(r)),
 		zap.String("endpoint", endpoint),
 	)
 

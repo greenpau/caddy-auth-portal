@@ -21,12 +21,12 @@ import (
 	"crypto/x509"
 	"encoding/json"
 	"fmt"
-	"github.com/greenpau/caddy-authorize/pkg/acl"
 	"github.com/greenpau/caddy-auth-portal/internal/tests"
-	"github.com/greenpau/caddy-auth-portal/internal/utils"
 	"github.com/greenpau/caddy-auth-portal/pkg/backends"
 	"github.com/greenpau/caddy-auth-portal/pkg/backends/local"
 	"github.com/greenpau/caddy-auth-portal/pkg/errors"
+	"github.com/greenpau/caddy-authorize/pkg/acl"
+	logutils "github.com/greenpau/caddy-authorize/pkg/utils/log"
 	"github.com/greenpau/go-identity/pkg/requests"
 	"io/ioutil"
 	"net"
@@ -88,7 +88,7 @@ func TestServeHTTP(t *testing.T) {
 			},
 		},
 	}
-	portal.SetLogger(utils.NewLogger())
+	portal.SetLogger(logutils.NewLogger())
 	if err := portal.Provision(); err != nil {
 		t.Fatal(err)
 	}
