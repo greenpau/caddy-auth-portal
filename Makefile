@@ -125,7 +125,7 @@ patch:
 
 release: info mod license patch docs
 	@echo "Making release"
-	@git add README.md assets/docs/pages/11-download.md
+	@git add README.md
 	@git commit -m "updated download links"
 	@git tag -a v`cat VERSION | head -1` -m "v`cat VERSION | head -1`"
 	@git push

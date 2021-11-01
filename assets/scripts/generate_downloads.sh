@@ -3,7 +3,7 @@ set -e
 
 printf "Generating download links\n"
 
-OUT_FILE=assets/docs/pages/11-download.md
+OUT_FILE=README.md
 
 declare -a _TARGET_OS
 declare -a _TARGET_ARCH
@@ -26,7 +26,7 @@ P3=$(echo ${P3} | sed 's/\//%2F/g')
 #echo "package ${P2} ${V2}"
 #echo "package ${P3} ${V3}"
 
-echo > ${OUT_FILE}
+sed -i '\/caddyserver.com\/api\/download/d' README.md
 for OS_ID in "${!_TARGET_OS[@]}"; do
   OS_NAME=${_TARGET_OS[$OS_ID]};
   for ARCH_ID in "${!_TARGET_ARCH[@]}"; do
