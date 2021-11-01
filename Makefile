@@ -58,8 +58,6 @@ coverage:
 docs:
 	@mkdir -p .doc
 	@assets/scripts/generate_downloads.sh
-	@assets/scripts/generate_readme.sh
-	@versioned -toc
 
 clean:
 	@rm -rf .doc
