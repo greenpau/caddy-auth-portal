@@ -1,9 +1,9 @@
 ---
-name: General Issue
-about: Please star this repo to show appreciation for the work!
+name: Things are not working!
+about: You think you are doing the right thing, but it is not working as expected.
 title: ''
-labels: ''
-assignees: ''
+labels: 'need triage'
+assignees: 'greenpau'
 
 ---
 

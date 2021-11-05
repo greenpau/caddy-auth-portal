@@ -7,4 +7,4 @@ assignees: 'greenpau'
 
 ---
 
-A clear and concise description of what you want the system to do.
+> A clear and concise description of what you want the system to do.
