@@ -1,7 +1,7 @@
 ---
 name: Things are not working!
 about: You think you are doing the right thing, but it is not working as expected.
-title: ''
+title: 'bug: CHANGE_ME'
 labels: 'need triage'
 assignees: 'greenpau'
 
