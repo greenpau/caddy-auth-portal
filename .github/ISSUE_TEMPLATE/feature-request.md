@@ -1,6 +1,6 @@
 ---
 name: Feature Request
-about: You understand that some functionality/feature is not available and you want to this added.
+about: You understand that some functionality/feature is not available and you want it added.
 title: 'feature: CHANGE_ME'
 labels: 'need triage'
 assignees: 'greenpau'
