@@ -32,6 +32,7 @@ jobs:
         uses: docker/build-push-action@v2
         with:
           context: .
+          file: Dockerfile
           push: true
           tags: "ghcr.io/${{ github.event.repository.owner.login }}/${{ github.event.repository.name }}:v${{ env.PKG_VERSION }},\
             ghcr.io/${{ github.event.repository.owner.login }}/${{ github.event.repository.name }}:latest"
