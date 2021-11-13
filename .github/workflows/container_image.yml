@@ -15,6 +15,9 @@ jobs:
         run: |
           git config --global user.name "$GITHUB_ACTOR"
           git config --global user.email "$GITHUB_ACTOR@users.noreply.github.com"
+      - name: Extract version
+        run: |
+          echo ::set-env name=PKG_VERSION::$(cat VERSION | head -1)
       - name: Set up Docker Buildx
         id: buildx
         uses: docker/setup-buildx-action@v1
@@ -29,7 +32,7 @@ jobs:
         with:
           context: .
           push: true
-          tags: "ghcr.io/${{ github.event.repository.owner.login }}/${{ github.event.repository.name }}:$GITHUB_SHA,\
+          tags: "ghcr.io/${{ github.event.repository.owner.login }}/${{ github.event.repository.name }}:${{ env.PKG_VERSION }},\
             ghcr.io/${{ github.event.repository.owner.login }}/${{ github.event.repository.name }}:latest"
           platforms: linux/amd64,linux/arm64
           cache-from: "type=registry,\
