@@ -11,7 +11,7 @@ VERBOSE:=-v
 ifdef TEST
 	TEST:="-run ${TEST}"
 endif
-CADDY_VERSION="v2.4.3"
+CADDY_VERSION="v2.4.6"
 
 all: build
 

@@ -18,7 +18,7 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
-	"github.com/go-ldap/ldap"
+	ldap "github.com/go-ldap/ldap/v3"
 	"github.com/greenpau/caddy-auth-portal/pkg/errors"
 	"github.com/greenpau/go-identity/pkg/requests"
 	"go.uber.org/zap"

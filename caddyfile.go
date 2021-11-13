@@ -89,9 +89,9 @@ func init() {
 //	       template <login|portal> <file_path>
 //	       logo_url <file_path|url_path>
 //	       logo_description <value>
-//         custom_css_path <path>
-//         custom_js_path <path>
-//         custom_html_header_path <path>
+//         custom css path <path>
+//         custom js path <path>
+//         custom html header path <path>
 //         static_asset <uri> <content_type> <path>
 //         allow settings for role <role>
 //	     }
