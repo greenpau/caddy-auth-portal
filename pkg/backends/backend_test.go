@@ -65,8 +65,8 @@ func TestBackendConfig(t *testing.T) {
 						MemberOf: "memberOf",
 						Email:    "mail",
 					},
-					SearchBaseDN: "DC=CONTOSO,DC=COM",
-					SearchFilter: `(&(|(sAMAccountName=%s)(mail=%s))(objectclass=user))`,
+					SearchBaseDN:     "DC=CONTOSO,DC=COM",
+					SearchUserFilter: `(&(|(sAMAccountName=%s)(mail=%s))(objectclass=user))`,
 					Groups: []ldap.UserGroup{
 						ldap.UserGroup{
 							GroupDN: "CN=Admins,OU=Security,OU=Groups,DC=CONTOSO,DC=COM",

@@ -1,0 +1,73 @@
+{
+	http_port 8080
+	https_port 8443
+	debug
+}
+
+auth.myfiosgateway.com {
+	tls /home/greenpau/.local/tls/myfiosgateway/server.crt /home/greenpau/.local/tls/myfiosgateway/server.key
+	route {
+		authp {
+			crypto default token lifetime 3600
+			# crypto default token name authtoken
+			crypto key sign-verify df5facb22d624af1a70779d39c0d3ed1
+			backend local /home/greenpau/.local/caddy/users.json local
+			backends {
+				ldap_backend {
+					method ldap
+					realm example.com
+					servers {
+						ldap://ldap.forumsys.com posix_groups
+					}
+					attributes {
+						name cn
+						surname foo
+						username uid
+						member_of uniqueMember
+						email mail
+					}
+					username "cn=read-only-admin,dc=example,dc=com"
+					password "password"
+					search_base_dn "DC=EXAMPLE,DC=COM"
+					search_filter "(&(|(uid=%s)(mail=%s))(objectClass=inetOrgPerson))"
+					groups {
+						"ou=mathematicians,dc=example,dc=com" authp/admin
+						"ou=scientists,dc=example,dc=com" authp/user
+					}
+				}
+			}
+			cookie domain myfiosgateway.com
+			ui {
+				links {
+					"My Website" https://assetq.myfiosgateway.com:8443/ icon "las la-star"
+					"My Identity" "/whoami" icon "las la-star"
+				}
+			}
+			transform user {
+				match origin local
+				action add role authp/user
+			}
+			transform user {
+				match origin local
+				match roles authp/user
+				ui link "Portal Settings" /settings icon "las la-code-branch"
+			}
+		}
+	}
+}
+
+assetq.myfiosgateway.com {
+	tls /home/greenpau/.local/tls/myfiosgateway/server.crt /home/greenpau/.local/tls/myfiosgateway/server.key
+	route {
+		authorize {
+			primary yes
+			# crypto default token name authtoken
+			crypto key verify df5facb22d624af1a70779d39c0d3ed1
+			set auth url https://auth.myfiosgateway.com:8443/
+			allow roles authp/admin authp/user
+			validate bearer header
+			inject headers with claims
+		}
+		respond * "assetq website" 200
+	}
+}

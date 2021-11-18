@@ -313,11 +313,16 @@ func parseCaddyfileAuthenticator(h httpcaddyfile.Helper) (*authn.Authenticator, 
 						case "disabled":
 							backendDisabled = true
 							break
-						case "username", "password", "search_base_dn", "search_filter", "path", "realm":
+						case "username", "password", "search_base_dn", "search_group_filter", "path", "realm":
 							if !h.NextArg() {
 								return backendValueErr(h, backendName, backendArg)
 							}
 							cfg[backendArg] = repl.ReplaceAll(h.Val(), badRepl)
+						case "search_filter", "search_user_filter":
+							if !h.NextArg() {
+								return backendValueErr(h, backendName, backendArg)
+							}
+							cfg["search_user_filter"] = repl.ReplaceAll(h.Val(), badRepl)
 						case "attributes":
 							attrMap := make(map[string]interface{})
 							for attrNesting := h.Nesting(); h.NextBlock(attrNesting); {
@@ -337,7 +342,7 @@ func parseCaddyfileAuthenticator(h httpcaddyfile.Helper) (*authn.Authenticator, 
 								if len(serverProps) > 0 {
 									for _, serverProp := range serverProps {
 										switch serverProp {
-										case "ignore_cert_errors":
+										case "ignore_cert_errors", "posix_groups":
 											serverMap[serverProp] = true
 										default:
 											return backendPropErr(h, backendName, backendArg, serverProp, "is unsupported")

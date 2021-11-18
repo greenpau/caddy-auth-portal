@@ -40,7 +40,8 @@ type Config struct {
 	BindPassword       string         `json:"password,omitempty"`
 	Attributes         UserAttributes `json:"attributes,omitempty"`
 	SearchBaseDN       string         `json:"search_base_dn,omitempty"`
-	SearchFilter       string         `json:"search_filter,omitempty"`
+	SearchUserFilter   string         `json:"search_user_filter,omitempty"`
+	SearchGroupFilter  string         `json:"search_group_filter,omitempty"`
 	Groups             []UserGroup    `json:"groups,omitempty"`
 	TrustedAuthorities []string       `json:"trusted_authorities,omitempty"`
 }
@@ -58,7 +59,9 @@ type AuthServer struct {
 	Address          string   `json:"addr,omitempty"`
 	URL              *url.URL `json:"-"`
 	Port             string   `json:"-"`
+	Encrypted        bool     `json:"-"`
 	IgnoreCertErrors bool     `json:"ignore_cert_errors,omitempty"`
+	PosixGroups      bool     `json:"posix_groups,omitempty"`
 	Timeout          int      `json:"timeout,omitempty"`
 }
 
