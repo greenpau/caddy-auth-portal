@@ -18,11 +18,6 @@ import (
 	//"encoding/base64"
 	"encoding/json"
 
-	"github.com/greenpau/caddy-auth-portal/pkg/errors"
-	"github.com/greenpau/caddy-auth-portal/pkg/utils"
-	"github.com/greenpau/go-identity/pkg/requests"
-	"github.com/satori/go.uuid"
-	"go.uber.org/zap"
 	"io/ioutil"
 	"net"
 	"net/http"
@@ -31,6 +26,12 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/greenpau/caddy-auth-portal/pkg/errors"
+	"github.com/greenpau/caddy-auth-portal/pkg/utils"
+	"github.com/greenpau/go-identity/pkg/requests"
+	uuid "github.com/satori/go.uuid"
+	"go.uber.org/zap"
 )
 
 // Authenticate performs authentication.
@@ -128,8 +129,8 @@ func (b *Backend) Authenticate(r *requests.Request) error {
 			switch b.Config.Provider {
 			case "google":
 				if b.Config.ScopeExists(
-					"https://www.googleapis.com/auth/admin.directory.group.readonly",
-					"admin.directory.group.readonly",
+					"https://www.googleapis.com/auth/cloud-identity.groups.readonly",
+					"https://www.googleapis.com/auth/cloud-identity.groups",
 				) {
 					if err := b.fetchUserGroups(accessToken, m); err != nil {
 						return errors.ErrBackendOauthFetchUserGroupsFailed.WithArgs(err)

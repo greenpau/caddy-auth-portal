@@ -15,11 +15,22 @@
 package oauth2
 
 import (
+	"encoding/json"
 	"fmt"
-	"go.uber.org/zap"
 	"io/ioutil"
 	"net/http"
+	"net/url"
+
+	"go.uber.org/zap"
 )
+
+type googleResponse struct {
+	Response struct {
+		Groups []struct {
+			DisplayName string `json:"displayName"`
+		} `json:"groups"`
+	} `json:"response"`
+}
 
 func (b *Backend) fetchUserGroups(tokenData, userData map[string]interface{}) error {
 	var userURL string
@@ -41,7 +52,9 @@ func (b *Backend) fetchUserGroups(tokenData, userData map[string]interface{}) er
 
 	switch b.Config.Provider {
 	case "google":
-		userURL = "https://admin.googleapis.com/admin/directory/v1/groups?userKey=" + userData["email"].(string)
+		userURL = "https://cloudidentity.googleapis.com/v1beta1/groups/-/memberships:getMembershipGraph?query="
+		userURL += url.QueryEscape("'cloudidentity.googleapis.com/groups.discussion_forum' in labels && member_key_id='" + userData["email"].(string) + "'")
+
 		req, err = http.NewRequest("GET", userURL, nil)
 		if err != nil {
 			return err
@@ -69,6 +82,28 @@ func (b *Backend) fetchUserGroups(tokenData, userData map[string]interface{}) er
 		zap.Any("body", respBody),
 		zap.String("url", userURL),
 	)
+
+	switch b.Config.Provider {
+	case "google":
+		var respParsed googleResponse
+		err = json.Unmarshal(respBody, &respParsed)
+		if err != nil {
+			return err
+		}
+		userGroups := []string{}
+		for _, group := range respParsed.Response.Groups {
+			userGroups = append(userGroups, group.DisplayName)
+		}
+
+		if userRoles, exists := userData["roles"]; exists {
+			userData["roles"] = append(userRoles.([]string), userGroups...)
+		} else {
+			userData["roles"] = userGroups
+		}
+
+	default:
+		return fmt.Errorf("provider %s is unsupported for fetching user groups", b.Config.Provider)
+	}
 
 	return nil
 }
