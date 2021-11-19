@@ -124,6 +124,12 @@ func (p *Authenticator) authorizeLoginRequest(ctx context.Context, w http.Respon
 		m["origin"] = rr.Upstream.Realm
 		m["iss"] = utils.GetIssuerURL(r)
 		m["addr"] = addrutils.GetSourceAddress(r)
+		if mr, exists := m["roles"]; exists {
+			switch v := mr.(type) {
+			case string:
+				m["roles"] = strings.Split(v, " ")
+			}
+		}
 		// Perform user claim transformation if necessary.
 		if p.transformer != nil {
 			m["realm"] = rr.Upstream.Realm
