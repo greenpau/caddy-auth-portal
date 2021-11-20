@@ -16,9 +16,13 @@ package portal
 
 import (
 	"encoding/json"
+	"fmt"
 	"github.com/caddyserver/caddy/v2/caddytest"
+	"github.com/greenpau/caddy-auth-portal/pkg/cache"
+	"github.com/greenpau/caddy-auth-portal/pkg/errors"
 	_ "github.com/greenpau/caddy-authorize"
 	_ "github.com/greenpau/caddy-trace"
+	"github.com/stretchr/testify/assert"
 	"io/ioutil"
 	"net/http"
 	"net/url"
@@ -263,4 +267,29 @@ func TestCookieLifetime(t *testing.T) {
 		}
 	*/
 	time.Sleep(1 * time.Second)
+}
+
+func TestParseCacheArgs(t *testing.T) {
+	scenarios := []struct {
+		name          string
+		input         []string
+		expectedType  interface{}
+		expectedError error
+	}{
+		{"empty-is-memory", []string{}, &cache.Memory{}, nil},
+		{"explicit-memory-is-memory", []string{"memory"}, &cache.Memory{}, nil},
+		{"memcached-requires-config", []string{"memcached"}, nil, errors.ErrCacheBackendRequiresConfig.WithArgs("memcached")},
+		{
+			"memcached",
+			[]string{"memcached", "server1:11211", "server2:11211"},
+			cache.NewMemcachedCache("server1:11211", "server2:11211"),
+			nil,
+		},
+		{"invalid-backend", []string{"invalid"}, nil, errors.ErrCacheBackendNotFound.WithArgs("invalid")},
+	}
+	for _, scenario := range scenarios {
+		cacheInstance, err := parseCacheArgs(scenario.input)
+		assert.Equal(t, fmt.Sprint(scenario.expectedType), fmt.Sprint(cacheInstance))
+		assert.Equal(t, fmt.Sprint(err), fmt.Sprint(scenario.expectedError))
+	}
 }

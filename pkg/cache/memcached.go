@@ -96,3 +96,7 @@ func (sm *Memcached) Init() error {
 	}
 	return nil
 }
+
+func (sm *Memcached) String() string {
+	return memcached
+}

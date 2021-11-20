@@ -14,6 +14,23 @@
 
 package cache
 
+import (
+	"fmt"
+	"github.com/greenpau/caddy-auth-portal/pkg/errors"
+)
+
+const (
+	memory    = "memory"
+	memcached = "memcached"
+)
+
+var (
+	validCacheTypes = map[string]bool{
+		memory:    true,
+		memcached: true,
+	}
+)
+
 // Cache stores the state of the OAuth2 flow.
 type Cache interface {
 	Init() error
@@ -21,4 +38,43 @@ type Cache interface {
 	Get(key string, output interface{}) error
 	Del(key string) error
 	Exists(key string) (bool, error)
+}
+
+func Validate(name string) error {
+	_, ok := validCacheTypes[name]
+	if !ok {
+		return errors.ErrCacheBackendNotFound.WithArgs(name)
+	}
+	return nil
+}
+
+func RequiresParameters(name string) bool {
+	switch name {
+	case memory:
+		return false
+	case memcached:
+		return true
+	default:
+		panic(fmt.Sprintf("invalid cache type supplied %s", name))
+	}
+}
+
+func NewFromName(name string) Cache {
+	switch name {
+	case memory:
+		return NewMemoryCache()
+	default:
+		panic(fmt.Sprintf("invalid cache provided %s", name))
+	}
+}
+
+func NewFromArgs(name string, args []string) Cache {
+	switch name {
+	case memory:
+		return NewMemoryCache()
+	case memcached:
+		return NewMemcachedCache(args...)
+	default:
+		panic(fmt.Sprintf("invalid cache provided %s", name))
+	}
 }

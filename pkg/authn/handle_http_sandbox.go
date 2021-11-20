@@ -76,7 +76,7 @@ func (p *Authenticator) handleHTTPSandbox(ctx context.Context, w http.ResponseWr
 	}
 
 	var usr user.User
-	err = p.sandboxes.Get(sandboxID, &usr)
+	err = p.cache.Get(sandboxID, &usr)
 	if err != nil {
 		p.logger.Debug(
 			"failed to extract cached entry from sandbox",

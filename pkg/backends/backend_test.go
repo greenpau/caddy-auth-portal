@@ -393,7 +393,7 @@ func TestBackendConfig(t *testing.T) {
 				tc.config = cfg
 			}
 
-			b, err := NewBackend(tc.config, logger)
+			b, err := NewBackend(tc.config, logger, nil)
 			if tests.EvalErrWithLog(t, err, tc.config, tc.shouldErr, tc.err, msgs) {
 				return
 			}
@@ -524,7 +524,7 @@ func TestBackend(t *testing.T) {
 			msgs := []string{fmt.Sprintf("test name: %s", tc.name)}
 			msgs = append(msgs, fmt.Sprintf("config:\n%v", tc.config))
 			logger := logutils.NewLogger()
-			b, err := NewBackend(tc.config, logger)
+			b, err := NewBackend(tc.config, logger, nil)
 			if err != nil {
 				t.Fatalf("initialization error: %v", err)
 			}

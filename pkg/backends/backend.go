@@ -17,6 +17,7 @@ package backends
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/greenpau/caddy-auth-portal/pkg/cache"
 
 	"github.com/greenpau/caddy-auth-portal/pkg/backends/ldap"
 	"github.com/greenpau/caddy-auth-portal/pkg/backends/local"
@@ -107,7 +108,7 @@ func (b *Backend) Validate() error {
 }
 
 // NewBackend returns Backend instance.
-func NewBackend(cfg *Config, logger *zap.Logger) (*Backend, error) {
+func NewBackend(cfg *Config, logger *zap.Logger, cache cache.Cache) (*Backend, error) {
 	if logger == nil {
 		return nil, errors.ErrBackendConfigureLoggerNotFound
 	}
@@ -128,7 +129,7 @@ func NewBackend(cfg *Config, logger *zap.Logger) (*Backend, error) {
 	case Saml:
 		b.driver = saml.NewDatabaseBackend(cfg.Saml, logger)
 	case OAuth2:
-		b.driver = oauth2.NewDatabaseBackend(cfg.OAuth2, logger)
+		b.driver = oauth2.NewDatabaseBackend(cfg.OAuth2, logger, cache)
 	}
 	return b, nil
 }

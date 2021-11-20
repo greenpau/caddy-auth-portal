@@ -115,3 +115,7 @@ func (sm *Memory) Init() error {
 	}()
 	return nil
 }
+
+func (sm *Memory) String() string {
+	return memory
+}

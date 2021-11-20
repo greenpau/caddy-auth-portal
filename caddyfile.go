@@ -17,6 +17,8 @@ package portal
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/greenpau/caddy-auth-portal/pkg/cache"
+	"github.com/greenpau/caddy-auth-portal/pkg/errors"
 	"io/ioutil"
 
 	// "regexp"
@@ -50,6 +52,9 @@ func init() {
 //
 //     authp {
 //       context <default|name>
+//       // Use the following when you have multiple instances of caddy running like in HA
+//       // mode i.e. k8s, fargate, any other scheduler or any type of load balancing.
+//       cache memcache server1:11211 server2:11211
 //       backends {
 //         local_backend {
 //		     method <local>
@@ -77,25 +82,6 @@ func init() {
 //           client_secret <client_secret>
 //           user_group_filters <regex_pattern>
 //         }
-//
-//         // Use the following when you have multiple instances of caddy running like in HA
-//         // mode i.e. k8s, fargate, any other scheduler or any type of load balancing.
-//         multiple_servers_aware_oauth2_backend {
-//           method oauth2
-//           realm generic
-//           provider generic
-//           base_auth_url <base_url>
-//           metadata_url <metadata_url>
-//           client_id <client_id>
-//           client_secret <client_secret>
-//           scopes openid email profile
-//           storage_backend memcached
-//           // Multiple servers can be used for key distribution
-//           memcached_server memcached-0.m.memcached.svc.cluster.local:11211
-//           memcached_server memcached-1.m.memcached.svc.cluster.local:11211
-//           memcached_server memcached-2.m.memcached.svc.cluster.local:11211
-//         }
-//       }
 //
 //       backend local <file/path/to/user/db> <realm/name>
 //       backend google <client_id> <client_secret>
@@ -423,18 +409,6 @@ func parseCaddyfileAuthenticator(h httpcaddyfile.Helper) (*authn.Authenticator, 
 								return backendValueConversionErr(h, backendName, backendArg, backendVal, err)
 							}
 							cfg[backendArg] = i
-						case "storage_backend":
-							values := h.RemainingArgs()
-							if len(values) > 0 {
-								cfg[backendArg] = values[0]
-							}
-						case "memcached_server":
-							if values, ok := cfg[backendArg]; ok {
-								values := values.([]string)
-								cfg[backendArg] = append(values, h.RemainingArgs()...)
-							} else {
-								cfg[backendArg] = h.RemainingArgs()
-							}
 						default:
 							return backendUnsupportedValueErr(h, backendName, backendArg)
 						}
@@ -641,6 +615,13 @@ func parseCaddyfileAuthenticator(h httpcaddyfile.Helper) (*authn.Authenticator, 
 				default:
 					return nil, h.Errf("%s directive %q is unsupported", rootDirective, args)
 				}
+			case "cache":
+				cacheInstance, err := parseCacheArgs(h.RemainingArgs())
+				if err != nil {
+					return nil, h.Errf("failed to configure cache %v", err)
+				}
+				portal.SetCache(cacheInstance)
+
 			default:
 				return nil, h.Errf("unsupported root directive: %s", rootDirective)
 			}
@@ -667,6 +648,26 @@ func parseCaddyfileAuthenticator(h httpcaddyfile.Helper) (*authn.Authenticator, 
 	h.Next()
 
 	return &portal, nil
+}
+
+func parseCacheArgs(args []string) (cache.Cache, error) {
+	// Defaults to local cache
+	if len(args) == 0 {
+		return cache.NewMemoryCache(), nil
+	}
+	cacheType := args[0]
+	if err := cache.Validate(cacheType); err != nil {
+		return nil, fmt.Errorf("%w", err)
+	}
+	cacheArguments := args[1:]
+	if len(cacheArguments) == 0 {
+		if cache.RequiresParameters(cacheType) {
+			return nil, errors.ErrCacheBackendRequiresConfig.WithArgs(cacheType)
+		}
+		return cache.NewFromName(cacheType), nil
+	}
+
+	return cache.NewFromArgs(cacheType, cacheArguments), nil
 }
 
 func getRouteFromParseCaddyfileAuthenticator(h httpcaddyfile.Helper) ([]httpcaddyfile.ConfigValue, error) {

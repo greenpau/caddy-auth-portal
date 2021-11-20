@@ -37,7 +37,7 @@ func (p *Authenticator) handleHTTPSettings(ctx context.Context, w http.ResponseW
 		return p.handleHTTPRedirect(ctx, w, r, rr, "/login")
 	}
 	var usr user.User
-	err := p.sessions.Get(parsedUser.Claims.ID, &usr)
+	err := p.cache.Get(parsedUser.Claims.ID, &usr)
 	if err != nil {
 		p.logger.Warn(
 			"jti session not found",

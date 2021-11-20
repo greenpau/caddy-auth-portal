@@ -235,7 +235,7 @@ func (p *Authenticator) authorizeLoginRequest(ctx context.Context, w http.Respon
 			// Grant temporary guest cookie and redirect to sandbox URL.
 			usr.Authenticator.TempSessionID = utils.GetRandomStringFromRange(36, 48)
 			usr.Authenticator.TempSecret = utils.GetRandomStringFromRange(36, 48)
-			if err := p.sandboxes.Add(usr.Authenticator.TempSessionID, usr); err != nil {
+			if err := p.cache.Add(usr.Authenticator.TempSessionID, usr); err != nil {
 				p.logger.Warn(
 					"Failed creating sandbox sessions",
 					zap.String("session_id", rr.Upstream.SessionID),
@@ -273,7 +273,17 @@ func (p *Authenticator) grantAccess(ctx context.Context, w http.ResponseWriter, 
 	var redirectLocation string
 	rr.Response.Authenticated = true
 	usr.Authorized = true
-	p.sessions.Add(rr.Upstream.SessionID, usr)
+	if err := p.cache.Add(rr.Upstream.SessionID, usr); err != nil {
+		p.logger.Warn(
+			"failed to grant user's access",
+			zap.String("session_id", rr.Upstream.SessionID),
+			zap.String("request_id", rr.ID),
+			zap.Any("backend", usr.Authenticator),
+			zap.Any("user", usr),
+			zap.Any("checkpoints", usr.Checkpoints),
+			zap.Error(err),
+		)
+	}
 	w.Header().Set("Authorization", "Bearer "+usr.Token)
 	w.Header().Set("Set-Cookie", p.cookie.GetCookie(usr.TokenName, usr.Token))
 

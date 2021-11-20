@@ -17,16 +17,16 @@ package authn
 import (
 	"time"
 
-	"github.com/greenpau/caddy-authorize/pkg/acl"
-	"github.com/greenpau/caddy-authorize/pkg/kms"
-	"github.com/greenpau/caddy-authorize/pkg/options"
-	"github.com/greenpau/caddy-authorize/pkg/validator"
 	"github.com/greenpau/caddy-auth-portal/pkg/backends"
 	"github.com/greenpau/caddy-auth-portal/pkg/cache"
 	"github.com/greenpau/caddy-auth-portal/pkg/cookie"
 	"github.com/greenpau/caddy-auth-portal/pkg/registration"
 	"github.com/greenpau/caddy-auth-portal/pkg/transformer"
 	"github.com/greenpau/caddy-auth-portal/pkg/ui"
+	"github.com/greenpau/caddy-authorize/pkg/acl"
+	"github.com/greenpau/caddy-authorize/pkg/kms"
+	"github.com/greenpau/caddy-authorize/pkg/options"
+	"github.com/greenpau/caddy-authorize/pkg/validator"
 	"github.com/greenpau/go-identity"
 	"go.uber.org/zap"
 )
@@ -75,8 +75,7 @@ type Authenticator struct {
 	logger       *zap.Logger
 	ui           *ui.Factory
 	startedAt    time.Time
-	sessions     cache.Cache
-	sandboxes    cache.Cache
+	cache        cache.Cache
 	loginOptions map[string]interface{}
 }
 
@@ -118,4 +117,8 @@ func (m *Authenticator) Validate() error {
 		zap.String("instance_name", m.Name),
 	)
 	return nil
+}
+
+func (p *Authenticator) SetCache(c cache.Cache) {
+	p.cache = c
 }

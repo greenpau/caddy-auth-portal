@@ -63,13 +63,13 @@ type Backend struct {
 	enableAcceptHeader     bool
 	enableBodyDecoder      bool
 	requiredTokenFields    map[string]interface{}
-	cache  cache.Cache
-	logger *zap.Logger
+	cache                  cache.Cache
+	logger                 *zap.Logger
 }
 
 // NewDatabaseBackend return an instance of authentication provider
 // with OAuth 2.0 backend.
-func NewDatabaseBackend(cfg *Config, logger *zap.Logger) *Backend {
+func NewDatabaseBackend(cfg *Config, logger *zap.Logger, c cache.Cache) *Backend {
 	b := &Backend{
 		Config:     cfg,
 		keys:       make(map[string]*JwksKey),
@@ -79,6 +79,7 @@ func NewDatabaseBackend(cfg *Config, logger *zap.Logger) *Backend {
 			"id_token":     true,
 		},
 		logger: logger,
+		cache:  c,
 	}
 	return b
 }

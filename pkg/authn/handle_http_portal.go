@@ -31,7 +31,7 @@ func (p *Authenticator) handleHTTPPortal(ctx context.Context, w http.ResponseWri
 		return p.handleHTTPRedirect(ctx, w, r, rr, "/login")
 	}
 	var usr user.User
-	err := p.sessions.Get(parsedUser.Claims.ID, &usr)
+	err := p.cache.Get(parsedUser.Claims.ID, &usr)
 	if err != nil {
 		p.deleteAuthCookies(w)
 		p.logger.Debug(

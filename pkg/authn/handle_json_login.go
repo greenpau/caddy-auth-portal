@@ -62,7 +62,7 @@ func (p *Authenticator) handleJSONLogin(ctx context.Context, w http.ResponseWrit
 		return p.handleJSONErrorWithLog(ctx, w, r, rr, rr.Response.Code, err.Error())
 	}
 	var usr user.User
-	err := p.sessions.Get(rr.Upstream.SessionID, &usr)
+	err := p.cache.Get(rr.Upstream.SessionID, &usr)
 	if err != nil {
 		return p.handleJSONErrorWithLog(ctx, w, r, rr, http.StatusInternalServerError, err.Error())
 	}
