@@ -19,15 +19,15 @@ import (
 	// "encoding/json"
 	"encoding/base64"
 	"fmt"
-	"github.com/greenpau/caddy-authorize/pkg/user"
 	"github.com/greenpau/caddy-auth-portal/pkg/backends"
 	"github.com/greenpau/caddy-auth-portal/pkg/enums/operator"
 	"github.com/greenpau/caddy-auth-portal/pkg/utils"
+	"github.com/greenpau/caddy-authorize/pkg/user"
 	"github.com/greenpau/go-identity"
 	"github.com/greenpau/go-identity/pkg/qr"
 	"github.com/greenpau/go-identity/pkg/requests"
 	"github.com/skip2/go-qrcode"
-	// "go.uber.org/zap"
+	"go.uber.org/zap"
 	"net/http"
 	"strings"
 )
@@ -244,12 +244,33 @@ func (p *Authenticator) handleHTTPMfaSettings(
 		// Validate the posted U2F token.
 		status = true
 		if err := validateAuthU2FTokenForm(r, rr); err != nil {
+			p.logger.Warn(
+				"detected malformed u2f token validation request",
+				zap.String("session_id", rr.Upstream.SessionID),
+				zap.String("request_id", rr.ID),
+				zap.Any("error", err),
+			)
 			attachFailStatus(data, fmt.Sprintf("Bad Request: %v", err))
 			break
 		}
-		if err := token.WebAuthnRequest(rr.WebAuthn.Request); err != nil {
+
+		if wr, err := token.WebAuthnRequest(rr.WebAuthn.Request); err != nil {
+			p.logger.Warn(
+				"u2f token validation failed",
+				zap.String("session_id", rr.Upstream.SessionID),
+				zap.String("request_id", rr.ID),
+				zap.Any("webauthn_request", wr),
+				zap.Any("error", err),
+			)
 			attachFailStatus(data, fmt.Sprintf("U2F authentication failed: %v", err))
 			break
+		} else {
+			p.logger.Debug(
+				"successfully validated u2f token",
+				zap.String("session_id", rr.Upstream.SessionID),
+				zap.String("request_id", rr.ID),
+				zap.Any("webauthn_request", wr),
+			)
 		}
 		attachSuccessStatus(data, fmt.Sprintf("U2F token id %s tested successfully", token.ID))
 	case strings.HasPrefix(endpoint, "/delete"):
