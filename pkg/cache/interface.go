@@ -19,15 +19,17 @@ import (
 	"github.com/greenpau/caddy-auth-portal/pkg/errors"
 )
 
+type Backend string
+
 const (
-	memory    = "memory"
-	memcached = "memcached"
+	MemoryBackend    Backend = "memory"
+	MemcachedBackend Backend = "memcached"
 )
 
 var (
-	validCacheTypes = map[string]bool{
-		memory:    true,
-		memcached: true,
+	validCacheTypes = map[Backend]bool{
+		MemoryBackend:    true,
+		MemcachedBackend: true,
 	}
 )
 
@@ -40,7 +42,13 @@ type Cache interface {
 	Exists(key string) (bool, error)
 }
 
-func Validate(name string) error {
+// CacheConfig stores a simple config to initialize the backend once again
+type Config struct {
+	Backend Backend
+	Config  []string
+}
+
+func Validate(name Backend) error {
 	_, ok := validCacheTypes[name]
 	if !ok {
 		return errors.ErrCacheBackendNotFound.WithArgs(name)
@@ -48,33 +56,24 @@ func Validate(name string) error {
 	return nil
 }
 
-func RequiresParameters(name string) bool {
+func RequiresParameters(name Backend) bool {
 	switch name {
-	case memory:
+	case MemoryBackend:
 		return false
-	case memcached:
+	case MemcachedBackend:
 		return true
 	default:
 		panic(fmt.Sprintf("invalid cache type supplied %s", name))
 	}
 }
 
-func NewFromName(name string) Cache {
-	switch name {
-	case memory:
+func NewFromArgs(config *Config) Cache {
+	switch config.Backend {
+	case MemoryBackend:
 		return NewMemoryCache()
+	case MemcachedBackend:
+		return NewMemcachedCache(config.Config...)
 	default:
-		panic(fmt.Sprintf("invalid cache provided %s", name))
-	}
-}
-
-func NewFromArgs(name string, args []string) Cache {
-	switch name {
-	case memory:
-		return NewMemoryCache()
-	case memcached:
-		return NewMemcachedCache(args...)
-	default:
-		panic(fmt.Sprintf("invalid cache provided %s", name))
+		panic(fmt.Sprintf("invalid cache provided %s", config.Backend))
 	}
 }

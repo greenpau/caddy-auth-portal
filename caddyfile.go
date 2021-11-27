@@ -620,7 +620,7 @@ func parseCaddyfileAuthenticator(h httpcaddyfile.Helper) (*authn.Authenticator, 
 				if err != nil {
 					return nil, h.Errf("failed to configure cache %v", err)
 				}
-				portal.SetCache(cacheInstance)
+				portal.CacheConfig = cacheInstance
 
 			default:
 				return nil, h.Errf("unsupported root directive: %s", rootDirective)
@@ -650,24 +650,24 @@ func parseCaddyfileAuthenticator(h httpcaddyfile.Helper) (*authn.Authenticator, 
 	return &portal, nil
 }
 
-func parseCacheArgs(args []string) (cache.Cache, error) {
+func parseCacheArgs(args []string) (*cache.Config, error) {
 	// Defaults to local cache
 	if len(args) == 0 {
-		return cache.NewMemoryCache(), nil
+		return &cache.Config{Backend: cache.MemoryBackend}, nil
 	}
 	cacheType := args[0]
-	if err := cache.Validate(cacheType); err != nil {
+	if err := cache.Validate(cache.Backend(cacheType)); err != nil {
 		return nil, fmt.Errorf("%w", err)
 	}
 	cacheArguments := args[1:]
 	if len(cacheArguments) == 0 {
-		if cache.RequiresParameters(cacheType) {
+		if cache.RequiresParameters(cache.Backend(cacheType)) {
 			return nil, errors.ErrCacheBackendRequiresConfig.WithArgs(cacheType)
 		}
-		return cache.NewFromName(cacheType), nil
+		return &cache.Config{Backend: cache.Backend(cacheType)}, nil
 	}
 
-	return cache.NewFromArgs(cacheType, cacheArguments), nil
+	return &cache.Config{Backend: cache.Backend(cacheType), Config: cacheArguments}, nil
 }
 
 func getRouteFromParseCaddyfileAuthenticator(h httpcaddyfile.Helper) ([]httpcaddyfile.ConfigValue, error) {

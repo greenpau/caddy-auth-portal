@@ -117,5 +117,5 @@ func (sm *Memory) Init() error {
 }
 
 func (sm *Memory) String() string {
-	return memory
+	return string(MemoryBackend)
 }

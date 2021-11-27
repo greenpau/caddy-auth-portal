@@ -17,7 +17,6 @@ package cache
 import (
 	"encoding/json"
 	stdErrors "errors"
-
 	"github.com/bradfitz/gomemcache/memcache"
 	"github.com/greenpau/caddy-auth-portal/pkg/errors"
 )
@@ -28,13 +27,15 @@ const (
 
 // Memcached implements StateManager interface using memcached as backend.
 type Memcached struct {
-	client *memcache.Client
+	Servers []string
+	client  *memcache.Client
 }
 
 // NewMemcachedCache creates a new key manager using the specified servers.
 func NewMemcachedCache(server ...string) *Memcached {
 	return &Memcached{
-		client: memcache.New(server...),
+		Servers: server,
+		client:  memcache.New(server...),
 	}
 }
 
@@ -98,5 +99,5 @@ func (sm *Memcached) Init() error {
 }
 
 func (sm *Memcached) String() string {
-	return memcached
+	return string(MemcachedBackend)
 }

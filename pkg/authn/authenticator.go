@@ -65,6 +65,8 @@ type Authenticator struct {
 	CryptoKeyStoreConfig map[string]interface{} `json:"crypto_key_store_config,omitempty"`
 	// TokenGrantorOptions holds the configuration for the tokens issues by Authenticator.
 	TokenGrantorOptions *options.TokenGrantorOptions `json:"token_grantor_options,omitempty"`
+	// CacheConfig holds the configuration to instantiate a cache backend
+	CacheConfig *cache.Config
 
 	registrar    *identity.Database
 	validator    *validator.TokenValidator
@@ -117,8 +119,4 @@ func (m *Authenticator) Validate() error {
 		zap.String("instance_name", m.Name),
 	)
 	return nil
-}
-
-func (p *Authenticator) SetCache(c cache.Cache) {
-	p.cache = c
 }

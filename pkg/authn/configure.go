@@ -59,8 +59,10 @@ func (mgr *InstanceManager) configure(p, m *Authenticator) error {
 func (mgr *InstanceManager) configureEssentials(primaryInstance, m *Authenticator) error {
 	// Configure session cache.
 	if m.PrimaryInstance {
-		if m.cache == nil {
+		if m.CacheConfig == nil {
 			m.cache = cache.NewMemoryCache()
+		} else {
+			m.cache = cache.NewFromArgs(m.CacheConfig)
 		}
 		if err := m.cache.Init(); err != nil {
 			return err
