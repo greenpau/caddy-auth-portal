@@ -38,26 +38,14 @@
           {{ if eq .Data.login_options.form_required "yes" }}
           <form action="{{ pathjoin .ActionEndpoint "/login" }}" method="POST">
             <div class="row app-form">
-              {{ if eq .Data.login_options.username_required "yes" }}
+              {{ if eq .Data.login_options.identity_required "yes" }}
               <div class="row app-input-row valign-wrapper">
                 <div class="col s4">
                   <p class="app-input-text">Username</p>
                 </div>
                 <div class="col s8">
                   <div class="input-field app-input-field">
-                    <input id="username" name="username" type="text" class="validate" autocorrect="off" autocapitalize="off" required />
-                  </div>
-                </div>
-              </div>
-              {{ end }}
-              {{ if eq .Data.login_options.password_required "yes" }}
-              <div class="row app-input-row valign-wrapper">
-                <div class="col s4">
-                  <p class="app-input-text">Password</p>
-                </div>
-                <div class="col s8">
-                  <div class="input-field app-input-field">
-                    <input id="password" name="password" type="password" class="validate" autocorrect="off" autocapitalize="off" required />
+                    <input id="identity" name="identity" type="text" class="validate" autocorrect="off" autocapitalize="off" required />
                   </div>
                 </div>
               </div>
@@ -107,7 +95,7 @@
           {{ end }}
           {{ if eq .Data.login_options.external_providers_required "yes" }}
           <div class="row">
-            {{ if eq .Data.login_options.username_required "yes" }}
+            {{ if eq .Data.login_options.identity_required "yes" }}
             <p class="app-text">Additional Sign In Options:</p>
             {{end}}
             {{ range .Data.login_options.external_providers }}

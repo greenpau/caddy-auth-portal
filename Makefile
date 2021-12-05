@@ -70,6 +70,7 @@ qtest:
 	@#time richgo test -v -coverprofile=.coverage/coverage.out -run TestTagCompliance ./internal/tag/*.go
 	@#time richgo test -v -coverprofile=.coverage/coverage.out ./pkg/backends/local/*.go
 	@#time richgo test -v -coverprofile=.coverage/coverage.out -run TestLocalBackend ./pkg/backends/local/*.go
+	@time richgo test -v -coverprofile=.coverage/coverage.out -run TestAuthenticate ./pkg/backends/local/*.go
 	@#time richgo test -v -coverprofile=.coverage/coverage.out ./pkg/backends/*.go
 	@#time richgo test -v -coverprofile=.coverage/coverage.out ./pkg/backends/local/*.go
 	@#time richgo test -v -coverprofile=.coverage/coverage.out ./pkg/backends/ldap/*.go
@@ -89,7 +90,7 @@ qtest:
 	@#time richgo test -v -coverprofile=.coverage/coverage.out ./pkg/cookie/*.go
 	@#time richgo test -v -coverprofile=.coverage/coverage.out ./pkg/authn/*.go
 	@#time richgo test -v -coverprofile=.coverage/coverage.out -run TestNewAuthenticator ./pkg/authn/*.go
-	@time richgo test -v -coverprofile=.coverage/coverage.out -run TestServeHTTP ./pkg/authn/*.go
+	@#time richgo test -v -coverprofile=.coverage/coverage.out -run TestServeHTTP ./pkg/authn/*.go
 	@#time richgo test -v -coverprofile=.coverage/coverage.out -run TestBackendConfig ./pkg/backends/*.go
 	@#time richgo test -v -coverprofile=.coverage/coverage.out -run TestCookieLifetime ./*.go
 	@#time richgo test -v -coverprofile=.coverage/coverage.out -run TestFactory ./pkg/cookie/*.go

@@ -323,7 +323,7 @@ func TestAuthenticate(t *testing.T) {
 				},
 			},
 			shouldErr: true,
-			err:       errors.ErrBackendLocalAuthFailed.WithArgs("user authentication failed: user password is invalid"),
+			err:       errors.ErrBackendLocalAuthFailed.WithArgs("user authentication failed: malformed auth request"),
 		},
 		{
 			name:      "test unknown operator",

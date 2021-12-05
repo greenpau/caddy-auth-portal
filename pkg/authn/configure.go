@@ -16,10 +16,6 @@ package authn
 
 import (
 	"context"
-	"github.com/greenpau/caddy-authorize/pkg/acl"
-	"github.com/greenpau/caddy-authorize/pkg/kms"
-	"github.com/greenpau/caddy-authorize/pkg/options"
-	"github.com/greenpau/caddy-authorize/pkg/validator"
 	"github.com/greenpau/caddy-auth-portal/pkg/backends"
 	"github.com/greenpau/caddy-auth-portal/pkg/cache"
 	"github.com/greenpau/caddy-auth-portal/pkg/cookie"
@@ -27,6 +23,10 @@ import (
 	"github.com/greenpau/caddy-auth-portal/pkg/registration"
 	"github.com/greenpau/caddy-auth-portal/pkg/transformer"
 	"github.com/greenpau/caddy-auth-portal/pkg/ui"
+	"github.com/greenpau/caddy-authorize/pkg/acl"
+	"github.com/greenpau/caddy-authorize/pkg/kms"
+	"github.com/greenpau/caddy-authorize/pkg/options"
+	"github.com/greenpau/caddy-authorize/pkg/validator"
 	"github.com/greenpau/go-identity"
 	"go.uber.org/zap"
 	"path"
@@ -115,8 +115,7 @@ func (mgr *InstanceManager) configureBackends(primaryInstance, m *Authenticator)
 	m.loginOptions = make(map[string]interface{})
 	m.loginOptions["form_required"] = "no"
 	m.loginOptions["realm_dropdown_required"] = "no"
-	m.loginOptions["username_required"] = "no"
-	m.loginOptions["password_required"] = "no"
+	m.loginOptions["identity_required"] = "no"
 	m.loginOptions["external_providers_required"] = "no"
 	m.loginOptions["registration_required"] = "no"
 	m.loginOptions["password_recovery_required"] = "no"
@@ -209,8 +208,7 @@ func (mgr *InstanceManager) configureBackends(primaryInstance, m *Authenticator)
 
 	if len(loginRealms) > 0 {
 		m.loginOptions["form_required"] = "yes"
-		m.loginOptions["username_required"] = "yes"
-		m.loginOptions["password_required"] = "yes"
+		m.loginOptions["identity_required"] = "yes"
 		m.loginOptions["realms"] = loginRealms
 	}
 	if len(loginRealms) > 1 {

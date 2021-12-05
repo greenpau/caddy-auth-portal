@@ -15,6 +15,7 @@
 package portal
 
 import (
+	"bytes"
 	"encoding/json"
 	"github.com/caddyserver/caddy/v2/caddytest"
 	_ "github.com/greenpau/caddy-authorize"
@@ -76,6 +77,26 @@ func initAuthRequest(authPath string) *http.Request {
 	return req
 }
 
+func initJSONAuthRequest(authPath string) *http.Request {
+	req, _ := http.NewRequest(
+		"POST",
+		authPath,
+		encodeUserCreds("webadmin", "password123", "local"),
+	)
+	req.Header.Set("Accept", "application/json")
+	req.Header.Set("Content-Type", "application/json")
+	return req
+}
+
+func encodeUserCreds(username, password, realm string) *bytes.Reader {
+	m := make(map[string]string)
+	m["username"] = username
+	m["password"] = password
+	m["realm"] = realm
+	b, _ := json.Marshal(m)
+	return bytes.NewReader(b)
+}
+
 func TestLocalCaddyfile(t *testing.T) {
 	scheme := "https"
 	host := "127.0.0.1"
@@ -99,9 +120,11 @@ func TestLocalCaddyfile(t *testing.T) {
 	}
 	rawConfig := string(configContent)
 	tester.InitServer(rawConfig, "caddyfile")
-	req, _ := http.NewRequest("POST", baseURL+"/"+authPath+"/login", strings.NewReader("username=webadmin&password=password123"))
-	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	tester.AssertResponseCode(req, 303)
+	req, _ := http.NewRequest("POST", baseURL+"/"+authPath+"/login", encodeUserCreds("webadmin", "password123", "local"))
+	req.Header.Set("Accept", "application/json")
+	req.Header.Set("Content-Type", "application/json")
+	tester.AssertResponseCode(req, 200)
+
 	var accessToken string
 	for _, cookie := range tester.Client.Jar.Cookies(localhost) {
 		t.Logf("Found a cookie named: %s", cookie.Name)
@@ -160,13 +183,10 @@ func TestLdapCaddyfile(t *testing.T) {
 	rawConfig := string(configContent)
 	tester.InitServer(rawConfig, "caddyfile")
 	tester.AssertGetResponse(baseURL+"/version", 200, "1.0.0")
-	req, _ := http.NewRequest(
-		"POST",
-		baseURL+"/"+authPath+"/login",
-		strings.NewReader("username=webadmin&password=password123&realm=local"),
-	)
-	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	resp := tester.AssertResponseCode(req, 303)
+	req, _ := http.NewRequest("POST", baseURL+"/"+authPath+"/login", encodeUserCreds("webadmin", "password123", "local"))
+	req.Header.Set("Accept", "application/json")
+	req.Header.Set("Content-Type", "application/json")
+	resp := tester.AssertResponseCode(req, 200)
 	t.Logf("%v", resp)
 	time.Sleep(1 * time.Second)
 }
@@ -191,13 +211,10 @@ func TestSamlCaddyfile(t *testing.T) {
 	rawConfig := string(configContent)
 	tester.InitServer(rawConfig, "caddyfile")
 	tester.AssertGetResponse(baseURL+"/version", 200, "1.0.0")
-	req, _ := http.NewRequest(
-		"POST",
-		baseURL+"/"+authPath+"/login",
-		strings.NewReader("username=webadmin&password=password123&realm=local"),
-	)
-	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	resp := tester.AssertResponseCode(req, 303)
+	req, _ := http.NewRequest("POST", baseURL+"/"+authPath+"/login", encodeUserCreds("webadmin", "password123", "local"))
+	req.Header.Set("Accept", "application/json")
+	req.Header.Set("Content-Type", "application/json")
+	resp := tester.AssertResponseCode(req, 200)
 	t.Logf("%v", resp)
 	time.Sleep(1 * time.Second)
 }
@@ -222,13 +239,10 @@ func TestShortLocalCaddyfile(t *testing.T) {
 	rawConfig := string(configContent)
 	tester.InitServer(rawConfig, "caddyfile")
 	tester.AssertGetResponse(baseURL+"/version", 200, "1.0.0")
-	req, _ := http.NewRequest(
-		"POST",
-		baseURL+"/"+authPath+"/login",
-		strings.NewReader("username=webadmin&password=password123&realm=local"),
-	)
-	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	resp := tester.AssertResponseCode(req, 303)
+	req, _ := http.NewRequest("POST", baseURL+"/"+authPath+"/login", encodeUserCreds("webadmin", "password123", "local"))
+	req.Header.Set("Accept", "application/json")
+	req.Header.Set("Content-Type", "application/json")
+	resp := tester.AssertResponseCode(req, 200)
 	t.Logf("%v", resp)
 	time.Sleep(1 * time.Second)
 }
@@ -242,8 +256,8 @@ func TestCookieLifetime(t *testing.T) {
 		t.Fatalf("failed to init caddy tester instance: %s", err)
 	}
 	tester.AssertGetResponse(config["version_path"], 200, "1.0.0")
-	authReq := initAuthRequest(config["auth_path"])
-	resp := tester.AssertResponseCode(authReq, 303)
+	authReq := initJSONAuthRequest(config["auth_path"])
+	resp := tester.AssertResponseCode(authReq, 200)
 	t.Logf("%v", resp)
 	// TODO(greenpau): validate cookie lifetime
 	/*

@@ -162,3 +162,10 @@ func (sa *Authenticator) GetMfaTokens(r *requests.Request) error {
 	defer sa.mux.Unlock()
 	return sa.db.GetMfaTokens(r)
 }
+
+// IdentifyUser returns user challenges.
+func (sa *Authenticator) IdentifyUser(r *requests.Request) error {
+	sa.mux.Lock()
+	defer sa.mux.Unlock()
+	return sa.db.IdentifyUser(r)
+}

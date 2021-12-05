@@ -56,26 +56,14 @@ var PageTemplates = map[string]string{
           {{ if eq .Data.login_options.form_required "yes" }}
           <form action="{{ pathjoin .ActionEndpoint "/login" }}" method="POST">
             <div class="row app-form">
-              {{ if eq .Data.login_options.username_required "yes" }}
+              {{ if eq .Data.login_options.identity_required "yes" }}
               <div class="row app-input-row valign-wrapper">
                 <div class="col s4">
                   <p class="app-input-text">Username</p>
                 </div>
                 <div class="col s8">
                   <div class="input-field app-input-field">
-                    <input id="username" name="username" type="text" class="validate" autocorrect="off" autocapitalize="off" required />
-                  </div>
-                </div>
-              </div>
-              {{ end }}
-              {{ if eq .Data.login_options.password_required "yes" }}
-              <div class="row app-input-row valign-wrapper">
-                <div class="col s4">
-                  <p class="app-input-text">Password</p>
-                </div>
-                <div class="col s8">
-                  <div class="input-field app-input-field">
-                    <input id="password" name="password" type="password" class="validate" autocorrect="off" autocapitalize="off" required />
+                    <input id="identity" name="identity" type="text" class="validate" autocorrect="off" autocapitalize="off" required />
                   </div>
                 </div>
               </div>
@@ -125,7 +113,7 @@ var PageTemplates = map[string]string{
           {{ end }}
           {{ if eq .Data.login_options.external_providers_required "yes" }}
           <div class="row">
-            {{ if eq .Data.login_options.username_required "yes" }}
+            {{ if eq .Data.login_options.identity_required "yes" }}
             <p class="app-text">Additional Sign In Options:</p>
             {{end}}
             {{ range .Data.login_options.external_providers }}
@@ -1347,6 +1335,9 @@ function u2f_token_authenticate(formID, btnID) {
     {{ if or (eq .Data.view "mfa_app_auth") (eq .Data.view "mfa_app_register") }}
     <link rel="stylesheet" href="{{ pathjoin .ActionEndpoint "/assets/css/mfa_app.css" }}" />
     {{ end }}
+    {{ if or (eq .Data.view "password_auth") (eq .Data.view "password_recovery") }}
+    <link rel="stylesheet" href="{{ pathjoin .ActionEndpoint "/assets/css/password.css" }}" />
+    {{ end }}
   </head>
   <body class="app-body">
     <div class="container">
@@ -1403,6 +1394,94 @@ function u2f_token_authenticate(formID, btnID) {
               </li>
             </ul>
           </div>
+          {{ else if eq .Data.view "password_auth" }}
+          <div class="row">
+            <form class="password-auth-form"
+                  action="{{ pathjoin .ActionEndpoint "sandbox" .Data.id "password-auth" }}"
+                  method="POST"
+                  autocomplete="off"
+                  >
+              <div class="password-auth-ctrl">
+                <input class="password-auth-secret" id="secret" name="secret" type="password" class="validate"
+                       autocorrect="off" autocapitalize="off" autocomplete="off"
+                       required />
+              </div>
+              <input id="sandbox_id" name="sandbox_id" type="hidden" value="{{ .Data.id }}" />
+              <div class="password-auth-btn">
+                <button type="reset" name="reset" class="btn waves-effect waves-light navbtn active navbtn-last red lighten-1">
+                  <i class="las la-redo-alt left app-btn-icon"></i>
+                </button>
+                <button type="submit" name="submit" class="btn waves-effect waves-light navbtn active navbtn-last">
+                  <i class="las la-check-square left app-btn-icon"></i>
+                  <span class="app-btn-text">Authenticate</span>
+                </button>
+              </div>
+            </form>
+            <div class="password-auth-help-menu">
+              <p>Having issues?</p>
+              <ul>
+                <li>
+                  <i class="las la-lock-open"></i>
+                  <a href="{{ pathjoin .ActionEndpoint "sandbox" .Data.id "password-recovery" }}">
+                    Reset password
+                  </a>
+                </li>
+                <li>
+                  <i class="las la-question"></i>
+                  <a href="{{ pathjoin .ActionEndpoint "help" }}">
+                    Contact support
+                  </a>
+                </li>
+                <li>
+                  <i class="las la-home"></i>
+                  <a href="{{ pathjoin .ActionEndpoint "sandbox" .Data.id "terminate" }}">
+                    Login page
+                  </a>
+                </li>
+              </ul>
+            </div>
+          </div>
+          {{ else if eq .Data.view "password_recovery" }}
+          <div class="row">
+            <form class="password-auth-form"
+                  action="{{ pathjoin .ActionEndpoint "sandbox" .Data.id "password-recovery" }}"
+                  method="POST"
+                  autocomplete="off"
+                  >
+              <div class="password-auth-ctrl">
+                <input class="password-auth-email" id="email" name="email" type="email" class="validate"
+                       autocorrect="off" autocapitalize="off" autocomplete="off"
+                       required />
+              </div>
+              <input id="sandbox_id" name="sandbox_id" type="hidden" value="{{ .Data.id }}" />
+              <div class="password-auth-btn">
+                <button type="reset" name="reset" class="btn waves-effect waves-light navbtn active navbtn-last red lighten-1">
+                  <i class="las la-redo-alt left app-btn-icon"></i>
+                </button>
+                <button type="submit" name="submit" class="btn waves-effect waves-light navbtn active navbtn-last">
+                  <i class="las la-check-square left app-btn-icon"></i>
+                  <span class="app-btn-text">Recover</span>
+                </button>
+              </div>
+            </form>
+            <div class="password-auth-help-menu">
+              <p>Having issues?</p>
+              <ul>
+                <li>
+                  <i class="las la-question"></i>
+                  <a href="{{ pathjoin .ActionEndpoint "help" }}">
+                    Contact support
+                  </a>
+                </li>
+                <li>
+                  <i class="las la-home"></i>
+                  <a href="{{ pathjoin .ActionEndpoint "login" }}">
+                    Login page
+                  </a>
+                </li>
+              </ul>
+            </div>
+          </div>
           {{ else if eq .Data.view "mfa_app_auth" }}
           <div class="row">
             <form class="mfa-app-auth-form"
@@ -1450,24 +1529,36 @@ function u2f_token_authenticate(formID, btnID) {
                     Contact support
                   </a>
                 </li>
+                <li>
+                  <i class="las la-home"></i>
+                  <a href="{{ pathjoin .ActionEndpoint "sandbox" .Data.id "terminate" }}">
+                    Login page
+                  </a>
+                </li>
               </ul>
             </div>
           </div>
           {{ else if eq .Data.view "mfa_u2f_auth" }}
           <div class="row">
-            <form class="mfa-u2f-auth-form"
+            <form id="mfa-u2f-auth-form" class="mfa-u2f-auth-form"
                   action="{{ pathjoin .ActionEndpoint "sandbox" .Data.id "mfa-u2f-auth" }}"
                   method="POST"
                   autocomplete="off"
                   >
-              <input id="u2f_auth_request" name="u2f_auth_request" type="hidden" value="" />
+              <input id="webauthn_request" name="webauthn_request" type="hidden" value="" />
               <input id="sandbox_id" name="sandbox_id" type="hidden" value="{{ .Data.id }}" />
-            </form>
-            <div class="mfa-auth-help-text">
               <p>
                 Insert your hardware token into a USB port. When prompted, touch,
                 or otherwise trigger the hardware token.
               </p>
+            </form>
+            <div id="mfa-u2f-auth-form-rst" class="row center hide">
+              <a href="{{ pathjoin .ActionEndpoint "sandbox" .Data.id }}">
+                <button type="button" name="button" class="btn waves-effect waves-light navbtn active navbtn-last red lighten-1">
+                  <i class="las la-redo-alt left app-btn-icon"></i>
+                  <span class="app-btn-text">Try Again</span>
+                </button>
+              </a>
             </div>
             <div class="mfa-auth-help-menu">
               <p>Having issues?</p>
@@ -1476,6 +1567,12 @@ function u2f_token_authenticate(formID, btnID) {
                   <i class="las la-question"></i>
                   <a href="{{ pathjoin .ActionEndpoint "help" }}">
                     Contact support
+                  </a>
+                </li>
+                <li>
+                  <i class="las la-home"></i>
+                  <a href="{{ pathjoin .ActionEndpoint "sandbox" .Data.id "terminate" }}">
+                    Login page
                   </a>
                 </li>
               </ul>
@@ -1592,7 +1689,72 @@ function u2f_token_authenticate(formID, btnID) {
           </div>
           {{ else if eq .Data.view "mfa_u2f_register" }}
           <div class="row">
-            <p>The {{ .Data.view }} view is under construction.</p>
+            <form id="mfa-add-u2f-form" class="mfa-add-u2f-form"
+                  action="{{ pathjoin .ActionEndpoint "sandbox" .Data.id "mfa-u2f-register" }}"
+                  method="POST"
+                  autocomplete="off"
+                  >
+              <div class="row">
+                <div class="col s12 m12 l12">
+                  <p>Please insert your U2F (USB, NFC, or Bluetooth) Security Key, e.g. Yubikey.</p>
+                  <p>Then, please click "Register" button below.</p>
+                  <div class="input-field">
+                    <input id="comment" name="comment" type="text" class="validate" pattern="[A-Za-z0-9 -]{4,25}"
+                      title="A comment should contain 4-25 characters and consists of A-Z, a-z, 0-9, space, and dash characters."
+                      autocorrect="off" autocapitalize="off" autocomplete="off"
+                      required />
+                    <label for="comment">Comment</label>
+                  </div>
+                  <input class="hide" id="webauthn_register" name="webauthn_register" type="text" />
+                  <input class="hide" id="webauthn_challenge" name="webauthn_challenge" type="text" value="{{ .Data.webauthn_challenge }}" />
+                  <button id="mfa-add-u2f-button"
+                    type="button" name="action"
+                    onclick="u2f_token_register('mfa-add-u2f-form', 'mfa-add-u2f-button');"
+                    class="btn waves-effect waves-light  navbtn active navbtn-last app-btn">
+                    <i class="las la-plus-circle left app-btn-icon"></i>
+                    <span class="app-btn-text">Register</span>
+                  </button>
+                </div>
+              </div>
+            </form>
+            <div id="mfa-add-u2f-form-rst" class="row center hide">
+              <a href="{{ pathjoin .ActionEndpoint "sandbox" .Data.id }}">
+                <button type="button" name="button" class="btn waves-effect waves-light navbtn active navbtn-last red lighten-1">
+                  <i class="las la-redo-alt left app-btn-icon"></i>
+                  <span class="app-btn-text">Try Again</span>
+                </button>
+              </a>
+            </div>
+
+            <div class="mfa-auth-help-menu">
+              <p>Having issues?</p>
+              <ul>
+                <li>
+                  <i class="las la-question"></i>
+                  <a href="{{ pathjoin .ActionEndpoint "help" }}">
+                    Contact support
+                  </a>
+                </li>
+                <li>
+                  <i class="las la-home"></i>
+                  <a href="{{ pathjoin .ActionEndpoint "sandbox" .Data.id "terminate" }}">
+                    Login page
+                  </a>
+                </li>
+              </ul>
+            </div>
+
+
+          </div>
+          {{ else if eq .Data.view "terminate" }}
+          <div class="row center">
+            <p>{{ .Data.error }}.</p>
+            <a href="{{ pathjoin .ActionEndpoint "login" }}">
+              <button type="button" name="button" class="btn waves-effect waves-light navbtn active navbtn-last red lighten-1">
+                <i class="las la-redo-alt left app-btn-icon"></i>
+                <span class="app-btn-text">Start Over</span>
+              </button>
+            </a>
           </div>
           {{ else if eq .Data.view "error" }}
           <div class="row center">
@@ -1622,6 +1784,65 @@ function u2f_token_authenticate(formID, btnID) {
     {{ if eq .Data.view "mfa_app_register" }}
     <!-- App Authentication Registration Scripts -->
     <script src="{{ pathjoin .ActionEndpoint "/assets/js/mfa_add_app.js" }}"></script>
+    {{ end }}
+    {{ if or (eq .Data.view "mfa_u2f_register") (eq .Data.view "mfa_u2f_auth") }}
+    <!-- U2F Authentication Scripts -->
+    <script src="{{ pathjoin .ActionEndpoint "/assets/cbor/cbor.js" }}"></script>
+    <script src="{{ pathjoin .ActionEndpoint "/assets/js/mfa_u2f.js" }}"></script>
+    {{ end }}
+
+    {{ if eq .Data.view "mfa_u2f_register" }}
+    <script>
+    function u2f_token_register(formID, btnID) {
+      const params = {
+        challenge: "{{ .Data.webauthn_challenge }}",
+        rp_name: "{{ .Data.webauthn_rp_name }}",
+        user_id: "{{ .Data.webauthn_user_id }}",
+        user_name: "{{ .Data.webauthn_user_email }}",
+        user_display_name: "{{ .Data.webauthn_user_display_name }}",
+        user_verification: "{{ .Data.webauthn_user_verification }}",
+        attestation: "{{ .Data.webauthn_attestation }}",
+        pubkey_cred_params: [
+          {
+            type: "public-key",
+            alg: -7,
+          },
+        ]
+      };
+      register_u2f_token(formID, btnID, params);
+    }
+    </script>
+    {{ end }}
+    {{ if eq .Data.view "mfa_u2f_auth" }}
+    <script>
+    function u2f_token_authenticate(formID) {
+      const params = {
+        challenge: "{{ .Data.webauthn_challenge }}",
+        timeout: {{ .Data.webauthn_timeout }},
+        rp_name: "{{ .Data.webauthn_rp_name }}",
+        user_verification: "{{ .Data.webauthn_user_verification }}",
+        {{- if .Data.webauthn_credentials }}
+        allowed_credentials: [
+        {{- range .Data.webauthn_credentials }}
+          {
+            id: "{{ .id }}",
+            type: "{{ .type }}",
+            transports: [{{ range .transports }}"{{ . }}",{{ end }}],
+          },
+        {{- end }}
+        ],
+        {{ else }}
+        allowed_credentials: [],
+        {{end -}}
+        ext_uvm: {{ .Data.webauthn_ext_uvm }},
+        ext_loc: {{ .Data.webauthn_ext_loc }},
+        ext_tx_auth_simple: "{{ .Data.webauthn_tx_auth_simple }}",
+      };
+      authenticate_u2f_token(formID, params);
+    }
+
+    window.addEventListener("load", u2f_token_authenticate('mfa-u2f-auth-form'));
+    </script>
     {{ end }}
     {{ if .Message }}
     <script>

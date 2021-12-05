@@ -67,6 +67,8 @@ func (b *Backend) Request(op operator.Type, r *requests.Request) error {
 	switch op {
 	case operator.Authenticate:
 		return b.Authenticate(r)
+	case operator.IdentifyUser:
+		return b.authenticator.IdentifyUser(r)
 	case operator.ChangePassword:
 		return b.authenticator.ChangePassword(r)
 	case operator.AddKeySSH:

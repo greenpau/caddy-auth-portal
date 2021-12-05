@@ -48,3 +48,17 @@ func validatePasswordChangeForm(r *http.Request, rr *requests.Request) error {
 	rr.User.Password = r.PostFormValue("secret2")
 	return nil
 }
+
+func validateSandboxPasswordForm(r *http.Request, rr *requests.Request) error {
+	if r.Header.Get("Content-Type") != "application/x-www-form-urlencoded" {
+		return fmt.Errorf("Unsupported content type")
+	}
+	if err := r.ParseForm(); err != nil {
+		return fmt.Errorf("Failed parsing submitted form")
+	}
+	if r.PostFormValue("secret") == "" {
+		return fmt.Errorf("Password is empty")
+	}
+	rr.User.Password = r.PostFormValue("secret")
+	return nil
+}

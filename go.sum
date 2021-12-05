@@ -470,12 +470,12 @@ github.com/gorilla/mux v1.7.3/go.mod h1:1lud6UwP+6orDFRuTfBEV8e9/aOM/c4fVVCaMa2z
 github.com/gorilla/websocket v0.0.0-20170926233335-4201258b820c/go.mod h1:E7qHFY5m1UJ88s3WnNqhKjPHQ0heANvMoAMk2YaljkQ=
 github.com/gorilla/websocket v1.4.0/go.mod h1:E7qHFY5m1UJ88s3WnNqhKjPHQ0heANvMoAMk2YaljkQ=
 github.com/gorilla/websocket v1.4.2/go.mod h1:YR8l580nyteQvAITg2hZ9XVh4b55+EU/adAjf1fMHhE=
-github.com/greenpau/caddy-authorize v1.3.20 h1:BRhFJHtEvZDg5IyC0f831XYiSsEKVQemXTxtblvObH0=
-github.com/greenpau/caddy-authorize v1.3.20/go.mod h1:5GkgGN4ydRbe7KIFr6hLI9/TBKEhMNdzTp5Pn7Dcgvk=
+github.com/greenpau/caddy-authorize v1.3.21 h1:+m55InBaqR8MAle+g4mo/EG5wF/uzvwaQiNDOIMXvUM=
+github.com/greenpau/caddy-authorize v1.3.21/go.mod h1:5GkgGN4ydRbe7KIFr6hLI9/TBKEhMNdzTp5Pn7Dcgvk=
 github.com/greenpau/caddy-trace v1.1.8 h1:Hi5vBKCzUS9XKjjy5TGzjr+tQef0NvPE+8lzVs3Uvsw=
 github.com/greenpau/caddy-trace v1.1.8/go.mod h1:4xuSCy62odDXjEwaPEySpQqM1kWeOS7AXtMAwbFoxwQ=
-github.com/greenpau/go-identity v1.1.3 h1:7A+B/buqTDbYQ5xfCpqUss0XN37fq4FLNlBPjuhWTrU=
-github.com/greenpau/go-identity v1.1.3/go.mod h1:GoPAUd1RY5BZ/cPBXnnWKtlgEfHlXF2HzI92N5UfwiA=
+github.com/greenpau/go-identity v1.1.4 h1:6CSvC6SqBeh/hPnm/ZG76+P2Tb57tfGaZMFUwN68OGs=
+github.com/greenpau/go-identity v1.1.4/go.mod h1:GoPAUd1RY5BZ/cPBXnnWKtlgEfHlXF2HzI92N5UfwiA=
 github.com/greenpau/versioned v1.0.26 h1:2zvHamwlNITy2MXexYPsICm1sawPnCwRx7zB3VIjQRo=
 github.com/greenpau/versioned v1.0.26/go.mod h1:rtFCvaWWNbMH4CJnje/xicgmrM63j++rUh5juSu0k/A=
 github.com/gregjones/httpcache v0.0.0-20180305231024-9cad4c3443a7/go.mod h1:FecbI9+v66THATjSRHfNgh1IVFe/9kFxbXtjV0ctIMA=

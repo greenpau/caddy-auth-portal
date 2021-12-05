@@ -106,10 +106,15 @@ func (p *Authenticator) handleHTTPError(ctx context.Context, w http.ResponseWrit
 	}
 
 	resp.Data["authenticated"] = rr.Response.Authenticated
-	if r.Referer() != "" {
-		resp.Data["go_back_url"] = r.Referer()
+
+	if rr.Response.RedirectURL != "" {
+		resp.Data["go_back_url"] = rr.Response.RedirectURL
 	} else {
-		resp.Data["go_back_url"] = "/"
+		if r.Referer() != "" {
+			resp.Data["go_back_url"] = r.Referer()
+		} else {
+			resp.Data["go_back_url"] = "/"
+		}
 	}
 	content, err := p.ui.Render("generic", resp)
 	if err != nil {
@@ -141,8 +146,24 @@ func (p *Authenticator) handleHTTPRedirect(ctx context.Context, w http.ResponseW
 		zap.String("session_id", rr.Upstream.SessionID),
 		zap.String("request_id", rr.ID),
 		zap.String("redirect_url", location),
+		zap.Int("status_code", http.StatusFound),
 	)
 	w.WriteHeader(http.StatusFound)
+	return nil
+}
+
+func (p *Authenticator) handleHTTPRedirectSeeOther(ctx context.Context, w http.ResponseWriter, r *http.Request, rr *requests.Request, location string) error {
+	p.disableClientCache(w)
+	location = rr.Upstream.BaseURL + path.Join(rr.Upstream.BasePath, location)
+	w.Header().Set("Location", location)
+	p.logger.Debug(
+		"Redirect served",
+		zap.String("session_id", rr.Upstream.SessionID),
+		zap.String("request_id", rr.ID),
+		zap.String("redirect_url", location),
+		zap.Int("status_code", http.StatusSeeOther),
+	)
+	w.WriteHeader(http.StatusSeeOther)
 	return nil
 }
 

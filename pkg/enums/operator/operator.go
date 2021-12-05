@@ -56,6 +56,9 @@ const (
 	AddUser
 	// DeleteUser operator signals the deletion of a user.
 	DeleteUser
+	// IdentifyUser operator signals the retrieval of user identity and
+	// associated challenges.
+	IdentifyUser
 )
 
 // String returns string representation of an operator.
@@ -95,6 +98,8 @@ func (e Type) String() string {
 		return "AddAPIKey"
 	case DeleteAPIKey:
 		return "DeleteAPIKey"
+	case IdentifyUser:
+		return "IdentifyUser"
 	}
 	return fmt.Sprintf("Type(%d)", int(e))
 }

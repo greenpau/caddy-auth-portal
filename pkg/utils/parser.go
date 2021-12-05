@@ -21,6 +21,15 @@ import (
 	"strings"
 )
 
+// ParseIdentity extracts user id/email and optional authentication realm
+// from HTTP request.
+func ParseIdentity(r *http.Request) (map[string]string, error) {
+	if r.Method == "POST" {
+		return parseIdentityForm(r)
+	}
+	return nil, fmt.Errorf("Request method %s is unsupported", r.Method)
+}
+
 // ParseCredentials extracts credentials from HTTP request.
 func ParseCredentials(r *http.Request) (map[string]string, error) {
 	if r.Method == "POST" {
@@ -30,6 +39,48 @@ func ParseCredentials(r *http.Request) (map[string]string, error) {
 		return parseAuthRequest(r)
 	}
 	return nil, fmt.Errorf("Request method %s is unsupported", r.Method)
+}
+
+func parseIdentityForm(r *http.Request) (map[string]string, error) {
+	var maxBytesLimit int64 = 500
+	var minBytesLimit int64 = 15
+	if r.ContentLength > maxBytesLimit {
+		return nil, fmt.Errorf("Request payload exceeded the limit of %d bytes: %d", maxBytesLimit, r.ContentLength)
+	}
+	if r.ContentLength < minBytesLimit {
+		return nil, fmt.Errorf("Request payload is too small: %d", r.ContentLength)
+	}
+	contentType := r.Header.Get("Content-Type")
+	if contentType != "application/x-www-form-urlencoded" {
+		return nil, fmt.Errorf("Request content type is not application/x-www-form-urlencoded")
+	}
+
+	rq := r.FormValue("activity")
+	if rq == "" {
+		rq = "login"
+	}
+
+	switch rq {
+	case "login":
+	default:
+		return nil, fmt.Errorf("request type is unsupported")
+	}
+
+	userID := r.FormValue("identity")
+	realm := r.FormValue("realm")
+	if realm == "" {
+		realm = "local"
+	}
+
+	if (len(userID) < 2 || len(userID) > 100) || (len(realm) < 2 || len(realm) > 100) {
+		return nil, fmt.Errorf("received malformed request")
+	}
+
+	kv := map[string]string{
+		"user":  userID,
+		"realm": realm,
+	}
+	return kv, nil
 }
 
 func parseAuthForm(r *http.Request) (map[string]string, error) {

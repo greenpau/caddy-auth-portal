@@ -39,6 +39,7 @@ func (p *Authenticator) handleHTTPLogin(ctx context.Context, w http.ResponseWrit
 	if r.Method != "POST" {
 		return p.handleHTTPLoginScreen(ctx, w, r, rr)
 	}
+
 	return p.handleHTTPLoginRequest(ctx, w, r, rr)
 }
 
@@ -69,25 +70,154 @@ func (p *Authenticator) getBackendByRealm(realm string) *backends.Backend {
 	return nil
 }
 
+// handleHTTPLoginRequest handles the processing of user id/email and optional
+// authentication realm. The requester gets redirected to sandbox for
+// authentication.
 func (p *Authenticator) handleHTTPLoginRequest(ctx context.Context, w http.ResponseWriter, r *http.Request, rr *requests.Request) error {
 	p.disableClientCache(w)
 	if r.Method != "POST" {
 		return p.handleHTTPError(ctx, w, r, rr, http.StatusUnauthorized)
 	}
 	r.Body = http.MaxBytesReader(w, r.Body, 1024)
-	credentials, err := utils.ParseCredentials(r)
+
+	identity, err := utils.ParseIdentity(r)
 	if err != nil {
 		return p.handleHTTPErrorWithLog(ctx, w, r, rr, http.StatusUnauthorized, err.Error())
 	}
 
-	if err := p.authenticateLoginRequest(ctx, w, r, rr, credentials); err != nil {
+	// Identify the backend associated with the user and determine challenges.
+	if err := p.identifyUserRequest(rr, identity); err != nil {
+		rr.Response.Code = http.StatusBadRequest
 		return p.handleHTTPErrorWithLog(ctx, w, r, rr, rr.Response.Code, err.Error())
 	}
-	if err := p.authorizeLoginRequest(ctx, w, r, rr); err != nil {
-		return p.handleHTTPErrorWithLog(ctx, w, r, rr, rr.Response.Code, err.Error())
+
+	// Create a temporary user.
+	m := make(map[string]interface{})
+	m["sub"] = rr.User.Username
+	m["email"] = rr.User.Email
+	if rr.User.FullName != "" {
+		m["name"] = rr.User.FullName
 	}
-	w.WriteHeader(rr.Response.Code)
+	if len(rr.User.Roles) > 0 {
+		m["roles"] = rr.User.Roles
+	}
+	m["jti"] = rr.Upstream.SessionID
+	m["exp"] = time.Now().Add(time.Duration(5) * time.Second).UTC().Unix()
+	m["iat"] = time.Now().UTC().Unix()
+	m["nbf"] = time.Now().Add(time.Duration(60) * time.Second * -1).UTC().Unix()
+	m["origin"] = rr.Upstream.Realm
+	m["iss"] = utils.GetIssuerURL(r)
+	m["addr"] = addrutils.GetSourceAddress(r)
+
+	// Perform user claim transformation if necessary.
+	if err := p.transformUser(ctx, rr, m); err != nil {
+		return err
+	}
+
+	// Inject portal-specific roles.
+	injectPortalRoles(m)
+	usr, err := user.NewUser(m)
+	if err != nil {
+		rr.Response.Code = http.StatusBadRequest
+		return p.handleHTTPErrorWithLog(ctx, w, r, rr, http.StatusBadRequest, err.Error())
+	}
+
+	// Build a list of additional verification/acceptance challenges.
+	if err := p.injectUserChallenges(usr, m, rr.User.Challenges); err != nil {
+		p.logger.Warn(
+			"user checkpoint injection failed",
+			zap.String("session_id", rr.Upstream.SessionID),
+			zap.String("request_id", rr.ID),
+			zap.Any("user", m),
+			zap.Any("challenges", rr.User.Challenges),
+			zap.Error(err),
+		)
+		rr.Response.Code = http.StatusInternalServerError
+		return err
+	}
+
+	// Build a list of additional user-specific UI links.
+	if v, exists := m["frontend_links"]; exists {
+		if err := usr.AddFrontendLinks(v); err != nil {
+			p.logger.Warn(
+				"frontend link creation failed",
+				zap.String("session_id", rr.Upstream.SessionID),
+				zap.String("request_id", rr.ID),
+				zap.Any("user", m),
+				zap.Error(err),
+			)
+			rr.Response.Code = http.StatusInternalServerError
+			return err
+		}
+	}
+
+	usr.Authenticator.Name = rr.Upstream.Name
+	usr.Authenticator.Realm = rr.Upstream.Realm
+	usr.Authenticator.Method = rr.Upstream.Method
+
+	// Grant temporary cookie and redirect to sandbox URL for authentication.
+	usr.Authenticator.TempSessionID = utils.GetRandomStringFromRange(36, 48)
+	usr.Authenticator.TempSecret = utils.GetRandomStringFromRange(36, 48)
+	if err := p.sandboxes.Add(usr.Authenticator.TempSessionID, usr); err != nil {
+		rr.Response.Code = http.StatusInternalServerError
+		return p.handleHTTPErrorWithLog(ctx, w, r, rr, http.StatusInternalServerError, err.Error())
+	}
+	redirectLocation := fmt.Sprintf("%s%s/%s",
+		rr.Upstream.BaseURL,
+		path.Join(rr.Upstream.BasePath, "/sandbox/"),
+		usr.Authenticator.TempSessionID,
+	)
+	w.Header().Set("Set-Cookie", p.cookie.GetCookie(p.cookie.SandboxID, usr.Authenticator.TempSecret))
+	w.Header().Set("Location", redirectLocation)
+	w.WriteHeader(http.StatusSeeOther)
 	return nil
+}
+
+func (p *Authenticator) injectUserChallenges(usr *user.User, data map[string]interface{}, chals []string) error {
+	var entries []string
+	entries = append(entries, chals...)
+	entryMap := make(map[string]bool)
+	for _, chal := range chals {
+		entryMap[chal] = true
+	}
+
+	if v, exists := data["challenges"]; exists {
+		switch challenges := v.(type) {
+		case []string:
+			for _, chal := range challenges {
+				if _, exists := entryMap[chal]; !exists {
+					entries = append(entries, chal)
+					entryMap[chal] = true
+				}
+			}
+		default:
+			return fmt.Errorf("")
+		}
+	}
+
+	checkpoints, err := user.NewCheckpoints(entries)
+	if err != nil {
+		return err
+	}
+	if len(checkpoints) < 1 {
+		return fmt.Errorf("no checkpoints")
+	}
+	usr.Checkpoints = checkpoints
+	return nil
+}
+
+func (p *Authenticator) identifyUserRequest(rr *requests.Request, identity map[string]string) error {
+	// Identify the backend associated with the user.
+	backend := p.getBackendByRealm(identity["realm"])
+	if backend == nil {
+		return fmt.Errorf("no matching realm found")
+	}
+	rr.Upstream.Name = backend.GetName()
+	rr.Upstream.Method = backend.GetMethod()
+	rr.Upstream.Realm = backend.GetRealm()
+	rr.Flags.Enabled = true
+	rr.User.Username = identity["user"]
+	return backend.Request(operator.IdentifyUser, rr)
 }
 
 func (p *Authenticator) authenticateLoginRequest(ctx context.Context, w http.ResponseWriter, r *http.Request, rr *requests.Request, credentials map[string]string) error {
@@ -101,6 +231,18 @@ func (p *Authenticator) authenticateLoginRequest(ctx context.Context, w http.Res
 	rr.Upstream.Method = backend.GetMethod()
 	rr.Upstream.Realm = backend.GetRealm()
 	rr.Flags.Enabled = true
+
+	if err := backend.Request(operator.IdentifyUser, rr); err != nil {
+		rr.Response.Code = http.StatusUnauthorized
+		return err
+	}
+
+	if len(rr.User.Challenges) != 1 {
+		return fmt.Errorf("detected too many auth challenges")
+	}
+	if rr.User.Challenges[0] != "password" {
+		return fmt.Errorf("detected unsupported auth challenges")
+	}
 	if err := backend.Request(operator.Authenticate, rr); err != nil {
 		rr.Response.Code = http.StatusUnauthorized
 		return err
@@ -115,162 +257,96 @@ func (p *Authenticator) authorizeLoginRequest(ctx context.Context, w http.Respon
 		rr.Response.Code = http.StatusBadRequest
 		return fmt.Errorf("no matching realm found")
 	}
-	switch m := rr.Response.Payload.(type) {
-	case map[string]interface{}:
-		m["jti"] = rr.Upstream.SessionID
-		m["exp"] = time.Now().Add(time.Duration(p.keystore.GetTokenLifetime(nil, nil)) * time.Second).UTC().Unix()
-		m["iat"] = time.Now().UTC().Unix()
-		m["nbf"] = time.Now().Add(time.Duration(60) * time.Second * -1).UTC().Unix()
-		m["origin"] = rr.Upstream.Realm
-		m["iss"] = utils.GetIssuerURL(r)
-		m["addr"] = addrutils.GetSourceAddress(r)
-		if mr, exists := m["roles"]; exists {
-			switch v := mr.(type) {
-			case string:
-				m["roles"] = strings.Split(v, " ")
-			}
-		}
-		// Perform user claim transformation if necessary.
-		if p.transformer != nil {
-			m["realm"] = rr.Upstream.Realm
-			if err := p.transformer.Transform(m); err != nil {
-				p.logger.Warn(
-					"user transformation failed",
-					zap.String("session_id", rr.Upstream.SessionID),
-					zap.String("request_id", rr.ID),
-					zap.Any("user", m),
-					zap.Error(err),
-				)
-				if strings.HasSuffix(err.Error(), "block/deny") {
-					rr.Response.Code = http.StatusForbidden
-				} else {
-					rr.Response.Code = http.StatusInternalServerError
-				}
-				return err
-			}
-			p.logger.Debug(
-				"user transformation ended",
-				zap.String("session_id", rr.Upstream.SessionID),
-				zap.String("request_id", rr.ID),
-				zap.Any("user", m),
-			)
-		}
-		injectPortalRoles(m)
-		usr, err := user.NewUser(m)
-		if err != nil {
-			rr.Response.Code = http.StatusUnauthorized
-			return err
-		}
-		if err := p.keystore.SignToken(nil, nil, usr); err != nil {
-			p.logger.Warn(
-				"user token signing failed",
-				zap.String("session_id", rr.Upstream.SessionID),
-				zap.String("request_id", rr.ID),
-				zap.Any("user", m),
-				zap.Error(err),
-			)
-			rr.Response.Code = http.StatusInternalServerError
-			return err
-		}
-		usr.Authenticator.Name = backend.GetName()
-		usr.Authenticator.Realm = backend.GetRealm()
-		usr.Authenticator.Method = backend.GetMethod()
 
-		// Build a list of additional verification/acceptance challenges.
-		if v, exists := m["challenges"]; exists {
-			// Create checkpoints based on user transforms.
-			checkpoints, err := user.NewCheckpoints(v)
-			if err != nil {
-				p.logger.Warn(
-					"checkpoint creation failed",
-					zap.String("session_id", rr.Upstream.SessionID),
-					zap.String("request_id", rr.ID),
-					zap.Any("user", m),
-					zap.Error(err),
-				)
-				rr.Response.Code = http.StatusInternalServerError
-				return err
-			}
-			usr.Checkpoints = checkpoints
-		}
+	m := make(map[string]interface{})
+	m["sub"] = rr.User.Username
+	m["email"] = rr.User.Email
+	if rr.User.FullName != "" {
+		m["name"] = rr.User.FullName
+	}
+	if len(rr.User.Roles) > 0 {
+		m["roles"] = rr.User.Roles
+	}
+	m["jti"] = rr.Upstream.SessionID
+	m["exp"] = time.Now().Add(time.Duration(p.keystore.GetTokenLifetime(nil, nil)) * time.Second).UTC().Unix()
+	m["iat"] = time.Now().UTC().Unix()
+	m["nbf"] = time.Now().Add(time.Duration(60)*time.Second*-1).UTC().Unix() * 1000
 
-		// Build a list of additional user-specific UI links.
-		if rr.Response.Workflow != "json-api" {
-			if v, exists := m["frontend_links"]; exists {
-				if err := usr.AddFrontendLinks(v); err != nil {
-					p.logger.Warn(
-						"frontend link creation failed",
-						zap.String("session_id", rr.Upstream.SessionID),
-						zap.String("request_id", rr.ID),
-						zap.Any("user", m),
-						zap.Error(err),
-					)
-					rr.Response.Code = http.StatusInternalServerError
-					return err
-				}
-			}
-		}
+	m["origin"] = rr.Upstream.Realm
+	m["iss"] = utils.GetIssuerURL(r)
+	m["addr"] = addrutils.GetSourceAddress(r)
 
-		if len(usr.Checkpoints) > 0 {
-			if rr.Response.Workflow == "json-api" {
-				p.logger.Warn(
-					"Additional user authentication is not supported with API requests",
-					zap.String("session_id", rr.Upstream.SessionID),
-					zap.String("request_id", rr.ID),
-					zap.Any("backend", usr.Authenticator),
-					zap.Any("user", m),
-					zap.Any("checkpoints", usr.Checkpoints),
-				)
-				rr.Response.Code = http.StatusInternalServerError
-				return fmt.Errorf("Additional user authentication is not supported with API requests")
-			}
-			p.logger.Info(
-				"Successful authentication and redirect to authorization checkpoints",
-				zap.String("session_id", rr.Upstream.SessionID),
-				zap.String("request_id", rr.ID),
-				zap.Any("backend", usr.Authenticator),
-				zap.Any("user", m),
-				zap.Any("checkpoints", usr.Checkpoints),
-			)
-			// Grant temporary guest cookie and redirect to sandbox URL.
-			usr.Authenticator.TempSessionID = utils.GetRandomStringFromRange(36, 48)
-			usr.Authenticator.TempSecret = utils.GetRandomStringFromRange(36, 48)
-			if err := p.sandboxes.Add(usr.Authenticator.TempSessionID, usr); err != nil {
-				p.logger.Warn(
-					"Failed creating sandbox sessions",
-					zap.String("session_id", rr.Upstream.SessionID),
-					zap.String("request_id", rr.ID),
-					zap.Any("backend", usr.Authenticator),
-					zap.Any("user", m),
-					zap.Any("checkpoints", usr.Checkpoints),
-				)
-			}
-			redirectLocation := fmt.Sprintf("%s%s/%s",
-				rr.Upstream.BaseURL,
-				path.Join(rr.Upstream.BasePath, "/sandbox/"),
-				usr.Authenticator.TempSessionID,
-			)
-			w.Header().Set("Set-Cookie", p.cookie.GetCookie(p.cookie.SandboxID, usr.Authenticator.TempSecret))
-			w.Header().Set("Location", redirectLocation)
-			rr.Response.Code = http.StatusSeeOther
-			return nil
-		}
-		p.logger.Info(
-			"Successful login",
+	// Perform user claim transformation if necessary.
+	if err := p.transformUser(ctx, rr, m); err != nil {
+		return err
+	}
+	injectPortalRoles(m)
+	usr, err := user.NewUser(m)
+	if err != nil {
+		rr.Response.Code = http.StatusUnauthorized
+		return err
+	}
+	if err := p.keystore.SignToken(nil, nil, usr); err != nil {
+		p.logger.Warn(
+			"user token signing failed",
 			zap.String("session_id", rr.Upstream.SessionID),
 			zap.String("request_id", rr.ID),
-			zap.Any("backend", usr.Authenticator),
 			zap.Any("user", m),
+			zap.Error(err),
 		)
-		p.grantAccess(ctx, w, r, rr, usr)
-		return nil
+		rr.Response.Code = http.StatusInternalServerError
+		return err
 	}
-	rr.Response.Code = http.StatusBadRequest
-	return fmt.Errorf("unsupported backend response payload %T", rr.Response.Payload)
+	usr.Authenticator.Name = backend.GetName()
+	usr.Authenticator.Realm = backend.GetRealm()
+	usr.Authenticator.Method = backend.GetMethod()
+
+	// Build a list of additional user-specific UI links.
+	if rr.Response.Workflow != "json-api" {
+		if v, exists := m["frontend_links"]; exists {
+			if err := usr.AddFrontendLinks(v); err != nil {
+				p.logger.Warn(
+					"frontend link creation failed",
+					zap.String("session_id", rr.Upstream.SessionID),
+					zap.String("request_id", rr.ID),
+					zap.Any("user", m),
+					zap.Error(err),
+				)
+				rr.Response.Code = http.StatusInternalServerError
+				return err
+			}
+		}
+	}
+
+	p.logger.Info(
+		"Successful login",
+		zap.String("session_id", rr.Upstream.SessionID),
+		zap.String("request_id", rr.ID),
+		zap.Any("backend", usr.Authenticator),
+		zap.Any("user", m),
+	)
+	p.grantAccess(ctx, w, r, rr, usr)
+	return nil
 }
 
 func (p *Authenticator) grantAccess(ctx context.Context, w http.ResponseWriter, r *http.Request, rr *requests.Request, usr *user.User) {
 	var redirectLocation string
+
+	usr.Claims.ExpiresAt = time.Now().Add(time.Duration(p.keystore.GetTokenLifetime(nil, nil)) * time.Second).UTC().Unix()
+	usr.Claims.IssuedAt = time.Now().UTC().Unix()
+	usr.Claims.NotBefore = time.Now().Add(time.Duration(60)*time.Second*-1).UTC().Unix() * 1000
+
+	if err := p.keystore.SignToken(nil, nil, usr); err != nil {
+		p.logger.Warn(
+			"user token signing failed",
+			zap.String("session_id", rr.Upstream.SessionID),
+			zap.String("request_id", rr.ID),
+			zap.Error(err),
+		)
+		rr.Response.Code = http.StatusInternalServerError
+		return
+	}
+
 	rr.Response.Authenticated = true
 	usr.Authorized = true
 	p.sessions.Add(rr.Upstream.SessionID, usr)
@@ -282,6 +358,9 @@ func (p *Authenticator) grantAccess(ctx context.Context, w http.ResponseWriter, 
 		rr.Response.Code = http.StatusOK
 		return
 	}
+
+	// Delete sandbox cookie, if present.
+	w.Header().Add("Set-Cookie", p.cookie.GetDeleteCookie(p.cookie.SandboxID))
 
 	// Determine whether redirect cookie is present and reditect to the page that
 	// forwarded a user to the authentication portal.
@@ -354,4 +433,33 @@ func injectPortalRoles(m map[string]interface{}) {
 	}
 	m["roles"] = updatedRoles
 	return
+}
+
+func (p *Authenticator) transformUser(ctx context.Context, rr *requests.Request, m map[string]interface{}) error {
+	if p.transformer == nil {
+		return nil
+	}
+	m["realm"] = rr.Upstream.Realm
+	if err := p.transformer.Transform(m); err != nil {
+		p.logger.Warn(
+			"user transformation failed",
+			zap.String("session_id", rr.Upstream.SessionID),
+			zap.String("request_id", rr.ID),
+			zap.Any("user", m),
+			zap.Error(err),
+		)
+		if strings.HasSuffix(err.Error(), "block/deny") {
+			rr.Response.Code = http.StatusForbidden
+		} else {
+			rr.Response.Code = http.StatusInternalServerError
+		}
+		return err
+	}
+	p.logger.Debug(
+		"user transformation ended",
+		zap.String("session_id", rr.Upstream.SessionID),
+		zap.String("request_id", rr.ID),
+		zap.Any("user", m),
+	)
+	return nil
 }

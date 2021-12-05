@@ -63,8 +63,7 @@ func TestNewFactory(t *testing.T) {
 	loginOptions := make(map[string]interface{})
 	loginOptions["form_required"] = "yes"
 	loginOptions["realm_dropdown_required"] = "no"
-	loginOptions["username_required"] = "yes"
-	loginOptions["password_required"] = "yes"
+	loginOptions["identity_required"] = "yes"
 	loginOptions["external_providers_required"] = "no"
 	loginOptions["registration_required"] = "no"
 	loginOptions["password_recovery_required"] = "no"

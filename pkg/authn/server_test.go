@@ -161,10 +161,11 @@ func TestServeHTTP(t *testing.T) {
 			name: "test authenticated user accessing css static asset",
 			// disabled: true,
 			auth: &testAuthRequest{
-				endpoint: "/auth/login",
-				username: tests.TestUser1,
-				password: tests.TestPwd1,
-				realm:    "localize",
+				endpoint:    "/auth/login",
+				username:    tests.TestUser1,
+				password:    tests.TestPwd1,
+				realm:       "localize",
+				contentType: "application/json",
 			},
 			requests: []*testAppRequest{
 				{
@@ -185,10 +186,11 @@ func TestServeHTTP(t *testing.T) {
 			name: "test authenticated user accessing favicon static asset",
 			// disabled: true,
 			auth: &testAuthRequest{
-				endpoint: "/auth/login",
-				username: tests.TestUser1,
-				password: tests.TestPwd1,
-				realm:    "localize",
+				endpoint:    "/auth/login",
+				username:    tests.TestUser1,
+				password:    tests.TestPwd1,
+				realm:       "localize",
+				contentType: "application/json",
 			},
 			requests: []*testAppRequest{
 				{
