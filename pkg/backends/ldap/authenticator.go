@@ -259,113 +259,46 @@ func (sa *Authenticator) ConfigureUserGroups(cfg *Config) error {
 	return nil
 }
 
-// AuthenticateUser checks the database for the presence of a username/email
-// and password and returns user claims.
-func (sa *Authenticator) AuthenticateUser(r *requests.Request) error {
-	// userInput, passwordInput string
-	var roles []string
+// IdentifyUser returns user challenges.
+func (sa *Authenticator) IdentifyUser(r *requests.Request) error {
 	sa.mux.Lock()
 	defer sa.mux.Unlock()
 
 	for _, server := range sa.servers {
-		timeout := time.Duration(server.Timeout) * time.Second
-
-		var ldapDialer net.Conn
-		var err error
-
-		if server.Encrypted {
-			// Handle LDAPS servers.
-			tlsConfig := &tls.Config{
-				InsecureSkipVerify: server.IgnoreCertErrors,
-			}
-			if sa.rootCAs != nil {
-				tlsConfig.RootCAs = sa.rootCAs
-			}
-			ldapDialer, err = tls.DialWithDialer(
-				&net.Dialer{
-					Timeout: timeout,
-				},
-				"tcp",
-				net.JoinHostPort(server.URL.Hostname(), server.Port),
-				tlsConfig,
-			)
-			if err != nil {
-				sa.logger.Error(
-					"LDAP TLS dialer failed",
-					zap.String("server", server.Address),
-					zap.String("error", err.Error()),
-				)
-				continue
-			}
-			sa.logger.Debug(
-				"LDAP TLS dialer setup succeeded",
-				zap.String("server", server.Address),
-			)
-		} else {
-			// Handle LDAP servers.
-			ldapDialer, err = net.DialTimeout("tcp", net.JoinHostPort(server.URL.Hostname(), server.Port), timeout)
-			if err != nil {
-				sa.logger.Error(
-					"LDAP dialer failed",
-					zap.String("server", server.Address),
-					zap.String("error", err.Error()),
-				)
-			}
-			sa.logger.Debug(
-				"LDAP dialer setup succeeded",
-				zap.String("server", server.Address),
-			)
-		}
-
-		ldapConnection := ldap.NewConn(ldapDialer, server.Encrypted)
-		if ldapConnection == nil {
-			sa.logger.Error(
-				"LDAP connection failed",
-				zap.String("server", server.Address),
-				zap.String("error", err.Error()),
-			)
+		conn, err := sa.dial(server)
+		if err != nil {
 			continue
 		}
-
-		// defer ldapConnection.Close()
-
-		if server.Encrypted {
-			tlsState, ok := ldapConnection.TLSConnectionState()
-			if !ok {
-				sa.logger.Error(
-					"LDAP connection TLS state polling failed",
-					zap.String("server", server.Address),
-					zap.String("error", "TLSConnectionState is not ok"),
-				)
-				continue
+		defer conn.Close()
+		if err := sa.findUser(conn, server, r); err != nil {
+			if err.Error() == errors.ErrBackendLdapAuthFailed.WithArgs("user not found").Error() {
+				r.User.Username = "nobody"
+				r.User.Email = "nobody@localhost"
+				r.User.Challenges = []string{"password"}
+				return nil
 			}
-
-			sa.logger.Debug(
-				"LDAP connection TLS state polling succeeded",
-				zap.String("server", server.Address),
-				zap.String("server_name", tlsState.ServerName),
-				zap.Bool("handshake_complete", tlsState.HandshakeComplete),
-				zap.String("version", fmt.Sprintf("%d", tlsState.Version)),
-				zap.String("negotiated_protocol", tlsState.NegotiatedProtocol),
-			)
+			r.Response.Code = 401
+			return err
 		}
-		ldapConnection.Start()
+
+		return nil
+	}
+	r.Response.Code = 500
+	return errors.ErrBackendLdapAuthFailed.WithArgs("LDAP servers are unavailable")
+}
+
+// AuthenticateUser checks the database for the presence of a username/email
+// and password and returns user claims.
+func (sa *Authenticator) AuthenticateUser(r *requests.Request) error {
+	sa.mux.Lock()
+	defer sa.mux.Unlock()
+
+	for _, server := range sa.servers {
+		ldapConnection, err := sa.dial(server)
+		if err != nil {
+			continue
+		}
 		defer ldapConnection.Close()
-
-		if err := ldapConnection.Bind(sa.username, sa.password); err != nil {
-			sa.logger.Error(
-				"LDAP connection binding failed",
-				zap.String("server", server.Address),
-				zap.String("username", sa.username),
-				zap.String("error", err.Error()),
-			)
-			continue
-		}
-
-		sa.logger.Debug(
-			"LDAP binding succeeded",
-			zap.String("server", server.Address),
-		)
 
 		searchUserFilter := strings.ReplaceAll(sa.searchUserFilter, "%s", r.User.Username)
 
@@ -379,10 +312,6 @@ func (sa *Authenticator) AuthenticateUser(r *requests.Request) error {
 			false,
 			searchUserFilter,
 			[]string{
-				sa.userAttributes.Name,
-				sa.userAttributes.Surname,
-				sa.userAttributes.Username,
-				sa.userAttributes.MemberOf,
 				sa.userAttributes.Email,
 			},
 			nil, // Controls
@@ -410,15 +339,6 @@ func (sa *Authenticator) AuthenticateUser(r *requests.Request) error {
 			continue
 		}
 
-		sa.logger.Debug(
-			"LDAP search succeeded",
-			zap.String("server", server.Address),
-			zap.Int("entry_count", len(resp.Entries)),
-			zap.String("search_base_dn", sa.searchBaseDN),
-			zap.String("search_user_filter", searchUserFilter),
-			zap.Any("users", resp.Entries),
-		)
-
 		switch len(resp.Entries) {
 		case 1:
 		case 0:
@@ -428,117 +348,24 @@ func (sa *Authenticator) AuthenticateUser(r *requests.Request) error {
 		}
 
 		user := resp.Entries[0]
-		var userFullName, userLastName, userFirstName, userAccountName, userMail string
-		userRoles := make(map[string]bool)
-
-		if server.PosixGroups {
-			// Handle POSIX group memberships.
-			searchGroupRequest := map[string]interface{}{
-				"user_dn":             user.DN,
-				"base_dn":             sa.searchBaseDN,
-				"search_group_filter": strings.ReplaceAll(sa.searchGroupFilter, "%s", user.DN),
-				"timeout":             server.Timeout,
-			}
-			if err := sa.searchGroups(ldapConnection, searchGroupRequest, userRoles); err != nil {
-				sa.logger.Error(
-					"LDAP group search failed, request",
-					zap.String("server", server.Address),
-					zap.String("base_dn", sa.searchBaseDN),
-					zap.String("search_group_filter", sa.searchGroupFilter),
-					zap.Error(err),
-				)
-				return err
-			}
-		}
-
-		for _, attr := range user.Attributes {
-			if len(attr.Values) < 1 {
-				continue
-			}
-			if attr.Name == sa.userAttributes.Name {
-				userFirstName = attr.Values[0]
-			}
-			if attr.Name == sa.userAttributes.Surname {
-				userLastName = attr.Values[0]
-			}
-			if attr.Name == sa.userAttributes.Username {
-				userAccountName = attr.Values[0]
-			}
-			if attr.Name == sa.userAttributes.MemberOf {
-				for _, v := range attr.Values {
-					for _, g := range sa.groups {
-						if g.GroupDN != v {
-							continue
-						}
-						for _, role := range g.Roles {
-							if role == "" {
-								continue
-							}
-							userRoles[role] = true
-						}
-					}
-				}
-			}
-			if attr.Name == sa.userAttributes.Email {
-				userMail = attr.Values[0]
-			}
-		}
-
-		if userFirstName != "" {
-			userFullName = userFirstName
-		}
-		if userLastName != "" {
-			if userFullName == "" {
-				userFullName = userLastName
-			} else {
-				userFullName = userFullName + " " + userLastName
-			}
-		}
-
-		if len(userRoles) == 0 {
-			return errors.ErrBackendLdapAuthFailed.WithArgs("no matched groups")
-		}
-
-		sa.logger.Debug(
-			"LDAP user match",
-			zap.String("server", server.Address),
-			zap.String("name", userFullName),
-			zap.String("username", userAccountName),
-			zap.String("email", userMail),
-			zap.Any("roles", userRoles),
-		)
-
 		// Use the provided password to make an LDAP connection.
 		if err := ldapConnection.Bind(user.DN, r.User.Password); err != nil {
 			sa.logger.Error(
 				"LDAP auth binding failed",
 				zap.String("server", server.Address),
-				zap.String("username", user.DN),
+				zap.String("dn", user.DN),
+				zap.String("username", r.User.Username),
 				zap.String("error", err.Error()),
 			)
 			return errors.ErrBackendLdapAuthFailed.WithArgs(err)
 		}
 
 		sa.logger.Debug(
-			"LDAP connection is ready to be closed",
+			"LDAP auth succeeded",
 			zap.String("server", server.Address),
+			zap.String("dn", user.DN),
+			zap.String("username", r.User.Username),
 		)
-
-		m := make(map[string]interface{})
-		m["sub"] = userAccountName
-		if userFullName != "" {
-			m["name"] = userFullName
-		}
-		if userMail != "" {
-			m["email"] = userMail
-		}
-		for role := range userRoles {
-			roles = append(roles, role)
-		}
-		m["roles"] = roles
-		// m["origin"] = sa.searchBaseDN
-		m["origin"] = server.Address
-		r.Response.Payload = m
 		return nil
 	}
 
@@ -605,5 +432,255 @@ func (sa *Authenticator) searchGroups(conn *ldap.Conn, reqData map[string]interf
 			}
 		}
 	}
+	return nil
+}
+
+func (sa *Authenticator) dial(server *AuthServer) (*ldap.Conn, error) {
+	var ldapDialer net.Conn
+	var err error
+	timeout := time.Duration(server.Timeout) * time.Second
+	if server.Encrypted {
+		// Handle LDAPS servers.
+		tlsConfig := &tls.Config{
+			InsecureSkipVerify: server.IgnoreCertErrors,
+		}
+		if sa.rootCAs != nil {
+			tlsConfig.RootCAs = sa.rootCAs
+		}
+		ldapDialer, err = tls.DialWithDialer(
+			&net.Dialer{
+				Timeout: timeout,
+			},
+			"tcp",
+			net.JoinHostPort(server.URL.Hostname(), server.Port),
+			tlsConfig,
+		)
+		if err != nil {
+			sa.logger.Error(
+				"LDAP TLS dialer failed",
+				zap.String("server", server.Address),
+				zap.String("error", err.Error()),
+			)
+			return nil, err
+		}
+		sa.logger.Debug(
+			"LDAP TLS dialer setup succeeded",
+			zap.String("server", server.Address),
+		)
+	} else {
+		// Handle LDAP servers.
+		ldapDialer, err = net.DialTimeout("tcp", net.JoinHostPort(server.URL.Hostname(), server.Port), timeout)
+		if err != nil {
+			sa.logger.Error(
+				"LDAP dialer failed",
+				zap.String("server", server.Address),
+				zap.String("error", err.Error()),
+			)
+		}
+		sa.logger.Debug(
+			"LDAP dialer setup succeeded",
+			zap.String("server", server.Address),
+		)
+	}
+
+	ldapConnection := ldap.NewConn(ldapDialer, server.Encrypted)
+	if ldapConnection == nil {
+		sa.logger.Error(
+			"LDAP connection failed",
+			zap.String("server", server.Address),
+			zap.String("error", err.Error()),
+		)
+		return nil, err
+	}
+
+	if server.Encrypted {
+		tlsState, ok := ldapConnection.TLSConnectionState()
+		if !ok {
+			sa.logger.Error(
+				"LDAP connection TLS state polling failed",
+				zap.String("server", server.Address),
+				zap.String("error", "TLSConnectionState is not ok"),
+			)
+			return nil, err
+		}
+
+		sa.logger.Debug(
+			"LDAP connection TLS state polling succeeded",
+			zap.String("server", server.Address),
+			zap.String("server_name", tlsState.ServerName),
+			zap.Bool("handshake_complete", tlsState.HandshakeComplete),
+			zap.String("version", fmt.Sprintf("%d", tlsState.Version)),
+			zap.String("negotiated_protocol", tlsState.NegotiatedProtocol),
+		)
+	}
+
+	ldapConnection.Start()
+
+	if err := ldapConnection.Bind(sa.username, sa.password); err != nil {
+		sa.logger.Error(
+			"LDAP connection binding failed",
+			zap.String("server", server.Address),
+			zap.String("username", sa.username),
+			zap.String("error", err.Error()),
+		)
+		return nil, err
+	}
+	sa.logger.Debug(
+		"LDAP binding succeeded",
+		zap.String("server", server.Address),
+	)
+	return ldapConnection, nil
+}
+
+func (sa *Authenticator) findUser(ldapConnection *ldap.Conn, server *AuthServer, r *requests.Request) error {
+	searchUserFilter := strings.ReplaceAll(sa.searchUserFilter, "%s", r.User.Username)
+
+	req := ldap.NewSearchRequest(
+		// group.GroupDN,
+		sa.searchBaseDN,
+		ldap.ScopeWholeSubtree,
+		ldap.NeverDerefAliases,
+		0,
+		server.Timeout,
+		false,
+		searchUserFilter,
+		[]string{
+			sa.userAttributes.Name,
+			sa.userAttributes.Surname,
+			sa.userAttributes.Username,
+			sa.userAttributes.MemberOf,
+			sa.userAttributes.Email,
+		},
+		nil, // Controls
+	)
+
+	if req == nil {
+		sa.logger.Error(
+			"LDAP request building failed, request is nil",
+			zap.String("server", server.Address),
+			zap.String("search_base_dn", sa.searchBaseDN),
+			zap.String("search_user_filter", searchUserFilter),
+		)
+		return errors.ErrBackendLdapAuthFailed.WithArgs("LDAP request building failed, request is nil")
+	}
+
+	resp, err := ldapConnection.Search(req)
+	if err != nil {
+		sa.logger.Error(
+			"LDAP search failed",
+			zap.String("server", server.Address),
+			zap.String("search_base_dn", sa.searchBaseDN),
+			zap.String("search_user_filter", searchUserFilter),
+			zap.String("error", err.Error()),
+		)
+		return errors.ErrBackendLdapAuthFailed.WithArgs("LDAP search failed")
+	}
+
+	sa.logger.Debug(
+		"LDAP search succeeded",
+		zap.String("server", server.Address),
+		zap.Int("entry_count", len(resp.Entries)),
+		zap.String("search_base_dn", sa.searchBaseDN),
+		zap.String("search_user_filter", searchUserFilter),
+		zap.Any("users", resp.Entries),
+	)
+
+	switch len(resp.Entries) {
+	case 1:
+	case 0:
+		return errors.ErrBackendLdapAuthFailed.WithArgs("user not found")
+	default:
+		return errors.ErrBackendLdapAuthFailed.WithArgs("multiple users matched")
+	}
+
+	user := resp.Entries[0]
+	var userFullName, userLastName, userFirstName, userAccountName, userMail string
+	userRoles := make(map[string]bool)
+
+	if server.PosixGroups {
+		// Handle POSIX group memberships.
+		searchGroupRequest := map[string]interface{}{
+			"user_dn":             user.DN,
+			"base_dn":             sa.searchBaseDN,
+			"search_group_filter": strings.ReplaceAll(sa.searchGroupFilter, "%s", user.DN),
+			"timeout":             server.Timeout,
+		}
+		if err := sa.searchGroups(ldapConnection, searchGroupRequest, userRoles); err != nil {
+			sa.logger.Error(
+				"LDAP group search failed, request",
+				zap.String("server", server.Address),
+				zap.String("base_dn", sa.searchBaseDN),
+				zap.String("search_group_filter", sa.searchGroupFilter),
+				zap.Error(err),
+			)
+			return err
+		}
+	}
+
+	for _, attr := range user.Attributes {
+		if len(attr.Values) < 1 {
+			continue
+		}
+		if attr.Name == sa.userAttributes.Name {
+			userFirstName = attr.Values[0]
+		}
+		if attr.Name == sa.userAttributes.Surname {
+			userLastName = attr.Values[0]
+		}
+		if attr.Name == sa.userAttributes.Username {
+			userAccountName = attr.Values[0]
+		}
+		if attr.Name == sa.userAttributes.MemberOf {
+			for _, v := range attr.Values {
+				for _, g := range sa.groups {
+					if g.GroupDN != v {
+						continue
+					}
+					for _, role := range g.Roles {
+						if role == "" {
+							continue
+						}
+						userRoles[role] = true
+					}
+				}
+			}
+		}
+		if attr.Name == sa.userAttributes.Email {
+			userMail = attr.Values[0]
+		}
+	}
+
+	if userFirstName != "" {
+		userFullName = userFirstName
+	}
+	if userLastName != "" {
+		if userFullName == "" {
+			userFullName = userLastName
+		} else {
+			userFullName = userFullName + " " + userLastName
+		}
+	}
+
+	if len(userRoles) == 0 {
+		return errors.ErrBackendLdapAuthFailed.WithArgs("no matched groups")
+	}
+
+	sa.logger.Debug(
+		"LDAP user match",
+		zap.String("server", server.Address),
+		zap.String("name", userFullName),
+		zap.String("username", userAccountName),
+		zap.String("email", userMail),
+		zap.Any("roles", userRoles),
+	)
+
+	r.User.Username = userAccountName
+	r.User.Email = userMail
+	r.User.FullName = userFullName
+	for role := range userRoles {
+		r.User.Roles = append(r.User.Roles, role)
+	}
+	r.User.Challenges = []string{"password"}
+	r.Response.Code = 200
 	return nil
 }

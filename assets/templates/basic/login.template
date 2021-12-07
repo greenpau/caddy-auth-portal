@@ -40,34 +40,28 @@
             <div class="row app-form">
               {{ if eq .Data.login_options.identity_required "yes" }}
               <div class="row app-input-row valign-wrapper">
-                <div class="col s4">
-                  <p class="app-input-text">Username</p>
-                </div>
-                <div class="col s8">
-                  <div class="input-field app-input-field">
-                    <input id="identity" name="identity" type="text" class="validate" autocorrect="off" autocapitalize="off" required />
-                  </div>
+                <div class="input-field app-input-field">
+                  <i class="lar la-user-circle"></i>
+                  <input id="username" name="username" type="text" class="validate"
+                    autocorrect="off" autocapitalize="off" spellcheck="false"
+                    placeholder="username or email" required />
                 </div>
               </div>
               {{ end }}
               {{ if eq .Data.login_options.realm_dropdown_required "yes" }}
               <div class="row app-input-row valign-wrapper">
-                <div class="col s4">
-                  <p class="app-input-text">Domain</p>
-                </div>
-                <div class="col s8">
-                  <div class="input-field app-input-field">
-                    <select id="realm" name="realm" class="browser-default">
-                    {{ range .Data.login_options.realms }}
-                      {{ if eq .default "yes" }}
-                      <option value="{{ .realm }}" selected>{{ .label }}</option>
-                      {{ else }}
-                      <option value="{{ .realm }}">{{ .label }}</option>
-                      {{ end }}
+                <div class="input-field app-input-field">
+                  <i class="lar la-address-book"></i>
+                  <select id="realm" name="realm" class="browser-default">
+                  {{ range .Data.login_options.realms }}
+                    {{ if eq .default "yes" }}
+                    <option value="{{ .realm }}" selected>{{ .label }}</option>
+                    {{ else }}
+                    <option value="{{ .realm }}">{{ .label }}</option>
                     {{ end }}
-                    </select>
-                  </div>
-	              </div>
+                  {{ end }}
+                  </select>
+                </div>
 	            </div>
               {{ else }}
                 {{ range .Data.login_options.realms }}

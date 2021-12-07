@@ -113,6 +113,8 @@ func (b *Backend) Request(op operator.Type, r *requests.Request) error {
 	switch op {
 	case operator.Authenticate:
 		return b.Authenticate(r)
+	case operator.IdentifyUser:
+		return b.IdentifyUser(r)
 	case operator.ChangePassword:
 		return errors.ErrOperatorNotAvailable.WithArgs(op)
 	}
@@ -134,6 +136,20 @@ func (b *Backend) Authenticate(r *requests.Request) error {
 		return errors.ErrBackendLdapAuthenticateInvalidPassword
 	}
 	return b.Authenticator.AuthenticateUser(r)
+}
+
+// IdentifyUser  performs user identification.
+func (b *Backend) IdentifyUser(r *requests.Request) error {
+	if strings.Contains(r.User.Username, "@") {
+		if !emailRegexPattern.MatchString(r.User.Username) {
+			return errors.ErrBackendLdapAuthenticateInvalidUserEmail
+		}
+	} else {
+		if !usernameRegexPattern.MatchString(r.User.Username) {
+			return errors.ErrBackendLdapAuthenticateInvalidUsername
+		}
+	}
+	return b.Authenticator.IdentifyUser(r)
 }
 
 // Configure configures Backend.

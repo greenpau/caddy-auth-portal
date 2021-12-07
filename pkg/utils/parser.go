@@ -66,7 +66,7 @@ func parseIdentityForm(r *http.Request) (map[string]string, error) {
 		return nil, fmt.Errorf("request type is unsupported")
 	}
 
-	userID := r.FormValue("identity")
+	userID := r.FormValue("username")
 	realm := r.FormValue("realm")
 	if realm == "" {
 		realm = "local"
