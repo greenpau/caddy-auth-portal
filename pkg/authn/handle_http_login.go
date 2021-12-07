@@ -259,19 +259,30 @@ func (p *Authenticator) authorizeLoginRequest(ctx context.Context, w http.Respon
 	}
 
 	m := make(map[string]interface{})
-	m["sub"] = rr.User.Username
-	m["email"] = rr.User.Email
-	if rr.User.FullName != "" {
-		m["name"] = rr.User.FullName
+
+	switch rr.Upstream.Method {
+	case "oauth2", "saml":
+		switch pm := rr.Response.Payload.(type) {
+		case map[string]interface{}:
+			m = pm
+		default:
+			return fmt.Errorf("response payload not a map")
+		}
+	default:
+		m["sub"] = rr.User.Username
+		m["email"] = rr.User.Email
+		if rr.User.FullName != "" {
+			m["name"] = rr.User.FullName
+		}
+		if len(rr.User.Roles) > 0 {
+			m["roles"] = rr.User.Roles
+		}
 	}
-	if len(rr.User.Roles) > 0 {
-		m["roles"] = rr.User.Roles
-	}
+
 	m["jti"] = rr.Upstream.SessionID
 	m["exp"] = time.Now().Add(time.Duration(p.keystore.GetTokenLifetime(nil, nil)) * time.Second).UTC().Unix()
 	m["iat"] = time.Now().UTC().Unix()
 	m["nbf"] = time.Now().Add(time.Duration(60)*time.Second*-1).UTC().Unix() * 1000
-
 	m["origin"] = rr.Upstream.Realm
 	m["iss"] = utils.GetIssuerURL(r)
 	m["addr"] = addrutils.GetSourceAddress(r)
