@@ -1395,10 +1395,13 @@ function u2f_token_authenticate(formID, btnID) {
                   method="POST"
                   autocomplete="off"
                   >
-              <div class="password-auth-ctrl">
-                <input class="password-auth-secret" id="secret" name="secret" type="password" class="validate"
+              <div class="password-auth-ctrl row app-input-row valign-wrapper">
+                <div class="input-field app-input-field">
+                  <i class="las la-key"></i>
+                  <input id="secret" name="secret" type="password" class="validate"
                        autocorrect="off" autocapitalize="off" autocomplete="off"
                        required />
+                </div>
               </div>
               <input id="sandbox_id" name="sandbox_id" type="hidden" value="{{ .Data.id }}" />
               <div class="password-auth-btn">
