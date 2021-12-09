@@ -64,13 +64,14 @@ clean:
 	@rm -rf .coverage
 	@rm -rf bin/
 
-qtest:
+qtest: covdir
 	@echo "Perform quick tests ..."
 	@#time richgo test -v -coverprofile=.coverage/coverage.out ./pkg/backends/*.go
 	@#time richgo test -v -coverprofile=.coverage/coverage.out -run TestTagCompliance ./internal/tag/*.go
 	@#time richgo test -v -coverprofile=.coverage/coverage.out ./pkg/backends/local/*.go
 	@#time richgo test -v -coverprofile=.coverage/coverage.out -run TestLocalBackend ./pkg/backends/local/*.go
-	@time richgo test -v -coverprofile=.coverage/coverage.out -run TestAuthenticate ./pkg/backends/local/*.go
+	@#time richgo test -v -coverprofile=.coverage/coverage.out -run TestAuthenticate ./pkg/backends/local/*.go
+	@time richgo test -v -coverprofile=.coverage/coverage.out ./pkg/transformer/*.go || true
 	@#time richgo test -v -coverprofile=.coverage/coverage.out ./pkg/backends/*.go
 	@#time richgo test -v -coverprofile=.coverage/coverage.out ./pkg/backends/local/*.go
 	@#time richgo test -v -coverprofile=.coverage/coverage.out ./pkg/backends/ldap/*.go

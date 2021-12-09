@@ -105,7 +105,9 @@ func (p *Authenticator) handleHTTPLoginRequest(ctx context.Context, w http.Respo
 	m["exp"] = time.Now().Add(time.Duration(5) * time.Second).UTC().Unix()
 	m["iat"] = time.Now().UTC().Unix()
 	m["nbf"] = time.Now().Add(time.Duration(60) * time.Second * -1).UTC().Unix()
-	m["origin"] = rr.Upstream.Realm
+	if _, exists := m["origin"]; !exists {
+		m["origin"] = rr.Upstream.Realm
+	}
 	m["iss"] = utils.GetIssuerURL(r)
 	m["addr"] = addrutils.GetSourceAddress(r)
 
@@ -283,7 +285,9 @@ func (p *Authenticator) authorizeLoginRequest(ctx context.Context, w http.Respon
 	m["exp"] = time.Now().Add(time.Duration(p.keystore.GetTokenLifetime(nil, nil)) * time.Second).UTC().Unix()
 	m["iat"] = time.Now().UTC().Unix()
 	m["nbf"] = time.Now().Add(time.Duration(60)*time.Second*-1).UTC().Unix() * 1000
-	m["origin"] = rr.Upstream.Realm
+	if _, exists := m["origin"]; !exists {
+		m["origin"] = rr.Upstream.Realm
+	}
 	m["iss"] = utils.GetIssuerURL(r)
 	m["addr"] = addrutils.GetSourceAddress(r)
 
@@ -343,9 +347,9 @@ func (p *Authenticator) authorizeLoginRequest(ctx context.Context, w http.Respon
 func (p *Authenticator) grantAccess(ctx context.Context, w http.ResponseWriter, r *http.Request, rr *requests.Request, usr *user.User) {
 	var redirectLocation string
 
-	usr.Claims.ExpiresAt = time.Now().Add(time.Duration(p.keystore.GetTokenLifetime(nil, nil)) * time.Second).UTC().Unix()
-	usr.Claims.IssuedAt = time.Now().UTC().Unix()
-	usr.Claims.NotBefore = time.Now().Add(time.Duration(60)*time.Second*-1).UTC().Unix() * 1000
+	usr.SetExpiresAtClaim(time.Now().Add(time.Duration(p.keystore.GetTokenLifetime(nil, nil)) * time.Second).UTC().Unix())
+	usr.SetIssuedAtClaim(time.Now().UTC().Unix())
+	usr.SetNotBeforeClaim(time.Now().Add(time.Duration(60) * time.Second * -1).UTC().Unix())
 
 	if err := p.keystore.SignToken(nil, nil, usr); err != nil {
 		p.logger.Warn(

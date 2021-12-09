@@ -15,6 +15,7 @@
 package transformer
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/greenpau/caddy-auth-portal/internal/tests"
 	"testing"
@@ -89,4 +90,104 @@ func TestFactory(t *testing.T) {
 			tests.EvalObjectsWithLog(t, "transformer", tc.want, got, msgs)
 		})
 	}
+}
+
+func TestTransformData(t *testing.T) {
+	var testcases = []struct {
+		name      string
+		args      []string
+		user      map[string]interface{}
+		want      map[string]interface{}
+		shouldErr bool
+		err       error
+	}{
+		{
+			name: "add role authp/user with webadmin",
+			args: []string{"add", "role", "authp/user"},
+			user: map[string]interface{}{
+				"sub":   "webadmin",
+				"roles": []string{"authp/admin"},
+			},
+			want: map[string]interface{}{
+				"sub":   "webadmin",
+				"roles": []string{"authp/admin", "authp/user"},
+			},
+		},
+		{
+			name: "add add _couchdb.roles _admin with webadmin",
+			args: []string{"add", "_couchdb.roles", "_admin", "as", "string", "list"},
+			user: map[string]interface{}{
+				"sub":   "webadmin",
+				"roles": []string{"authp/admin", "authp/user"},
+			},
+			want: map[string]interface{}{
+				"sub":            "webadmin",
+				"roles":          []interface{}{string("authp/admin"), string("authp/user")},
+				"_couchdb.roles": []string{"_admin"},
+			},
+		},
+		{
+			name: "add add _couchdb.db _admin with webadmin",
+			args: []string{"add", "_couchdb.db", "accounts", "as", "string"},
+			user: map[string]interface{}{
+				"sub":   "webadmin",
+				"roles": []string{"authp/admin", "authp/user"},
+			},
+			want: map[string]interface{}{
+				"sub":         "webadmin",
+				"roles":       []interface{}{string("authp/admin"), string("authp/user")},
+				"_couchdb.db": "accounts",
+			},
+		},
+		{
+			name: "as type directive is too short",
+			args: []string{"add", "_couchdb.roles", "_admin", "as"},
+			user: map[string]interface{}{
+				"sub":   "webadmin",
+				"roles": []string{"authp/admin", "authp/user"},
+			},
+			shouldErr: true,
+			err: fmt.Errorf(
+				"failed transforming %q field for %q action in %v: %v",
+				"_couchdb.roles", "add", []string{"add", "_couchdb.roles", "_admin", "as"},
+				"as type directive is too short",
+			),
+		},
+		{
+			name: "unsupported data type",
+			args: []string{"add", "_couchdb.roles", "_admin", "as", "foo"},
+			user: map[string]interface{}{
+				"sub":   "webadmin",
+				"roles": []string{"authp/admin", "authp/user"},
+			},
+			shouldErr: true,
+			err: fmt.Errorf(
+				"failed transforming %q field for %q action in %v: %v",
+				"_couchdb.roles", "add", []string{"add", "_couchdb.roles", "_admin", "as", "foo"},
+				"unsupported \"foo\" data type",
+			),
+		},
+	}
+	for _, tc := range testcases {
+		t.Run(tc.name, func(t *testing.T) {
+			msgs := []string{fmt.Sprintf("test name: %s", tc.name)}
+			got := deepCopy(tc.user)
+			if err := transformData(tc.args, got); err != nil {
+				if tests.EvalErrWithLog(t, err, "transformer", tc.shouldErr, tc.err, msgs) {
+					return
+				}
+			}
+			tests.EvalObjectsWithLog(t, "transformer", tc.want, got, msgs)
+		})
+	}
+}
+
+func deepCopy(src map[string]interface{}) map[string]interface{} {
+	if src == nil {
+		return nil
+	}
+	j, _ := json.Marshal(src)
+	m := make(map[string]interface{})
+	json.Unmarshal(j, &m)
+	return m
 }

@@ -61,7 +61,7 @@ func NewFactory(cfgs []*Config) (*Factory, error) {
 		for _, encodedArgs := range cfg.Actions {
 			args, err := cfgutils.DecodeArgs(encodedArgs)
 			if err != nil {
-				return nil, fmt.Errorf("transformer for %q erred: %v", encodedArgs, err)
+				return nil, fmt.Errorf("transformer for %q erred during arg decoding: %v", encodedArgs, err)
 			}
 			switch args[0] {
 			case "require":
@@ -70,32 +70,32 @@ func NewFactory(cfgs []*Config) (*Factory, error) {
 				actions = append(actions, args)
 			case "ui":
 				if len(args) < 4 {
-					return nil, fmt.Errorf("transformer for %q erred: invalid config", encodedArgs)
+					return nil, fmt.Errorf("transformer for %q erred: ui config too short", encodedArgs)
 				}
 				switch args[1] {
 				case "link":
 					actions = append(actions, args[1:])
 				default:
-					return nil, fmt.Errorf("transformer for %q erred: invalid config", encodedArgs)
+					return nil, fmt.Errorf("transformer for %q erred: invalid ui config", encodedArgs)
 				}
 			case "add", "overwrite":
 				if len(args) < 3 {
-					return nil, fmt.Errorf("transformer for %q erred: invalid config", encodedArgs)
+					return nil, fmt.Errorf("transformer for %q erred: invalid add/overwrite config", encodedArgs)
 				}
 				actions = append(actions, args)
 			case "delete":
 				if len(args) < 2 {
-					return nil, fmt.Errorf("transformer for %q erred: invalid config", encodedArgs)
+					return nil, fmt.Errorf("transformer for %q erred: invalid delete config", encodedArgs)
 				}
 				actions = append(actions, args)
 			case "action":
 				if len(args) < 3 {
-					return nil, fmt.Errorf("transformer for %q erred: invalid config", encodedArgs)
+					return nil, fmt.Errorf("transformer for %q erred: action config too short", encodedArgs)
 				}
 				switch args[1] {
 				case "add", "overwrite", "delete":
 				default:
-					return nil, fmt.Errorf("transformer for %q erred: invalid config", encodedArgs)
+					return nil, fmt.Errorf("transformer for %q erred: invalid action config", encodedArgs)
 				}
 				actions = append(actions, args[1:])
 			default:
@@ -206,7 +206,13 @@ func transformData(args []string, m map[string]interface{}) error {
 				m[k] = strings.Join(args[2:], " ")
 			}
 		default:
-			return fmt.Errorf("unsupported %q field for %q action in %v", k, args[0], args)
+			// Handle custom fields.
+			v, err := parseCustomFieldValues(args[2:])
+			if err != nil {
+				return fmt.Errorf("failed transforming %q field for %q action in %v: %v", k, args[0], args, err)
+			}
+			m[args[1]] = v
+			// return fmt.Errorf("unsupported %q field for %q action in %v", k, args[0], args)
 		}
 	case "overwrite":
 		switch dt {
@@ -221,4 +227,28 @@ func transformData(args []string, m map[string]interface{}) error {
 		return fmt.Errorf("unsupported %q action in %v", args[0], args)
 	}
 	return nil
+}
+
+func parseCustomFieldValues(args []string) (interface{}, error) {
+	var x int
+	for i, arg := range args {
+		if arg == "as" {
+			x = i
+			break
+		}
+	}
+	if x == 0 {
+		return nil, fmt.Errorf("as type directive not found")
+	}
+	if len(args[x:]) < 2 {
+		return nil, fmt.Errorf("as type directive is too short")
+	}
+	dt := strings.Join(args[x+1:], "_")
+	switch dt {
+	case "string_list", "list":
+		return args[:x], nil
+	case "string":
+		return args[x-1], nil
+	}
+	return nil, fmt.Errorf("unsupported %q data type", dt)
 }
