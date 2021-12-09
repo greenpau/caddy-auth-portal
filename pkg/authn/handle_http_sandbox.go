@@ -297,8 +297,9 @@ func (p *Authenticator) nextSandboxCheckpoint(r *http.Request, rr *requests.Requ
 					uniConfigured = true
 				}
 			}
+
 			switch {
-			case !configured:
+			case !configured && (action == ""):
 				m["title"] = "Token Registration"
 				m["view"] = "mfa_mixed_register"
 				m["action"] = "register"
