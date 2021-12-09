@@ -62,7 +62,7 @@ func TestFactory(t *testing.T) {
 					"authp/editor",
 				},
 				"challenges": []string{
-					"require mfa",
+					"mfa",
 				},
 			},
 		},

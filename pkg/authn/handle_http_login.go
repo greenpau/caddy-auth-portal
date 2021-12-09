@@ -193,7 +193,7 @@ func (p *Authenticator) injectUserChallenges(usr *user.User, data map[string]int
 				}
 			}
 		default:
-			return fmt.Errorf("")
+			return fmt.Errorf("malformed challenges")
 		}
 	}
 

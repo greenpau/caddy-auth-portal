@@ -133,7 +133,7 @@ func (f *Factory) Transform(m map[string]interface{}) error {
 			case "block", "deny":
 				return fmt.Errorf("transformer action is block/deny")
 			case "require":
-				challenges = append(challenges, cfgutils.EncodeArgs(args))
+				challenges = append(challenges, cfgutils.EncodeArgs(args[1:]))
 			case "link":
 				frontendLinks = append(frontendLinks, cfgutils.EncodeArgs(args[1:]))
 			default:
