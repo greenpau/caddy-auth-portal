@@ -77,7 +77,9 @@ const (
 	ErrBackendLdapAuthFailed                   StandardError = "LDAP authentication failed: %v"
 
 	// Generic Errors.
-	ErrBackendRequest StandardError = "%s failed: %v"
+	ErrBackendRequest   StandardError = "%s failed: %v"
+	ErrBasicAuthFailed  StandardError = "basic authentication failed"
+	ErrAPIKeyAuthFailed StandardError = "api key authentication failed"
 
 	// Config Errors.
 	ErrBackendConfigureEmptyConfig       StandardError = "backend configuration is empty"

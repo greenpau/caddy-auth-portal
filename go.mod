@@ -10,7 +10,7 @@ require (
 	github.com/google/go-cmp v0.5.6
 	github.com/greenpau/caddy-authorize v1.3.22
 	github.com/greenpau/caddy-trace v1.1.8
-	github.com/greenpau/go-identity v1.1.4
+	github.com/greenpau/go-identity v1.1.5
 	github.com/iancoleman/strcase v0.2.0
 	github.com/satori/go.uuid v1.2.0
 	github.com/skip2/go-qrcode v0.0.0-20200617195104-da1b6568686e

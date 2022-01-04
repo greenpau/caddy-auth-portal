@@ -117,8 +117,12 @@ func (p *Authenticator) handleHTTPSettings(ctx context.Context, w http.ResponseW
 		if err := p.handleHTTPMfaSettings(ctx, r, rr, usr, backend, resp.Data); err != nil {
 			return p.handleHTTPError(ctx, w, r, rr, http.StatusBadRequest)
 		}
+	case strings.HasPrefix(endpoint, "/connected"):
+		resp.Data["view"] = "connected"
 	default:
-		resp.Data["view"] = "general"
+		if err := p.handleHTTPGeneralSettings(ctx, r, rr, usr, backend, resp.Data); err != nil {
+			return p.handleHTTPError(ctx, w, r, rr, http.StatusBadRequest)
+		}
 	}
 	content, err := p.ui.Render("settings", resp)
 	if err != nil {

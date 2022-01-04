@@ -82,8 +82,14 @@ func (b *Backend) Request(op operator.Type, r *requests.Request) error {
 		return b.authenticator.AddMfaToken(r)
 	case operator.DeleteMfaToken:
 		return b.authenticator.DeleteMfaToken(r)
+	case operator.AddAPIKey:
+		return b.authenticator.AddAPIKey(r)
+	case operator.DeleteAPIKey:
+		return b.authenticator.DeleteAPIKey(r)
 	case operator.GetPublicKeys:
 		return b.authenticator.GetPublicKeys(r)
+	case operator.GetAPIKeys:
+		return b.authenticator.GetAPIKeys(r)
 	case operator.GetMfaTokens:
 		return b.authenticator.GetMfaTokens(r)
 	case operator.AddUser:

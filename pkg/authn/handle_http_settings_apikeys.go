@@ -17,10 +17,11 @@ package authn
 import (
 	"context"
 	"fmt"
-	"github.com/greenpau/caddy-authorize/pkg/user"
 	"github.com/greenpau/caddy-auth-portal/pkg/backends"
 	"github.com/greenpau/caddy-auth-portal/pkg/enums/operator"
+	"github.com/greenpau/caddy-authorize/pkg/user"
 	// "github.com/greenpau/caddy-auth-portal/pkg/utils"
+	"github.com/greenpau/go-identity"
 	"github.com/greenpau/go-identity/pkg/requests"
 	// "go.uber.org/zap"
 	"net/http"
@@ -42,37 +43,47 @@ func (p *Authenticator) handleHTTPAPIKeysSettings(
 	switch {
 	case strings.HasPrefix(endpoint, "/add") && r.Method == "POST":
 		action = "add"
-		data["status"] = "FAIL"
-		rr.User.Username = usr.Claims.Subject
-		rr.User.Email = usr.Claims.Email
-		if err = backend.Request(operator.AddAPIKey, rr); err != nil {
-			data["status_reason"] = fmt.Sprintf("%v", err)
+		status = true
+		if err := validateAPIKeyInputForm(r, rr); err != nil {
+			attachFailStatus(data, "Bad Request")
 			break
 		}
-		data["status"] = "SUCCESS"
-		data["status_reason"] = "API key has been added"
+		rr.Key.Usage = "api"
+		if err = backend.Request(operator.AddAPIKey, rr); err != nil {
+			attachFailStatus(data, fmt.Sprintf("%v", err))
+			break
+		}
+		data["api_key"] = rr.Response.Payload.(string)
+		attachSuccessStatus(data, "New API key has been added")
 	case strings.HasPrefix(endpoint, "/add"):
 		action = "add"
-		status = true
-	case strings.HasPrefix(endpoint, "/delete") && r.Method == "POST":
-		action = "delete"
-		data["status"] = "FAIL"
-		keyID, _ := getEndpoint(endpoint, "/delete")
-		rr.User.Username = usr.Claims.Subject
-		rr.User.Email = usr.Claims.Email
-		rr.Query.ID = keyID
-		if err = backend.Request(operator.DeleteAPIKey, rr); err != nil {
-			data["status_reason"] = fmt.Sprintf("%v", err)
-			break
-		}
-		data["status"] = "SUCCESS"
-		data["status_reason"] = "API key has been deleted"
 	case strings.HasPrefix(endpoint, "/delete"):
 		action = "delete"
 		status = true
-	case strings.HasPrefix(endpoint, "/view"):
-		action = "view"
-		// TODO(greenpau): add listing
+		keyID, err := getEndpointKeyID(endpoint, "/delete/")
+		if err != nil {
+			attachFailStatus(data, fmt.Sprintf("%v", err))
+			break
+		}
+		rr.Key.ID = keyID
+		if err = backend.Request(operator.DeleteAPIKey, rr); err != nil {
+			attachFailStatus(data, fmt.Sprintf("failed deleting key id %s: %v", keyID, err))
+			break
+		}
+		attachSuccessStatus(data, fmt.Sprintf("key id %s deleted successfully", keyID))
+	default:
+		// List API Keys.
+		rr.Key.Usage = "api"
+		if err = backend.Request(operator.GetAPIKeys, rr); err != nil {
+			attachFailStatus(data, fmt.Sprintf("%v", err))
+			break
+		}
+		bundle := rr.Response.Payload.(*identity.APIKeyBundle)
+		pubKeys := bundle.Get()
+		if len(pubKeys) > 0 {
+			data[entrypoint] = pubKeys
+		}
+
 	}
 	attachView(data, entrypoint, action, status)
 	return nil

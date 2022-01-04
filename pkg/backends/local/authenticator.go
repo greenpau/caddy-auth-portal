@@ -142,6 +142,27 @@ func (sa *Authenticator) GetPublicKeys(r *requests.Request) error {
 	return sa.db.GetPublicKeys(r)
 }
 
+// AddAPIKey adds API key for a user.
+func (sa *Authenticator) AddAPIKey(r *requests.Request) error {
+	sa.mux.Lock()
+	defer sa.mux.Unlock()
+	return sa.db.AddAPIKey(r)
+}
+
+// DeleteAPIKey removes API key associated with the user.
+func (sa *Authenticator) DeleteAPIKey(r *requests.Request) error {
+	sa.mux.Lock()
+	defer sa.mux.Unlock()
+	return sa.db.DeleteAPIKey(r)
+}
+
+// GetAPIKeys returns a list of  API keys associated with a user.
+func (sa *Authenticator) GetAPIKeys(r *requests.Request) error {
+	sa.mux.Lock()
+	defer sa.mux.Unlock()
+	return sa.db.GetAPIKeys(r)
+}
+
 // AddMfaToken adds MFA token to a user.
 func (sa *Authenticator) AddMfaToken(r *requests.Request) error {
 	sa.mux.Lock()

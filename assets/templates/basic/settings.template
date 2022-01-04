@@ -21,6 +21,9 @@
     {{ if or (eq .Data.view "sshkeys-add") (eq .Data.view "gpgkeys-add") (eq .Data.view "sshkeys-view") (eq .Data.view "gpgkeys-view") }}
     <link rel="stylesheet" href="{{ pathjoin .ActionEndpoint "/assets/highlight.js/css/atom-one-dark.min.css" }}" />
     {{ end }}
+    {{ if or (eq .Data.view "apikeys-add") (eq .Data.view "apikeys-add-status") }}
+    <link rel="stylesheet" href="{{ pathjoin .ActionEndpoint "/assets/highlight.js/css/atom-one-dark.min.css" }}" />
+    {{ end }}
     <link rel="stylesheet" href="{{ pathjoin .ActionEndpoint "/assets/css/styles.css" }}" />
     {{ if eq .Data.ui_options.custom_css_required "yes" }}
     <link rel="stylesheet" href="{{ pathjoin .ActionEndpoint "/assets/css/custom.css" }}" />
@@ -68,14 +71,31 @@
             <a href="{{ pathjoin .ActionEndpoint "/settings/apikeys" }}" class="collection-item{{ if eq .Data.view "apikeys" }} active{{ end }}">API Keys</a>
             <a href="{{ pathjoin .ActionEndpoint "/settings/mfa" }}" class="collection-item{{ if eq .Data.view "mfa" }} active{{ end }}">MFA</a>
             <a href="{{ pathjoin .ActionEndpoint "/settings/password" }}" class="collection-item{{ if eq .Data.view "password" }} active{{ end }}">Password</a>
-            <a href="{{ pathjoin .ActionEndpoint "/settings/misc" }}" class="collection-item{{ if eq .Data.view "misc" }} active{{ end }}">Miscellaneous</a>
+            <a href="{{ pathjoin .ActionEndpoint "/settings/connected" }}" class="collection-item{{ if eq .Data.view "connected" }} active{{ end }}">Connected Accounts</a>
             <a href="{{ pathjoin .ActionEndpoint "/portal" }}" class="hide-on-med-and-up collection-item">Portal</a>
             <a href="{{ pathjoin .ActionEndpoint "/logout" }}" class="hide-on-med-and-up collection-item">Logout</a>
           </div>
         </div>
         <div class="col s12 l9 app-content">
           {{ if eq .Data.view "general" }}
-            <p>The {{ .Data.view }} view is under construction.</p>
+          <div class="row">
+            <div class="col s12">
+            {{ if eq .Data.status "SUCCESS" }}
+            <p>
+            <b>ID</b>: {{ .Data.metadata.ID }}<br/>
+            {{ if .Data.metadata.Name }}<b>Name</b>: {{ .Data.metadata.Name }}<br/>{{ end }}
+            {{ if .Data.metadata.Title }}<b>Title</b>: {{ .Data.metadata.Title }}<br/>{{ end }}
+            <b>Username</b>: {{ .Data.metadata.Username }}<br/>
+            <b>Email</b>: {{ .Data.metadata.Email }}<br/>
+            <b>Created</b>: {{ .Data.metadata.Created }}<br/>
+            <b>LastModified</b>: {{ .Data.metadata.LastModified }}<br/>
+            <b>Revision</b>: {{ .Data.metadata.Revision }}
+            </p>
+            {{ else }}
+            <p>{{.Data.status }}: {{ .Data.status_reason }}</p>
+            {{ end }}
+            </div>
+          </div>
           {{ end }}
           {{ if eq .Data.view "sshkeys" }}
           <div class="row right">
@@ -306,8 +326,8 @@
           </div>
           {{ end }}
           {{ if eq .Data.view "apikeys" }}
-          <div class="row">
-            <div class="col s12">
+          <div class="row right">
+            <div class="col s12 right">
               <a href="{{ pathjoin .ActionEndpoint "/settings/apikeys/add" }}">
                 <button type="button" class="btn waves-effect waves-light navbtn active app-btn">
                   <i class="las la-key left app-btn-icon"></i>
@@ -318,14 +338,81 @@
           </div>
           <div class="row">
             <div class="col s12">
-            {{ if .Data.api_keys }}
-              <p>List of registered API Keys</p>
+            {{ if .Data.apikeys }}
+              {{range .Data.apikeys}}
+              <div class="card">
+                <div class="card-content">
+                  <span class="card-title">{{ .Comment }}</span>
+                  <p>
+                    <b>ID</b>: {{ .ID }}<br/>
+                    <b>Created At</b>: {{ .CreatedAt }}
+                  </p>
+                </div>
+                <div class="card-action">
+                  <a href="{{ pathjoin $.ActionEndpoint "/settings/apikeys/delete" .ID }}">Delete</a>
+                </div>
+              </div>
+              {{ end }}
             {{ else }}
               <p>No registered API Keys found</p>
             {{ end }}
             </div>
           </div>
           {{ end }}
+          {{ if eq .Data.view "apikeys-add" }}
+            <form action="{{ pathjoin .ActionEndpoint "/settings/apikeys/add" }}" method="POST">
+              <div class="row">
+                <div class="col s12">
+                  <h1>Add API Key</h1>
+                  <p>Please provide a nickname to identify your new API key.</p>
+                  <div class="input-field">
+                    <input placeholder="Comment" name="comment1" id="comment1" type="text" autocorrect="off" autocapitalize="off" autocomplete="off" class="validate">
+                  </div>
+                  <div class="right">
+                    <button type="submit" name="submit" class="btn waves-effect waves-light navbtn active navbtn-last app-btn">
+                      <i class="las la-plus-circle left app-btn-icon"></i>
+                      <span class="app-btn-text">Add API Key</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </form>
+          {{ end }}
+          {{ if eq .Data.view "apikeys-add-status" }}
+          <div class="row">
+            <div class="col s12">
+              <h1>API Key</h1>
+              {{ if eq .Data.status "SUCCESS" }}
+              <p>Keep this key secret!</p>
+              <pre><code class="language-text hljs">{{ .Data.api_key }}</code></pre>
+              {{ else }}
+              <p>{{.Data.status }}: {{ .Data.status_reason }}</p>
+              {{ end }}
+              <a href="{{ pathjoin .ActionEndpoint "/settings/apikeys" }}">
+                <button type="button" class="btn waves-effect waves-light navbtn active">
+                  <i class="las la-undo-alt left app-btn-icon"></i>
+                  <span class="app-btn-text">Go Back</span>
+                </button>
+              </a>
+            </div>
+          </div>
+          {{ end }}
+          {{ if eq .Data.view "apikeys-delete-status" }}
+          <div class="row">
+            <div class="col s12">
+            <h1>API Key</h1>
+            <p>{{.Data.status }}: {{ .Data.status_reason }}</p>
+            <a href="{{ pathjoin .ActionEndpoint "/settings/apikeys" }}">
+              <button type="button" class="btn waves-effect waves-light navbtn active">
+                <i class="las la-undo-alt left app-btn-icon"></i>
+                <span class="app-btn-text">Go Back</span>
+              </button>
+            </a>
+            </div>
+          </div>
+          {{ end }}
+
+
           {{ if eq .Data.view "mfa" }}
           <div class="row right">
             <div class="col s12 right">
@@ -716,10 +803,10 @@
             </div>
           </div>
           {{ end }}
-          {{ if eq .Data.view "misc" }}
+          {{ if eq .Data.view "connected" }}
           <div class="row">
             <div class="col s12">
-            <p>The {{ .Data.view }} view is under construction.</p>
+            <p>No connected accounts found.</p>
             </div>
           </div>
           {{ end }}
@@ -730,6 +817,11 @@
     <!-- Optional JavaScript -->
     <script src="{{ pathjoin .ActionEndpoint "/assets/materialize-css/js/materialize.js" }}"></script>
     {{ if or (eq .Data.view "sshkeys-add") (eq .Data.view "gpgkeys-add") (eq .Data.view "sshkeys-view") (eq .Data.view "gpgkeys-view") }}
+    <script src="{{ pathjoin .ActionEndpoint "/assets/highlight.js/js/highlight.js" }}"></script>
+    <script src="{{ pathjoin .ActionEndpoint "/assets/highlight.js/js/languages/json.min.js" }}"></script>
+    <script src="{{ pathjoin .ActionEndpoint "/assets/highlight.js/js/languages/plaintext.min.js" }}"></script>
+    {{ end }}
+    {{ if or (eq .Data.view "apikeys-add") (eq .Data.view "apikeys-add-status") }}
     <script src="{{ pathjoin .ActionEndpoint "/assets/highlight.js/js/highlight.js" }}"></script>
     <script src="{{ pathjoin .ActionEndpoint "/assets/highlight.js/js/languages/json.min.js" }}"></script>
     <script src="{{ pathjoin .ActionEndpoint "/assets/highlight.js/js/languages/plaintext.min.js" }}"></script>
@@ -751,6 +843,11 @@
     <script src="{{ pathjoin .ActionEndpoint "/assets/js/mfa_test_u2f.js" }}"></script>
     {{ end }}
     {{ if or (eq .Data.view "sshkeys-add") (eq .Data.view "gpgkeys-add") (eq .Data.view "sshkeys-view") (eq .Data.view "gpgkeys-view") }}
+    <script>
+    hljs.initHighlightingOnLoad();
+    </script>
+    {{ end }}
+    {{ if or (eq .Data.view "apikeys-add") (eq .Data.view "apikeys-add-status") }}
     <script>
     hljs.initHighlightingOnLoad();
     </script>

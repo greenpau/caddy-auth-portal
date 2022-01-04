@@ -474,8 +474,8 @@ github.com/greenpau/caddy-authorize v1.3.22 h1:s8++SpLP19PnurYWDEGHDcF+PHMOh/grg
 github.com/greenpau/caddy-authorize v1.3.22/go.mod h1:5GkgGN4ydRbe7KIFr6hLI9/TBKEhMNdzTp5Pn7Dcgvk=
 github.com/greenpau/caddy-trace v1.1.8 h1:Hi5vBKCzUS9XKjjy5TGzjr+tQef0NvPE+8lzVs3Uvsw=
 github.com/greenpau/caddy-trace v1.1.8/go.mod h1:4xuSCy62odDXjEwaPEySpQqM1kWeOS7AXtMAwbFoxwQ=
-github.com/greenpau/go-identity v1.1.4 h1:6CSvC6SqBeh/hPnm/ZG76+P2Tb57tfGaZMFUwN68OGs=
-github.com/greenpau/go-identity v1.1.4/go.mod h1:GoPAUd1RY5BZ/cPBXnnWKtlgEfHlXF2HzI92N5UfwiA=
+github.com/greenpau/go-identity v1.1.5 h1:TmQWyVxH8+SIVolhmmNDz0ahHSKDIUv7lhPWmr7oNCw=
+github.com/greenpau/go-identity v1.1.5/go.mod h1:GoPAUd1RY5BZ/cPBXnnWKtlgEfHlXF2HzI92N5UfwiA=
 github.com/greenpau/versioned v1.0.26 h1:2zvHamwlNITy2MXexYPsICm1sawPnCwRx7zB3VIjQRo=
 github.com/greenpau/versioned v1.0.26/go.mod h1:rtFCvaWWNbMH4CJnje/xicgmrM63j++rUh5juSu0k/A=
 github.com/gregjones/httpcache v0.0.0-20180305231024-9cad4c3443a7/go.mod h1:FecbI9+v66THATjSRHfNgh1IVFe/9kFxbXtjV0ctIMA=
