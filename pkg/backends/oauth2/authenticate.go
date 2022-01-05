@@ -17,7 +17,6 @@ package oauth2
 import (
 	//"encoding/base64"
 	"encoding/json"
-
 	"io/ioutil"
 	"net"
 	"net/http"
@@ -39,8 +38,8 @@ func (b *Backend) Authenticate(r *requests.Request) error {
 	reqPath := r.Upstream.BaseURL + path.Join(r.Upstream.BasePath, r.Upstream.Method, r.Upstream.Realm)
 	r.Response.Code = http.StatusBadRequest
 
-	var accessTokenExists, codeExists, stateExists, errorExists bool
-	var reqParamsState, reqParamsCode, reqParamsError string
+	var accessTokenExists, codeExists, stateExists, errorExists, loginHintExists bool
+	var reqParamsState, reqParamsCode, reqParamsError, reqParamsLoginHint string
 	reqParams := r.Upstream.Request.URL.Query()
 	if _, exists := reqParams["access_token"]; exists {
 		accessTokenExists = true
@@ -56,6 +55,10 @@ func (b *Backend) Authenticate(r *requests.Request) error {
 	if _, exists := reqParams["error"]; exists {
 		errorExists = true
 		reqParamsError = reqParams["error"][0]
+	}
+	if _, exists := reqParams["login_hint"]; exists {
+		loginHintExists = true
+		reqParamsLoginHint = reqParams["login_hint"][0]
 	}
 
 	if stateExists || errorExists || codeExists || accessTokenExists {
@@ -166,9 +169,13 @@ func (b *Backend) Authenticate(r *requests.Request) error {
 	if !b.disableResponseType {
 		params.Set("response_type", "code")
 	}
+	if loginHintExists {
+		params.Set("login_hint", reqParamsLoginHint)
+	}
 	params.Set("client_id", b.Config.ClientID)
 
 	r.Response.RedirectURL = b.authorizationURL + "?" + params.Encode()
+
 	b.state.add(state, nonce)
 	b.logger.Debug(
 		"redirecting to OAuth 2.0 endpoint",
