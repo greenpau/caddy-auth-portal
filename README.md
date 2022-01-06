@@ -22,8 +22,6 @@ Please see other plugins:
 
 Download Caddy with the plugins enabled:
 
-* <a href="https://caddyserver.com/api/download?os=linux&arch=amd64&p=github.com%2Fgreenpau%2Fcaddy-auth-portal%40v1.4.36&p=github.com%2Fgreenpau%2Fcaddy-authorize%40v1.3.22&p=github.com%2Fgreenpau%2Fcaddy-trace%40v1.1.8" target="_blank">linux/amd64</a>
-* <a href="https://caddyserver.com/api/download?os=windows&arch=amd64&p=github.com%2Fgreenpau%2Fcaddy-auth-portal%40v1.4.36&p=github.com%2Fgreenpau%2Fcaddy-authorize%40v1.3.22&p=github.com%2Fgreenpau%2Fcaddy-trace%40v1.1.8" target="_blank">windows/amd64</a>
 
 <!-- begin-markdown-toc -->
 ## User Interface
@@ -95,3 +93,5 @@ Download Caddy with the plugins enabled:
 
 ![](https://raw.githubusercontent.com/authp/authp.github.io/main/docs/authenticate/images/authp_demo_17.png)
 
+* <a href="https://caddyserver.com/api/download?os=linux&arch=amd64&p=github.com%2Fgreenpau%2Fcaddy-auth-portal%40v1.4.37&p=github.com%2Fgreenpau%2Fcaddy-authorize%40v1.3.24&p=github.com%2Fgreenpau%2Fcaddy-trace%40v1.1.8" target="_blank">linux/amd64</a>
+* <a href="https://caddyserver.com/api/download?os=windows&arch=amd64&p=github.com%2Fgreenpau%2Fcaddy-auth-portal%40v1.4.37&p=github.com%2Fgreenpau%2Fcaddy-authorize%40v1.3.24&p=github.com%2Fgreenpau%2Fcaddy-trace%40v1.1.8" target="_blank">windows/amd64</a>
