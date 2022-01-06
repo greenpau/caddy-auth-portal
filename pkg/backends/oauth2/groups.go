@@ -52,8 +52,8 @@ func (b *Backend) fetchUserGroups(tokenData, userData map[string]interface{}) er
 
 	switch b.Config.Provider {
 	case "google":
-		userURL = "https://cloudidentity.googleapis.com/v1beta1/groups/-/memberships:getMembershipGraph?query="
-		userURL += url.QueryEscape("'cloudidentity.googleapis.com/groups.discussion_forum' in labels && member_key_id='" + userData["email"].(string) + "'")
+		userURL = "https://cloudidentity.googleapis.com/v1/groups/-/memberships:getMembershipGraph?query="
+		userURL += url.QueryEscape("'cloudidentity.googleapis.com/groups.discussion_forum' in labels && member_key_id=='" + userData["email"].(string) + "'")
 
 		req, err = http.NewRequest("GET", userURL, nil)
 		if err != nil {
