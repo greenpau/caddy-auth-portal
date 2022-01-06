@@ -124,6 +124,10 @@ func NewFactory(cfgs []*Config) (*Factory, error) {
 // Transform performs user data transformation.
 func (f *Factory) Transform(m map[string]interface{}) error {
 	var challenges, frontendLinks []string
+	if _, exists := m["email"]; exists {
+		m["mail"] = m["email"].(string)
+		delete(m, "email")
+	}
 	for _, transform := range f.transforms {
 		if matched := transform.matcher.Allow(context.Background(), m); !matched {
 			continue

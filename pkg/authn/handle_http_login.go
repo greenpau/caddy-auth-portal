@@ -454,7 +454,9 @@ func (p *Authenticator) transformUser(ctx context.Context, rr *requests.Request,
 	if p.transformer == nil {
 		return nil
 	}
-	m["realm"] = rr.Upstream.Realm
+	if rr.Upstream.Realm != "" {
+		m["realm"] = rr.Upstream.Realm
+	}
 	if err := p.transformer.Transform(m); err != nil {
 		p.logger.Warn(
 			"user transformation failed",

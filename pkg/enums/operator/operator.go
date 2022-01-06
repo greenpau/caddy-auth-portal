@@ -59,6 +59,9 @@ const (
 	// IdentifyUser operator signals the retrieval of user identity and
 	// associated challenges.
 	IdentifyUser
+	// LookupAPIKey operator signals the retrieval of user identity associated
+	// with an API key
+	LookupAPIKey
 )
 
 // String returns string representation of an operator.
@@ -100,6 +103,8 @@ func (e Type) String() string {
 		return "DeleteAPIKey"
 	case IdentifyUser:
 		return "IdentifyUser"
+	case LookupAPIKey:
+		return "LookupAPIKey"
 	}
 	return fmt.Sprintf("Type(%d)", int(e))
 }

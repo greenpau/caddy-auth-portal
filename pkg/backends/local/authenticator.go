@@ -190,3 +190,10 @@ func (sa *Authenticator) IdentifyUser(r *requests.Request) error {
 	defer sa.mux.Unlock()
 	return sa.db.IdentifyUser(r)
 }
+
+// LookupAPIKey performs user lookup based on an API key.
+func (sa *Authenticator) LookupAPIKey(r *requests.Request) error {
+	sa.mux.Lock()
+	defer sa.mux.Unlock()
+	return sa.db.LookupAPIKey(r)
+}

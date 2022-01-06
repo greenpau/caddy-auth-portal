@@ -100,6 +100,8 @@ func (b *Backend) Request(op operator.Type, r *requests.Request) error {
 		return b.authenticator.GetUser(r)
 	case operator.DeleteUser:
 		return b.authenticator.DeleteUser(r)
+	case operator.LookupAPIKey:
+		return b.authenticator.LookupAPIKey(r)
 	}
 
 	b.logger.Error(

@@ -17,6 +17,7 @@ package authn
 import (
 	"fmt"
 	"github.com/greenpau/caddy-auth-portal/pkg/errors"
+	"github.com/greenpau/caddy-authorize/pkg/shared/idp"
 	"go.uber.org/zap"
 )
 
@@ -46,6 +47,9 @@ func (mgr *InstanceManager) Register(m *Authenticator) error {
 		m.logger.Debug("Primary instance registration", zap.String("instance_name", m.Name))
 		mgr.PrimaryInstances[m.Context] = m
 		mgr.Members[m.Name] = m
+		if err := idp.Catalog.Register(m.Context, m); err != nil {
+			return err
+		}
 	default:
 		// This is BootstrapSecondary.
 		m.logger.Debug("Non-primary instance registration", zap.String("instance_name", m.Name))
