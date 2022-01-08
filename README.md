@@ -21,7 +21,14 @@ Please see other plugins:
 * [caddy-systemd](https://github.com/greenpau/caddy-systemd)
 
 Download Caddy with the plugins enabled:
+* <a href="https://caddyserver.com/api/download?os=windows&arch=amd64&p=github.com%2Fgreenpau%2Fcaddy-auth-portal%40v1.4.38&p=github.com%2Fgreenpau%2Fcaddy-authorize%40v1.3.24&p=github.com%2Fgreenpau%2Fcaddy-trace%40v1.1.8" target="_blank">windows/amd64</a>
+* <a href="https://caddyserver.com/api/download?os=linux&arch=amd64&p=github.com%2Fgreenpau%2Fcaddy-auth-portal%40v1.4.38&p=github.com%2Fgreenpau%2Fcaddy-authorize%40v1.3.24&p=github.com%2Fgreenpau%2Fcaddy-trace%40v1.1.8" target="_blank">linux/amd64</a>
 
+## Getting Started
+
+* **Setting Up Local Authentication**: [Video](https://www.youtube.com/watch?v=k8tbbffMGZk)
+  and [Config Gist](https://gist.github.com/greenpau/dbfadd3c9fee21dbb0a0d3902a8d0ec0)
+* **Login with App Authenticator and Yubico U2F**: [Video](https://youtu.be/poOkq_jb1B0)
 
 <!-- begin-markdown-toc -->
 ## User Interface
@@ -93,5 +100,3 @@ Download Caddy with the plugins enabled:
 
 ![](https://raw.githubusercontent.com/authp/authp.github.io/main/docs/authenticate/images/authp_demo_17.png)
 
-* <a href="https://caddyserver.com/api/download?os=linux&arch=amd64&p=github.com%2Fgreenpau%2Fcaddy-auth-portal%40v1.4.38&p=github.com%2Fgreenpau%2Fcaddy-authorize%40v1.3.24&p=github.com%2Fgreenpau%2Fcaddy-trace%40v1.1.8" target="_blank">linux/amd64</a>
-* <a href="https://caddyserver.com/api/download?os=windows&arch=amd64&p=github.com%2Fgreenpau%2Fcaddy-auth-portal%40v1.4.38&p=github.com%2Fgreenpau%2Fcaddy-authorize%40v1.3.24&p=github.com%2Fgreenpau%2Fcaddy-trace%40v1.1.8" target="_blank">windows/amd64</a>
