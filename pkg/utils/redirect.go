@@ -16,6 +16,7 @@ package utils
 
 import (
 	"net/http"
+	urlpkg "net/url"
 	"strings"
 )
 
@@ -97,4 +98,16 @@ func GetCurrentBaseURL(r *http.Request) string {
 	}
 
 	return redirectBaseURL
+}
+
+// StripQueryParam removes a specific query parameter from a URL.
+func StripQueryParam(url string, param string) string {
+	u, err := urlpkg.Parse(url)
+	if err != nil {
+		return url
+	}
+	q := u.Query()
+	q.Del(param)
+	u.RawQuery = q.Encode()
+	return u.String()
 }
