@@ -222,7 +222,7 @@ func (p *Authenticator) injectRedirectURL(ctx context.Context, w http.ResponseWr
 	if r.Method == "GET" {
 		q := r.URL.Query()
 		if redirectURL, exists := q["redirect_url"]; exists {
-			c := p.cookie.GetCookie(p.cookie.Referer, redirectURL[0])
+			c := p.cookie.GetCookie(p.cookie.Referer, utils.StripQueryParam(redirectURL[0], "login_hint"))
 			p.logger.Debug(
 				"redirect recorded",
 				zap.String("session_id", rr.Upstream.SessionID),
