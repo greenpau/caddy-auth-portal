@@ -21,22 +21,36 @@ import (
 
 func TestStripQueryParam(t *testing.T) {
 
-	t.Run("removes a specific query param from a URL", func(t *testing.T) {
-		originalURL := "https://foo.bar/myPage?param1=value&param2=otherValue"
-		alteredURL := StripQueryParam(originalURL, "param2")
-		tests.EvalObjectsWithLog(t, "stripped url", "https://foo.bar/myPage?param1=value", alteredURL, []string{})
-	})
+	var testcases = []struct {
+		name  string
+		url   string
+		param string
+		want  string
+	}{
+		{
+			name:  "removes a specific query param from a URL",
+			url:   "https://foo.bar/myPage?param1=value&param2=otherValue",
+			param: "param2",
+			want:  "https://foo.bar/myPage?param1=value",
+		},
+		{
+			name:  "returns original URL if URL cannot be parsed",
+			url:   "glibberish",
+			param: "myParam",
+			want:  "glibberish",
+		},
+		{
+			name:  "returns original URL if param does not exist in URL",
+			url:   "https://foo.bar/myPage?param1=value",
+			param: "myParam",
+			want:  "https://foo.bar/myPage?param1=value",
+		},
+	}
 
-	t.Run("returns original URL if URL cannot be parsed", func(t *testing.T) {
-		originalURL := "glibberish"
-		alteredURL := StripQueryParam(originalURL, "myParam")
-		tests.EvalObjectsWithLog(t, "stripped url", originalURL, alteredURL, []string{})
-	})
-
-	t.Run("returns original URL if param does not exist in URL", func(t *testing.T) {
-		originalURL := "https://foo.bar/myPage?param1=value"
-		alteredURL := StripQueryParam(originalURL, "myParam")
-		tests.EvalObjectsWithLog(t, "stripped url", originalURL, alteredURL, []string{})
-	})
-
+	for _, tc := range testcases {
+		t.Run(tc.name, func(t *testing.T) {
+			alteredURL := StripQueryParam(tc.url, tc.param)
+			tests.EvalObjectsWithLog(t, "stripped url", tc.want, alteredURL, []string{})
+		})
+	}
 }
