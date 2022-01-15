@@ -66,6 +66,19 @@ type Config struct {
 	// The regex filters for user orgs extracted via IdP API.
 	UserOrgFilters []string `json:"user_org_filters,omitempty"`
 
+	// Disabled metadata discovery via public metadata URL.
+	MetadataDiscoveryDisabled bool `json:"metadata_discovery_disabled,omitempty"`
+
+	KeyVerificationDisabled bool `json:"key_verification_disabled,omitempty"`
+	PassGrantTypeDisabled   bool `json:"pass_grant_type_disabled,omitempty"`
+	ResponseTypeDisabled    bool `json:"response_type_disabled,omitempty"`
+	NonceDisabled           bool `json:"nonce_disabled,omitempty"`
+	AcceptHeaderEnabled     bool `json:"accept_header_enabled,omitempty"`
+
+	AuthorizationURL string `json:"authorization_url,omitempty"`
+
+	TokenURL string `json:"token_url,omitempty"`
+
 	scopeMap map[string]interface{}
 }
 
@@ -133,6 +146,29 @@ func (b *Backend) Configure() error {
 		default:
 			b.Config.Scopes = []string{"openid", "email", "profile"}
 		}
+	}
+
+	if b.Config.KeyVerificationDisabled {
+		b.disableKeyVerification = true
+	}
+	if b.Config.PassGrantTypeDisabled {
+		b.disablePassGrantType = true
+	}
+	if b.Config.ResponseTypeDisabled {
+		b.disableResponseType = true
+	}
+	if b.Config.NonceDisabled {
+		b.disableNonce = true
+	}
+	if b.Config.AcceptHeaderEnabled {
+		b.enableAcceptHeader = true
+	}
+
+	if b.Config.AuthorizationURL != "" {
+		b.authorizationURL = b.Config.AuthorizationURL
+	}
+	if b.Config.TokenURL != "" {
+		b.tokenURL = b.Config.TokenURL
 	}
 
 	b.Config.scopeMap = make(map[string]interface{})
@@ -217,6 +253,10 @@ func (b *Backend) Configure() error {
 		b.requiredTokenFields = map[string]interface{}{
 			"access_token": true,
 		}
+	case "nextcloud":
+		b.authorizationURL = fmt.Sprintf("%s/apps/oauth2/authorize", b.Config.BaseAuthURL)
+		b.tokenURL = fmt.Sprintf("%s/apps/oauth2/api/v1/token", b.Config.BaseAuthURL)
+		b.disableKeyVerification = true
 	case "generic":
 	case "":
 		return errors.ErrBackendOauthProviderNotFound.WithArgs(b.Config.Provider)

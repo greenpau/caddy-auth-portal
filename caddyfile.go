@@ -65,6 +65,9 @@ func init() {
 //           client_id <client_id>
 //           client_secret <client_secret>
 //           scopes openid email profile
+//           disable metadata_discovery
+//           authorization_url <authorization_url>
+//           disable key_verification
 //         }
 //
 //         gitlab_backend {
@@ -374,7 +377,7 @@ func parseCaddyfileAuthenticator(h httpcaddyfile.Helper) (*authn.Authenticator, 
 						case "idp_metadata_location", "idp_sign_cert_location", "tenant_id",
 							"application_id", "application_name", "entity_id", "domain_name",
 							"client_id", "client_secret", "server_id", "base_auth_url", "metadata_url",
-							"identity_token_name":
+							"identity_token_name", "authorization_url", "token_url":
 							if !h.NextArg() {
 								return backendValueErr(h, backendName, backendArg)
 							}
@@ -404,6 +407,26 @@ func parseCaddyfileAuthenticator(h httpcaddyfile.Helper) (*authn.Authenticator, 
 								return backendValueConversionErr(h, backendName, backendArg, backendVal, err)
 							}
 							cfg[backendArg] = i
+						case "disable":
+							backendVal := strings.Join(h.RemainingArgs(), "_")
+							switch backendVal {
+							case "metadata_discovery":
+							case "key_verification":
+							case "pass_grant_type":
+							case "response_type":
+							case "nonce":
+							default:
+								return backendPropErr(h, backendName, backendArg, backendVal, "is unsupported")
+							}
+							cfg[backendVal+"_disabled"] = true
+						case "enable":
+							backendVal := strings.Join(h.RemainingArgs(), "_")
+							switch backendVal {
+							case "accept_header":
+							default:
+								return backendPropErr(h, backendName, backendArg, backendVal, "is unsupported")
+							}
+							cfg[backendVal+"_enabled"] = true
 						default:
 							return backendUnsupportedValueErr(h, backendName, backendArg)
 						}
