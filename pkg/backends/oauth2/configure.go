@@ -143,6 +143,8 @@ func (b *Backend) Configure() error {
 		switch b.Config.Provider {
 		case "facebook":
 			b.Config.Scopes = []string{"public_profile", "email"}
+		case "nextcloud":
+			b.Config.Scopes = []string{"email"}
 		default:
 			b.Config.Scopes = []string{"openid", "email", "profile"}
 		}
